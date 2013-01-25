@@ -19,7 +19,7 @@ def _sql2numpy(sqltype):
     if sqltype[0:4] == 'int8' or sqltype[0:6] == 'bigint' or sqltype[0:4] == 'long':
         return 'i8'
     if sqltype[0:7] == 'varchar':
-        return 'S{}'.format(sqltype.split('(')[1].split(')')[0])
+        return 'S{0}'.format(sqltype.split('(')[1].split(')')[0])
     if sqltype[0:8] == 'datetime':
         return 'S20'
     return 'S50'

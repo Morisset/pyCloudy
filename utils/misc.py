@@ -371,10 +371,11 @@ def cloudy2pyneb(file_ = 'pyneb2cloudy.txt'):
     f.close()
     dic = {}
     for line in lines:
-        line_py = sextract(line, 0, ' ')
-        line_cl = line[14:25].upper().replace(' ','_')
-        if line_cl != '_____ABSENT':
-            dic[line_cl] = line_py.split('_')
+        if line[0] != '#':
+            line_py = sextract(line, 0, ' ')
+            line_cl = line[14:25].upper().replace(' ','_').replace('.','')
+            if line_cl != '_____ABSENT':
+                dic[line_cl] = line_py.split('_')
     return dic
 
 def convert2RGB(im_R, im_G, im_B):
