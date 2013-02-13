@@ -124,9 +124,12 @@ class MdB(object):
             cursor = self._cursor_tuple
         try:
             N = cursor.execute(command)
-            res = cursor.fetchall()
         except:
             self.log_.error('Error on executing {0}'.format(command), calling = self.calling)
+        try:
+            res = cursor.fetchall()
+        except:
+            self.log_.error('Error on reading result of {0}'.format(command), calling = self.calling)
         return res, N
             
     def select_dB(self, select_ = '*', from_ = 'OVN.tab1', where_ = None, order_ = None, group_ = None, limit_ = 1,
