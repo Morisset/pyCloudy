@@ -1522,6 +1522,16 @@ class CloudyModel(object):
     
 ## @include copyright.txt
 def load_models(model_name = None, mod_list = None, n_sample = None, verbose = False, **kwargs):
+    """
+    Return a list of CloudyModel correspondig to a generic name
+    
+    Parameters:
+        - model_name:    generic name. The method is looking for any "model_name*.out" file.
+        - mod_list:    in case model_name=None, this is the list of model names (something.out)
+        - n_sample:    randomly select n_sample from the model list
+        - verbose:    print out the name of the models read
+        - **kwargs:    arguments passed to CloudyModel
+    """
     
     if model_name is not None:
         mod_list = glob.glob(model_name + '*.out') 
@@ -1530,7 +1540,8 @@ def load_models(model_name = None, mod_list = None, n_sample = None, verbose = F
         return None
     if n_sample is not None:
         if n_sample > len(mod_list):
-            pc.log_.error('less models {0:d} than n_sample {1:d}'.format(len(mod_list), n_sample), calling = 'load models')
+            pc.log_.error('less models {0:d} than n_sample {1:d}'.format(len(mod_list), n_sample), 
+                          calling = 'load models')
             return None
         mod_list = random.sample(mod_list, n_sample)
     m = []
@@ -1551,6 +1562,7 @@ class CloudyInput(object):
     def __init__(self, model_name = None):
         """
         - model_name : name of the model. Used to name the input file and all the output files.
+        The other parameters of the model are set using the methods
         """
         self.log_ = pc.log_
         self.calling = 'CloudyInput'
@@ -1579,6 +1591,11 @@ class CloudyInput(object):
         self._save_list_grains = pc.config.SAVE_LIST_GRAINS
         
     def set_save_str(self, save = 'save'):
+        """
+        This determine if "save" (default) or "punch" is used in the input file
+        Parameter:
+            - save:    "save" (default) or "punch". If another value is sent, "save" is used.
+        """
         if save not in ['save', 'punch']:
             self.log_.warn('save_str must be "save" or "punch". Set to "save"', calling = self.calling)
             self.save_str = 'save'
@@ -1601,9 +1618,23 @@ class CloudyInput(object):
             self._radius = 'radius = {0:.3f} {1:.3f}'.format(r_in, r_out)
 
     def set_BB(self, Teff=None, lumi_unit=None, lumi_value=None):
+        """
+        Add a Black Body as SED.
+        Parameters:
+            - Teff: Effective temeprature, in K.
+            - lumi_unit:    a Cloudy unit for the luminosity (e.g 'q(H)', 'total luminosity', 'logU')
+            - lumi_value:    the value of the luminosity
+        """
         self.set_star(SED = 'Blackbody',  SED_params = Teff, lumi_unit = lumi_unit, lumi_value=lumi_value)
         
     def set_star(self, SED = None, SED_params = None, lumi_unit=None, lumi_value=None):
+        """
+        Add a table to the SED.
+        Parameters:
+            - SED:    The SED description, like "table Rauch"
+            - SED_params:    parameter(s) for the SED. May be a list or a tuple, of strings or floats
+                                or a simple string with everything in it.
+        """
         if SED is None:
             self._SEDs = []
         else:
@@ -1623,6 +1654,12 @@ class CloudyInput(object):
             self._SEDs.append((shape, lumi))
         
     def set_cste_density(self, dens = None, ff = None):
+        """
+        Set the density of the model to a constant value
+        Parameters:
+            - dens:    the density (in log(cm-3))
+            - ff:    filling factor (unused if None, default value)
+        """
         if dens is None:
             self._density = None
             self._filling_factor = None
@@ -1633,10 +1670,10 @@ class CloudyInput(object):
         
     def set_dlaw(self, dlaw_params, ff = None):
         """
-        dlaw_params may be: 
-            1.4
-            '1.4, 5.6, 7e45'
-            (1, 2, 4.5)
+        Define the user-define density law.
+        Parameters:
+            - dlaw_params may beof type: 1.4, '1.4, 5.6, 7e45' or (1, 2, 4.5)
+            - ff: filling factor
         """
         if type(dlaw_params) != type(()) and type(dlaw_params) != type([]):
             dlaw_params = [dlaw_params]
@@ -1651,10 +1688,10 @@ class CloudyInput(object):
 
     def set_fudge(self, fudge_params = None):
         """
-        fudge_params may be: 
-            1.4
-            '1.4, 5.6, 7e45'
-            (1, 2, 4.5)
+        Define a user-defined fudge parameter.
+        
+        Parameter:
+            - fudge_params: may be: 1.4, '1.4, 5.6, 7e45' or (1, 2, 4.5)
         """
         if fudge_params is None:
             self._fudge = None
@@ -1664,6 +1701,9 @@ class CloudyInput(object):
         self._fudge = 'fudge factors ' + ' , '.join([str(fudge_param) for fudge_param in fudge_params])
 
     def set_sphere(self, sphere = True):
+        """
+        Set the sphere parameter if True, unset it otherwise. 
+        """
         if sphere:
             self._input['sphere'] = 'sphere'
         else:
@@ -1671,6 +1711,13 @@ class CloudyInput(object):
                 del self._input['sphere']
             
     def set_iterate(self, n_iter = None):
+        """
+        Set the iterate parameter.
+        Parameter:
+            - n_iter: If None, set the iterate parameter to "iterate" in the Cloudy input file,
+                if ==0, unset the iterate (nothing will be printed), otherwise set iterate to the
+                value of n_iter.
+        """
         if n_iter is None:
             self._input['iterate'] = 'iterate'
         elif n_iter == 0:
@@ -1680,12 +1727,23 @@ class CloudyInput(object):
             self._input['iterate'] = 'iterate {0:d}'.format(n_iter)
 
     def set_grains(self, grains = None):
+        """
+        Append grains to the list.
+        Parameter:
+            - grains:    if None, reset the grains list, otherwise append the value of the parameter to the list.
+        """
         if grains is None:
             self._grains = []
         else:
             self._grains.append(grains)  
     
     def set_stop(self, stop_criter = None):
+        """
+        Append a stopping criterium to the list.
+        Parameters:
+            - stop:    if None, the list is reset, otherwise the value of the parameter is append to the list
+                may be a list or a tuple of criteria.
+        """
         if stop_criter is None:
             self._stop = []
         else:
@@ -1696,35 +1754,67 @@ class CloudyInput(object):
                 self._stop.append(stop_criter)
     
     def read_emis_file(self, emis_file):
+        """
+        Define the name of the file containing the labels for the list of emissivities to output
+            in the .emis file
+        """
         self._emis_tab = []
-        ##
-        # @todo verify existence of the file
-        with open(emis_file, 'r') as f:
-            self._emis_tab = [row[0:12] for row in f]
-    
+        try:
+            with open(emis_file, 'r') as f:
+                self._emis_tab = [row[0:12] for row in f]
+        except:
+            pc.log_.warn('File {0} for emis lines not accesible'.format(emis_file))
+            
     def set_emis_tab(self, emis_tab_str = None):
+        """
+        Accept a list of line labels that will be used as:
+        
+        save last lines emissivity ".emis"
+            *** enumeration of the elements of the list ***
+        end of lines
+
+        """
         if emis_tab_str is None:
             self._emis_tab = []
         self._emis_tab = emis_tab_str
             
     def import_file(self, file_ = None):
-        ##
-        # @todo verify existence of the file
+        """
+        Import a file that will be append to the input file.
+        """
         if file_ is None:
             self._imported = []
             return None
-        with open(file_) as f:
-            self._imported = f.readlines()
+        try:
+            with open(file_) as f:
+                self._imported = f.readlines()
+        except:
+            pc.log_.warn('File {0} for not accesible'.format(import_file))
             
-    def set_line_file(self, line_file = None):
+    def set_line_file(self, line_file = None, absolute=False):
+        """
+        Set a file name containing a list of lines.
+        Is used in the input file as: 
+        save last linelist ".lin" "***line_file***"
+        """
         ##
         # @todo verify existence of the file
+        self.line_file_absolute = absolute
         if line_file is None:
             self._line_file = None
             return None
-        self._line_file = line_file
+        try:
+            f = open(line_file, 'r')
+            f.close()
+            self._line_file = line_file
+        except:
+            self._line_file = None
+            pc.log_.warn('File {0} for intensity lines not accesible'.format(import_file))
 
     def set_theta_phi(self, theta = None, phi = None):
+        """
+        Set the values of the theta and phi angles for the 3D models
+        """
         if theta is None and phi is None:
             if 'theta' in self._input:
                 del self._input['theta']
@@ -1740,9 +1830,11 @@ class CloudyInput(object):
     def set_abund(self, predef = None, elem = None, value = None, nograins = True, ab_dict = None):
         """
         Defines the abundances.
-        - predef : one of the Cloudy predefined abundances (e.g. "ism", "hii region")
-        - elem and value: used to set one abundance, e.g, elem = 'O', value = -4.5
-        - ab_dict: dictionnary of elem and values.
+        Parameters:
+            - predef : one of the Cloudy predefined abundances (e.g. "ism", "hii region")
+            - elem and value: used to set one abundance, e.g, elem = 'O', value = -4.5
+            - nograins: Boolean value
+            - ab_dict: dictionnary of elem and values.
         """
         if predef is None and elem is None and ab_dict is None:
             self._abund = {}
@@ -1762,6 +1854,11 @@ class CloudyInput(object):
             self._nograins = nograins
             
     def set_other(self, other_str = None):
+        """
+        Define any other command line to be added to the Cloudy input file
+        Parameter:
+            - other_str: if None, reset the list, otherwise, append its value to the list
+        """
         if other_str is None:
             self._input = {}
             self._other_cnt = 0
@@ -1775,6 +1872,12 @@ class CloudyInput(object):
                 self._input['other_{0:d}'.format(self._other_cnt)] = other_str
         
     def set_comment(self, comment = None):
+        """
+        Add special comment that will be added in the input file in the form of: C ** comment
+         Parameter:
+            - comment: if None, reset the list, otherwise, append its value to the list
+        
+        """
         if comment is None:
             self._comments = []
             return None
@@ -1785,6 +1888,12 @@ class CloudyInput(object):
             self._comments.append('C ** {0}'.format(comment))    
     
     def set_C3D_comment(self, comment = None):
+        """
+        Add special comment that will be added in the input file in the form of: C3D comment
+         Parameter:
+            - comment: if None, reset the list, otherwise, append its value to the list
+        
+        """
         if comment is None:
             self._C3D = []
             return None
@@ -1796,9 +1905,11 @@ class CloudyInput(object):
             
     def set_distance(self, dist = None, unit='kpc', linear = True):
         """
-        - dist = float
-        - unit = ('kpc', 'Mpc', 'parsecs', 'cm')
-        - linear = boolean
+        Set the distance to the object.
+        Parameters:
+            - dist = float
+            - unit = ('kpc', 'Mpc', 'parsecs', 'cm')
+            - linear = boolean
         """
         if dist is None:
             self._distance = None
@@ -1828,7 +1939,12 @@ class CloudyInput(object):
             self._hextra = hextra
         
     def print_input(self, to_file = True, verbose = False):
-        
+        """
+        This is the method to print the input file.
+        Parameters:
+            - to_file: Boolean. If True (default), print to the file defined as model_name + '.in'
+            - verbose: Boolean. If True (not default), print to the standart output
+        """
         if to_file:
             file_name = self.model_name+'.in' 
             f = file(file_name,'w')
@@ -1850,7 +1966,7 @@ class CloudyInput(object):
         this_print('set punch prefix "{0}"'.format(self.model_name.split('/')[-1]))
         for SED in self._SEDs:
                 this_print(SED[0])
-                this_print(SED[1])
+                this_print(SED[1]) 
         if self._radius is not None:
             this_print(self._radius)
         this_print(self._density)
@@ -1893,7 +2009,11 @@ class CloudyInput(object):
         for com in self._comments:
             this_print(com)
         if self._line_file is not None:
-            this_print('{0} last linelist ".lin" "{1}"'.format(self.save_str, self._line_file))
+            if self.line_file_absolute:
+                absolute = 'absolute'
+            else:
+                absolute = ''
+            this_print('{0} last linelist ".lin" "{1}" {2}'.format(self.save_str, self._line_file, absolute))
         for ext in self.save_list:
             this_print('{0} last {1} "{2}"'.format(self.save_str, ext[0], ext[1]))
         if self._nograins == False or self._grains != []:
@@ -1912,18 +2032,35 @@ class CloudyInput(object):
             f.close()
             
     def run_cloudy(self, dir_ = None, n_proc = 1, use_make = False, model_name = None):
+        """
+        Method to run cloudy.
+        Parameters:
+            - dir_:        Directory where the model input files are
+            - n_proc:      number of CPUs to run (default=1)
+            - use_make:    if True (default), make is used. Otherwise Cloudy is run on one single model, 
+                assuming that model_name.in exists
+            - model_name:  if None, the models of this object is run, 
+                if not None, used by: make name="model_name" or cloudy < model_name.in
+        
+        """
         if model_name is None:
             model_name = self.model_name
         run_cloudy(dir_ = dir_, n_proc = n_proc, use_make = use_make, model_name = model_name)
     
     def print_make_file(self, dir_ = None):
+        """
+        Call pc.print_make_file. 
+        Parameter:
+            dir_:    if None, extract the string before the last / in the model_name. 
+                Otherwise, use the value
+        """
         if dir_ is None:
             dir_ = '/'.join(self.model_name.split('/')[0:-1])
         print_make_file(dir_ = dir_)
         
 def print_make_file(dir_ = None):
     """
-    Create a Makefile in the dir_ directory, using cloudy_exe as executable for cloudy
+    Create a Makefile in the dir_ directory, using pc.config.cloudy_exe as executable for cloudy
     """
     makefile = open('{0}/Makefile'.format(dir_), 'w')
     txt_exe = 'CLOUDY = {0}\n'.format(pc.config.cloudy_exe)
@@ -1948,6 +2085,17 @@ all: $(OBJ)
 
 ## Function used to run Cloudy on input files.                
 def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None):
+    """
+    Run a (set of ) cloudy model(s)
+    
+    Parameters:
+        - dir_:        Directory where the model input files are
+        - n_proc:      number of CPUs to run (default=1)
+        - use_make:    if True (default), make is used. Otherwise Cloudy is run on one single model, 
+            assuming that model_name.in exists
+        - model_name:  if not None, used by: make name="model_name" or cloudy < model_name.in
+            if None and use_make, make will run any pending model
+    """
     if dir_ is None:
         dir_ = '/'.join(model_name.split('/')[0:-1])
     if use_make:
