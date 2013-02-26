@@ -596,12 +596,18 @@ class C3D(object):
         return self._emis[i_ref]
     
     def get_emis_list(self, available = False):
+        """
+        Return the list of labels for the line emissivities
+        """
         if available:
             return self.m[0].emis_labels
         else:
             return self._emis.keys()
     
     def del_emis(self, ref):
+        """
+        Delete the emissivity cube associated to the reference
+        """
         i_ref = self.m[0]._i_emis(ref)
         if i_ref in self._emis:
             del self._emis[i_ref]
@@ -609,8 +615,9 @@ class C3D(object):
     def get_emis_vol(self, ref, at_earth=False):
         """
         Compute the intensity of a line.
-        param:
-            ref [int or str] line reference
+        Parameters:
+            - ref [int or str]: line reference
+            - at_earth:    if True (not default): the result is divided by 4.pi.D2
         return:
             integral of the emissivity of the referred line on the volume of cube (erg/s)
         """
@@ -639,6 +646,9 @@ class C3D(object):
         return self.vol_integ(self.nH) * pc.CST.HMASS / pc.CST.SUN_MASS
     
     def get_ionic(self, elem, ion):
+        """
+        Return the 3D cube of ionic fraction corresponding to elem, ion
+        """
         if self.m[0].is_valid_ion(elem, ion):
             if (elem, ion) not in self._ionic: #test if this (elem, ion) already computed.
                 self._ionic[elem, ion] = self._get_3d("get_ionic('{0}', {1})".format(elem, ion))
@@ -648,17 +658,23 @@ class C3D(object):
             return None
         
     def get_ionic_list(self):
+        """
+        Return the labels of the computed ionic fraction cubes 
+        """
         return self._ionic.keys()
     
     def del_ionic(self, elem, ion):
+        """
+        Delete a ionic fraction cube
+        """
         if (elem, ion) in self._ionic:
             del self._ionic[(elem, ion)]
             
     def print_all_emis_vol(self, norm=None):
         """
         Print the intensities of all the lines
-        param:
-            norm [str or int] line ref to nromalize the intnesities
+        Parameter:
+            - norm [str or int]: line ref to nromalize the intnesities
         """
         if norm is None:
             coeff = 1.
@@ -667,51 +683,86 @@ class C3D(object):
         for line in self.m[0].emis_labels: print line,self.get_emis_vol(line)/coeff
     
     def vol_integ(self, a):
+        """
+        Volume integrator
+        """
         return (a * self.ff * self.cub_coord.cell_size).sum()
     
     def vol_mean(self, a, b):
+        """
+        Volume weighted integrator.
+        Return Integ(a*b) / Integ(b)
+        Parameters:
+            - a: to be integrated
+            - b: the weigth
+        """
         return (self.vol_integ(a * b) / self.vol_integ(b))
     
     def get_T0_emis(self, ref):
+        """
+        Return Integ(Te.Emiss(ref)) / Integ(Emiss(ref))
+        """
         return self.vol_mean(self.te, self.get_emis(ref))
     
     def get_t2_emis(self, ref):
+        """
+        Return Integ((Te-T0)**2.Emiss(ref)) / Integ(Emiss(ref)) / T0**2
+        """
+        
         T0 = self.get_T0_emis(ref)
         return self.vol_mean((self.te - T0)**2, self.get_emis(ref)) / T0**2
     
     def get_T0_ion_vol(self, elem, ion):
+        """
+        Return Integ(Te.nH.Xi/X) / Integ(nH.Xi/X)
+        """
         nion = self.nH * self.get_ionic(elem, ion)
         return self.vol_mean(self.te,  nion)
 
     def get_t2_ion_vol(self, elem, ion):
+        """
+        Return Integ((Te-T0)**2.nH.Xi/X) / Integ(nH.Xi/X) / T0**2
+        """        
         nion = self.nH * self.get_ionic(elem, ion)
         T0 = self.get_T0_ion_vol(elem, ion)
         return self.vol_mean((self.te - T0)**2, nion) / T0**2
 
     def get_T0_ion_vol_ne(self, elem, ion):
+        """
+        Return Integ(Te.ne.nH.Xi/X) / Integ(ne.nH.Xi/X)
+        """        
         nenion = self.ne * self.nH * self.get_ionic(elem, ion)
         return self.vol_mean(self.te, nenion)
 
     def get_t2_ion_vol_ne(self, elem, ion):
+        """
+        Return Integ((Te-T0)**2.ne.nH.Xi/X) / Integ(ne.nH.Xi/X) / T0**2
+        """
         nenion = self.ne * self.nH * self.get_ionic(elem, ion)
         T0 = self.get_T0_ion_vol_ne(elem, ion)
         return self.vol_mean((self.te - T0)**2, nenion) / T0**2
     
     def get_ab_ion_vol(self, elem=None, ion=None):
+        """
+        Return Integ(Xi/X.nH / Integ(nH)
+        """
         ab_ion = self.get_ionic(elem, ion)
         return self.vol_mean(ab_ion, self.nH)
 
     def get_ab_ion_vol_ne(self, elem=None, ion=None):
+        """
+        Return Integ(Xi/X.ne.nH / Integ(ne.nH)
+        """
         ab_ion = self.get_ionic(elem, ion)
         return self.vol_mean(ab_ion, self.ne * self.nH)
     
     def get_vel_ionic(self, elem, ion):
         """
+        return the velocity weigthed by the ionic fraction
         param:
             elem [str] element 
             ion [int] ionic stage
-        return:
-            the velocity weigthed by the ionic fraction
+            
         """
         if not self.cub_coord.vel_defined:
             self.log_.warn('Velocity not defined', calling = self.calling)
@@ -721,10 +772,9 @@ class C3D(object):
 
     def get_vel_emis(self, ref):
         """
+        return the velocity weigthed by the line emissivity
         param:
             ref [int or str] a line reference
-        return:
-            the velocity weigthed by the line emissivity
         """
         if not self.cub_coord.vel_defined:
             self.log_.warn('Velocity not defined', calling = self.calling)
@@ -795,7 +845,7 @@ class C3D(object):
             - vel_max [float] (km/s) the line profiles are computed on the [-vel_max, vel_max] array
             - v_turb [float] (km/s) turbulent velocity
             - profile_function ['gaussian' or a function] shape of the profile. If not 'gaussian', a user defined
-            function must be provide, taking x and zeta_0 as arguments.
+                function must be provide, taking x and zeta_0 as arguments.
         """
         self.__size_spectrum = size_spectrum # doing this because vel_max still undefined
         self.vel_max = vel_max
@@ -804,12 +854,12 @@ class C3D(object):
         
     def get_profile(self, ref, axis = 'x'):
         """
-        param:
-            ref [int or str] line reference
-            axis [one of 'x', 'y', 'z', 0, 1, 2] projection axis for the line profile
         return: 
             the emission line profiles as a 3D spectral data of shape (size_spectrum, dim1, dim2), 
             where dim1 and dim2 are the dimensions in the directions not being the axis. 
+        param:
+            ref [int or str] line reference
+            axis [one of 'x', 'y', 'z', 0, 1, 2] projection axis for the line profile
         """
         l_ref = self.m[0]._l_emis(ref)       
         if l_ref is None:
@@ -823,9 +873,15 @@ class C3D(object):
         return self._profiles[(l_ref, axis)]
     
     def get_profile_list(self):
+        """
+        Return the labels of the computed line profiles
+        """
         return self._profiles.keys()
     
     def del_profile(self, ref = None, axis = 'x'):
+        """
+        Delete a line profile cube.
+        """
         if ref is None:
             self._profiles = {}
         else:
@@ -913,6 +969,12 @@ class C3D(object):
         return res
 
     def get_RGB(self, list_emis = [0, 1, 2], axes = 1):
+        """
+        Return a 3-colored imaged.
+        Parameters:
+            - list_emis: list of indices of the line to be used. Default = [0, 1, 2], associated to R, G, B.
+            - axes:    on which the projection is done.
+        """
         if pc.config.INSTALLED['Image']:
             self.im_R = self.get_emis(list_emis[0]).sum(axes)
             self.im_G = self.get_emis(list_emis[1]).sum(axes)
