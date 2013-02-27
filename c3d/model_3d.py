@@ -971,15 +971,19 @@ class C3D(object):
     def get_RGB(self, list_emis = [0, 1, 2], axes = 1):
         """
         Return a 3-colored imaged.
+        
         Parameters:
             - list_emis: list of indices of the line to be used. Default = [0, 1, 2], associated to R, G, B.
+                Elements of the list are integers or line references.
             - axes:    on which the projection is done.
+            
+        Usage:
+            plt.imshow(m3d.get_RGB(['N__2__6548A', 'O__3__5007A', 'H__1__4861A']))
         """
         if pc.config.INSTALLED['Image']:
             self.im_R = self.get_emis(list_emis[0]).sum(axes)
             self.im_G = self.get_emis(list_emis[1]).sum(axes)
             self.im_B = self.get_emis(list_emis[2]).sum(axes)
-            
             return misc.convert2RGB(self.im_R, self.im_G, self.im_B)
         else:
             self.log_.error('Image not installed, RBG image not available', calling = self.calling)
