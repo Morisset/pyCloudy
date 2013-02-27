@@ -306,12 +306,15 @@ class CloudyModel(object):
             ionic_names = self._res[key].dtype.names[1:]
             n_ions = np.size(ionic_names)
             ionic = np.zeros((n_ions, self.n_zones))
-            for i, ion in enumerate(ionic_names):
-                ionic[i, :] = self._res[key][ion]
-            self.ionic_names[elem] = ionic_names
-            self.n_ions[elem] = n_ions
-            self.ionic_full[elem] = ionic
-            self.log_.message('filling ' + elem + ' with ' + str(n_ions) + ' columns', calling = self.calling)
+            try:
+                for i, ion in enumerate(ionic_names):
+                    ionic[i, :] = self._res[key][ion]
+                self.ionic_names[elem] = ionic_names
+                self.n_ions[elem] = n_ions
+                self.ionic_full[elem] = ionic
+                self.log_.message('filling ' + elem + ' with ' + str(n_ions) + ' columns', calling = self.calling)
+            except:
+                self.log_.message('File {0} not read'.format(key))
         self.n_elements = np.size(self.n_ions.keys())
 
     def _init_heatcool(self):
@@ -1803,13 +1806,7 @@ class CloudyInput(object):
         if line_file is None:
             self._line_file = None
             return None
-        try:
-            f = open(line_file, 'r')
-            f.close()
-            self._line_file = line_file
-        except:
-            self._line_file = None
-            pc.log_.warn('File {0} for intensity lines not accesible'.format(import_file))
+        self._line_file = line_file
 
     def set_theta_phi(self, theta = None, phi = None):
         """
@@ -1827,7 +1824,8 @@ class CloudyInput(object):
             self._input['phi'] = 'c C3D phi = {0:.2f}'.format(phi)
 
     ## define the abundances
-    def set_abund(self, predef = None, elem = None, value = None, nograins = True, ab_dict = None):
+    def set_abund(self, predef = None, elem = None, value = None, nograins = True, 
+                  ab_dict = None, metals=None, metalsgrains=None):
         """
         Defines the abundances.
         Parameters:
@@ -1835,11 +1833,14 @@ class CloudyInput(object):
             - elem and value: used to set one abundance, e.g, elem = 'O', value = -4.5
             - nograins: Boolean value
             - ab_dict: dictionnary of elem and values.
+            - metals:    value by which all the metals are multiplied
         """
         if predef is None and elem is None and ab_dict is None:
             self._abund = {}
             self._abund_predef = None
             self._nograins = True
+            self._metals = None
+            self._metalsgrains = None
             return None
         if ab_dict is not None:
             for sym in ab_dict:
@@ -1852,6 +1853,8 @@ class CloudyInput(object):
         elif predef is not None:
             self._abund_predef = predef
             self._nograins = nograins
+        self._metals = metals
+        self._metalsgrains = metalsgrains
             
     def set_other(self, other_str = None):
         """
@@ -1982,6 +1985,10 @@ class CloudyInput(object):
             this_print('element abundance {0} {1:.3f}'.format(elem, self._abund[elem]))
         for grain in self._grains:
             this_print('grains {0}'.format(grain))
+        if self._metals is not None:
+            this_print('metals {0}'.format(self._metals))
+        if self._metalsgrains is not None:
+            this_print('metals grains {0}'.format(self._metalsgrains))
         if self._distance is not None:
             this_print(self._distance)
         if self._fudge is not None:
