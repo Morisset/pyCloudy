@@ -1530,7 +1530,7 @@ def load_models(model_name = None, mod_list = None, n_sample = None, verbose = F
     
     Parameters:
         - model_name:    generic name. The method is looking for any "model_name*.out" file.
-        - mod_list:    in case model_name=None, this is the list of model names (something.out)
+        - mod_list:    in case model_name=None, this is the list of model names (something.out or something)
         - n_sample:    randomly select n_sample from the model list
         - verbose:    print out the name of the models read
         - **kwargs:    arguments passed to CloudyModel
@@ -1549,7 +1549,11 @@ def load_models(model_name = None, mod_list = None, n_sample = None, verbose = F
         mod_list = random.sample(mod_list, n_sample)
     m = []
     for outfile in mod_list:
-        m.append(CloudyModel(outfile[0:-4], **kwargs))
+        if outfile[-4::] == '.out':
+            model_name = outfile[0:-4]
+        else:
+            model_name = outfile
+        m.append(CloudyModel(model_name, **kwargs))
         if verbose:
             print  '{0} model read'.format(outfile[0:-4])
     pc.log_.message('{0} models read'.format(np.size(mod_list)), calling = 'load_models')
