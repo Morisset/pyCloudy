@@ -204,16 +204,17 @@ class CubCoord(object):
         
     def _poly(self, params):
         tmp = 0.
+        r_norm = self.r/np.max(self.r)
         for i, param in enumerate(params):
-            tmp += param * self.r**i
+            tmp += param * r_norm**i
         oldsettings = np.seterr(all='ignore')
-        tmp = tmp / self.r
+        tmp = tmp / r_norm
         misc.revert_seterr(oldsettings)
-        tt = (self.r == 0.)
+        tt = (r_norm == 0.)
         tmp[tt] = 0
-        vel_x = tmp * self.x / np.max(self.x)
-        vel_y = tmp * self.y / np.max(self.y)
-        vel_z = tmp * self.z / np.max(self.z)
+        vel_x = tmp * self.x / np.max(self.r)
+        vel_y = tmp * self.y / np.max(self.r)
+        vel_z = tmp * self.z / np.max(self.r)
         return vel_x, vel_y, vel_z
     
     def set_velocity(self, velocity_law = 'poly', params = [1., 1., 0.], user_function = None):
