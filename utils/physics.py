@@ -18,6 +18,8 @@ class CST(object):
     KPC = 3.0856780e21 # kiloParsec
     ALPHA_B = 2.6e-13
     SUN_MASS = 1.9891e33 #g
+    SUN_RADIUS = 6.955e10 # cm
+    SIGMA = 2 * np.pi**5 * K**4 / (15 * HPLANCK**3 * CLIGHT**2) # erg s-1 cm-2 K-4
     ##
     # @var BOLTZMANN
     # Boltzmann constant (erg/K) - NIST 2010
@@ -84,7 +86,7 @@ def planck(T, x = None, x_min = None, x_max = None, n_steps = 1000, x_log = True
             lam = x / 1e4
         elif x_unit == 'cm':
             lam = x / 1e8
-        else:
+        elif x_unit == 'Angstrom':
             lam = x
         I_lam = (4. * np.pi * 2. * CST.HPLANCK * (CST.CLIGHT*1e8)**2 / lam**5 / 
                  (np.exp(CST.HPLANCK * (CST.CLIGHT*1e8) / (lam * CST.K * T )) - 1.)) # erg/s/cm2/A
@@ -98,9 +100,9 @@ def planck(T, x = None, x_min = None, x_max = None, n_steps = 1000, x_log = True
         if x_unit == 'Hz':
             nu = x
         elif x_unit == 'eV':
-            nu = x / (CST.HPLANCK / CST.ECHARGE * 1e-7)
+            nu = x * CST.RYD * CST.CLIGHT / CST.RYD_EV
         elif x_unit == 'Rydberg':
-            nu = x / (CST.HPLANCK / CST.ECHARGE * 1e-7 * CST.RYD_EV)
+            nu = x * CST.RYD * CST.CLIGHT
         I_nu = (4. * np.pi * 2. * CST.HPLANCK / (CST.CLIGHT)**2 * nu**3 / 
                  (np.exp(CST.HPLANCK * nu / (CST.K * T )) - 1.)) # erg/s/cm2/Hz
         if y_unit == 'erg/s/cm2/Hz':

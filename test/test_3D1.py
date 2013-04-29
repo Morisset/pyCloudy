@@ -58,7 +58,7 @@ def def_profiles(m3d):
     
     m3d.set_velocity(velocity_law='user', params = [[20.,60.], m3d.cub_coord], user_function = velo_polynome)
     m3d.config_profile(size_spectrum = 41, vel_max = 25, profile_function = 'gaussian', v_turb = 0.01)
-#    m3d.config_profile(size_spectrum = 41, vel_max = 25, profile_function = perf_Hb, v_turb = 0.01)
+#    m3d.config_profile(size_spectrum = 41, vel_max = 25, profile_function = Hb_prof, v_turb = 0.01)
     
 def plot_profiles(m3d, x_pos, y_pos):
     plt.figure(1) 
