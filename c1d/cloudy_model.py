@@ -401,6 +401,7 @@ class CloudyModel(object):
         
         self.cloudy_version = file_.readline().strip()
         self.cloudy_version_major = pc.sextract(self.cloudy_version,'Cloudy ','.')
+        self.Teff = None
         for line in file_:
             if line[0:8] == ' ####  1':
                 self.out['###First'] = line
@@ -422,6 +423,7 @@ class CloudyModel(object):
                 self.out['table star'] = line
             elif 'Blackbody' in line:
                 self.out['Blackbody'] = line
+                self.Teff = np.float(pc.sextract(self.out['Blackbody'], 'Blackbody ', '*'))
             elif 'hden' in line:
                 self.out['hden'] = line
             elif 'dlaw' in line:
@@ -684,6 +686,15 @@ class CloudyModel(object):
         """ log of mean value of U on the volume """
         if self.log_U is not None:
             return np.log10(self.vol_mean(10**self.log_U))
+        else:
+            return None      
+
+    ## log_U_mean_ne = \f$\frac{\int U.ne.dV}{\int ne.dV}\f$ [float]
+    @property
+    def log_U_mean_ne(self):
+        """ log of mean value of U on the volume """
+        if self.log_U is not None:
+            return np.log10(self.vol_mean(self.ne*10**self.log_U, self.ne))
         else:
             return None      
     
@@ -1742,7 +1753,11 @@ class CloudyInput(object):
         if grains is None:
             self._grains = []
         else:
-            self._grains.append(grains)  
+            if type(grains) == type(()) or type(grains) == type([]):
+                for grain in grains:
+                    self._grains.append(grain)
+            else:
+                self._grains.append(grains)
     
     def set_stop(self, stop_criter = None):
         """
@@ -1846,6 +1861,7 @@ class CloudyInput(object):
             self._metals = None
             self._metalsgrains = None
             return None
+        
         if ab_dict is not None:
             for sym in ab_dict:
                 if sym in SYM2ELEM:
@@ -1856,10 +1872,10 @@ class CloudyInput(object):
             self._abund[elem] = value
         elif predef is not None:
             self._abund_predef = predef
-            self._nograins = nograins
         self._metals = metals
         self._metalsgrains = metalsgrains
-            
+        self._nograins = nograins
+        
     def set_other(self, other_str = None):
         """
         Define any other command line to be added to the Cloudy input file

@@ -425,6 +425,10 @@ class C3D(object):
             self.m = [self.m]
             self.theta_tab = 0.
             self.phi_tab = 0.
+        try:
+            self.emis_labels = self.m[0].emis_labels
+        except:
+            self.emis_labels = None
         self.angles = angles
         self.config_profile()
         self.x_unit = 'arcsec'

@@ -100,7 +100,10 @@ def blur_image(im, n, ny=None) :
     improc = signal.convolve(im, g, mode='valid')
     return(improc)
 
-def perf_Hb(x, zeta_0):
+def Hb_prof(x, zeta_0):
+    """
+    The Hbeta profile is sum of 2 blocks of lines (actually 3 + 4 lines)
+    """
     res1 = .41 /zeta_0 / np.sqrt(np.pi) * np.exp(-(((x-2.7)/zeta_0)**2))
     res2 = .59 /zeta_0 / np.sqrt(np.pi) * np.exp(-(((x+2.0)/zeta_0)**2))
     return res1 + res2
