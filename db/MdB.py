@@ -68,7 +68,8 @@ class MdB(object):
             self.connect_dB()
             
     def __del__(self):
-        self.close_dB()
+        if self.connected:
+            self.close_dB()
 
     def connect_dB(self):
         if self.connected:
@@ -85,12 +86,18 @@ class MdB(object):
             self.log_.warn('Connection to {0} failed'.format(self.host), calling = self.calling)
 
     def use_dB(self, base_name = None):
+        if not self.connected:
+            pc.log_.error('Not connected to the database')
+            return None        
         if base_name is None:
             self._dB.select_db(self.base_name)
         else:
             self._dB.select_db(base_name)
             
     def use_dB_tmp(self, tmp_base_name = None):
+        if not self.connected:
+            pc.log_.error('Not connected to the database')
+            return None
         if tmp_base_name is None:
             self._dB.select_db(self.tmp_base_name)
         else:
@@ -111,12 +118,15 @@ class MdB(object):
             self._dB.close()
             self.connected = False
             self.log_.message('Disconnected', calling = self.calling)
+        else:
+            self.log_.warn('Not connected', calling = self.calling)
 
     def exec_dB(self, command, format_ = 'dict'):
         if format_ not in ('dict', 'tuple', 'numpy'):
             self.log_.error('format"{0}" not recognized'.format(format_), calling = self.calling)
         if not self.connected:
             self.log_.error('Not connected to a database', calling = self.calling)
+            return None
         self.log_.message('Command sent: {0}'.format(command), calling = self.calling)
         if format_ == 'dict':
             cursor = self._cursor
@@ -134,6 +144,14 @@ class MdB(object):
             
     def select_dB(self, select_ = '*', from_ = 'OVN.tab1', where_ = None, order_ = None, group_ = None, limit_ = 1,
                   format_ = 'dict', dtype_ = None):
+        """
+        Usage:
+            dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', 
+                        where_ = 'ref like "DIG12HR_"', 
+                        limit_ = 100000, 
+                        format_='numpy')
+            loglog(dd['L_26']/dd['L_1'], dd['L_21']/dd['L_1'], 'r+')            
+        """
         req = 'SELECT {0} FROM {1} '.format(select_, from_)
         if where_ is not None:
             req += 'WHERE ({0}) '.format(where_)
@@ -232,12 +250,3 @@ class MdB_model(pc.CloudyModel, MdB):
                      local, connect)
         
 """
-class MdB_model(object):
-    
-    def __init__(self, CloudyModel, MdB):
-        
-        self.M = CloudyModel
-        self.MdB = Mdb
-        
-    def insert_model(self):
-        pass

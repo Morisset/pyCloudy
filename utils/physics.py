@@ -60,7 +60,6 @@ ATOMIC_MASS['S'] = 32
 ATOMIC_MASS['Si'] = 28
 ATOMIC_MASS['Fe'] = 55.8
 
-
 def flux_convert(x, y, x_unit, y_unit_in, y_unit_out):
     pass
 

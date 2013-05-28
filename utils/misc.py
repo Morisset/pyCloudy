@@ -408,6 +408,16 @@ def make_mask(X, Y, ap_center, ap_size, seeing = None):
     return mask
 
 def revert_seterr(oldsettings):
+    """
+    This function revert the options of seterr to a value saved in oldsettings.
+    
+    Usage:
+        oldsettings = np.seterr(all='ignore')
+        to_return = (result - int_ratio) / int_ratio # this will not issue Warning messages
+        revert_seterr(oldsettings)
+    Parameter:
+        oldsettings: result of np.seterr(all='ignore')
+    """
     np.seterr(over = oldsettings['over'])
     np.seterr(divide = oldsettings['divide'])
     np.seterr(invalid = oldsettings['invalid'])
