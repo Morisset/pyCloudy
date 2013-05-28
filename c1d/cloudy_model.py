@@ -669,6 +669,43 @@ class CloudyModel(object):
     def heat(self):
         """ array of heating (on r_range)"""
         return self.heat_full[self.r_range]
+    
+    def _quiet_div(self, a, b):
+        if a is None or b is None:
+            to_return = None
+        else:
+            np.seterr(all="ignore")
+            to_return = a / b
+            np.seterr(all=None)
+        return to_return
+
+    ##rad_integ(a) = \f$\int a.ff.dr\f$ 
+    def rad_integ(self, a):
+        """ integral of a on the radius"""
+        if a is None or self.dr is None:
+            return None
+        else:
+            #return np.trapz(a, self.radius)
+            return (a * self.drff).sum()
+    
+    ##vol_integ(a) = \f$\int a.ff.dV\f$
+    def vol_integ(self, a):
+        """ integral of a on the volume"""
+        if a is None or self.dv is None:
+            return None
+        else:
+            return (a * self.dvff).sum()
+            #return 4.0*np.pi*np.trapz((a*self.radius**2*ff)[self.r_range], self.radius[self.r_range])
+
+    ##vol_mean(a, b) = \f$\frac{\int a.b.ff.dV}{\int b.ff.dV}\f$
+    def vol_mean(self, a, b = 1.):
+        """ Return the mean value of a weighted by b on the volume"""
+        return self._quiet_div(self.vol_integ(a * b), self.vol_integ(b))
+    
+    ##rad_mean(a, b) = \f$\frac{\int a.b.dr}{\int b.dr}\f$    
+    def rad_mean(self, a, b = 1.):
+        """ Return the mean value of a weighted by b on the radius"""
+        return self._quiet_div(self.rad_integ(a * b), self.rad_integ(b))    
 
     ## log(U) in each zone [float array], with U(r) = \f$ Q_0 / (4.\pi.r^2.n_H.c)\f$
     @property
@@ -692,9 +729,9 @@ class CloudyModel(object):
     ## log_U_mean_ne = \f$\frac{\int U.ne.dV}{\int ne.dV}\f$ [float]
     @property
     def log_U_mean_ne(self):
-        """ log of mean value of U on the volume """
+        """ log of mean value of U on the volume weighted by ne.nH"""
         if self.log_U is not None:
-            return np.log10(self.vol_mean(self.ne*10**self.log_U, self.ne))
+            return np.log10(self.vol_mean(self.nenH*10**self.log_U, self.nenH))
         else:
             return None      
     
@@ -1238,43 +1275,6 @@ class CloudyModel(object):
         elif unit == 'ec3':
             G0 = abs(np.trapz(y = self.get_cont_y('ntrans', 'ec3A', dist_norm = dist_norm)[lam_range], x = lam[lam_range]))/norm
         return G0
-
-    def _quiet_div(self, a, b):
-        if a is None or b is None:
-            to_return = None
-        else:
-            np.seterr(all="ignore")
-            to_return = a / b
-            np.seterr(all=None)
-        return to_return
-
-    ##rad_integ(a) = \f$\int a.ff.dr\f$ 
-    def rad_integ(self, a):
-        """ integral of a on the radius"""
-        if a is None or self.dr is None:
-            return None
-        else:
-            #return np.trapz(a, self.radius)
-            return (a * self.drff).sum()
-    
-    ##vol_integ(a) = \f$\int a.ff.dV\f$
-    def vol_integ(self, a):
-        """ integral of a on the volume"""
-        if a is None or self.dv is None:
-            return None
-        else:
-            return (a * self.dvff).sum()
-            #return 4.0*np.pi*np.trapz((a*self.radius**2*ff)[self.r_range], self.radius[self.r_range])
-
-    ##vol_mean(a, b) = \f$\frac{\int a.b.ff.dV}{\int b.ff.dV}\f$
-    def vol_mean(self, a, b = 1.):
-        """ Return the mean value of a weighted by b on the volume"""
-        return self._quiet_div(self.vol_integ(a * b), self.vol_integ(b))
-    
-    ##rad_mean(a, b) = \f$\frac{\int a.b.dr}{\int b.dr}\f$    
-    def rad_mean(self, a, b = 1.):
-        """ Return the mean value of a weighted by b on the radius"""
-        return self._quiet_div(self.rad_integ(a * b), self.rad_integ(b))    
 
     def _get_r_out_cut(self):    
         return self.__r_out_cut
