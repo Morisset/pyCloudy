@@ -1869,7 +1869,7 @@ class CloudyInput(object):
                 else:
                     self.log_.warn('unkown symbol : {0}'.format(sym), calling = self.calling)
         elif elem is not None:
-            self._abund[elem] = value
+            self._abund[SYM2ELEM[elem]] = value
         elif predef is not None:
             self._abund_predef = predef
         self._metals = metals
