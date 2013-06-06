@@ -49,12 +49,7 @@ class MdB(object):
         self.tmp_base_name = tmp_base_name
         self.user_name = user_name
         if user_passwd == 'getenv':
-            if user_name == 'OVN_user':
-                self.user_passwd = os.getenv('OVN_user_pass')
-            elif user_name == 'OVN_admin':
-                self.user_passwd = os.getenv('OVN_admin_pass')
-            else:
-                pc.log_.error('No ENV variable for user {0} password'.format(user_name), calling = self.calling)
+            self.user_passwd = os.getenv('{0}_pass'.format(user_name))
         else:
             self.user_passwd = user_passwd
         self.port = port
@@ -177,23 +172,38 @@ class MdB(object):
         return res[0]['count(*)']
     
     def get_fields(self, from_ = 'OVN.tab1'):
-        res, N = self.exec_dB('SELECT * from {0} limit 1'.format(from_))
-        fields =  res[0].keys()
-        fields.sort()
-        return fields
+        froms = from_.split(',')
+        if len(froms) == 1:
+            res, N = self.exec_dB('SHOW COLUMNS FROM {0}'.format(from_))
+            fields = [res[i]['Field'] for i in range(len(res))]
+            fields.sort()
+            return fields
+        else:
+            fields = []
+            for this_from in froms:
+                fields.extend(self.get_fields(from_ = this_from))
+            return fields
     
     def get_cols(self, select_ = '*', from_ = 'OVN.tab1'):
-        if select_ == '*':
-            res, N = self.exec_dB('SHOW COLUMNS FROM {0}'.format(from_))
+        froms = from_.split(',')
+        
+        if len(froms) == 1:
+            if select_ == '*':
+                res, N = self.exec_dB('SHOW COLUMNS FROM {0}'.format(from_))
+            else:
+                req = 'SHOW COLUMNS FROM {0} WHERE'.format(from_)
+                fields = select_.split(',')
+                for field in fields:
+                    req += ' FIELD = "{0}" OR'.format(field.strip())
+                req = req[:-3]
+                res, N = self.exec_dB(req)
+            return res
         else:
-            req = 'SHOW COLUMNS FROM {0} WHERE'.format(from_)
-            fields = select_.split(',')
-            for field in fields:
-                req += ' FIELD = "{0}" OR'.format(field.strip())
-            req = req[:-3]
-            res, N = self.exec_dB(req)
-        return res
-
+            res = ()
+            for this_from in froms:
+                res += self.get_cols(select_ = select_, from_ = this_from)
+            return res
+            
     def get_dtype(self, select_ = '*', from_ = 'OVN.tab1'):
         dtype_list = []
         if select_ == '*':        
@@ -202,7 +212,8 @@ class MdB(object):
                 name = col['Field']
                 sqltype = col['Type']
                 ntype = _sql2numpy(sqltype)
-                dtype_list.append((name, ntype))
+                if (name, ntype) not in dtype_list:
+                    dtype_list.append((name, ntype))
         else:
             fields = select_.split(',')
             for field in fields:
@@ -210,7 +221,8 @@ class MdB(object):
                 name = col['Field']
                 sqltype = col['Type']
                 ntype = _sql2numpy(sqltype)
-                dtype_list.append((name, ntype))        
+                if (name, ntype) not in dtype_list:
+                    dtype_list.append((name, ntype))        
         return np.dtype(dtype_list)
             
     def print_all_refs(self, from_ = 'OVN.tab1'):
@@ -220,7 +232,7 @@ class MdB(object):
         print('Number of distinct references = {0}'.format(N_ref))
         
     def print_all_lines(self, limit_ = None):
-        lines = self.select_dB(select_ = '*', from_ = 'OVN.lines', limit_ = limit_)[0]
+        lines, N_lines = self.select_dB(select_ = '*', from_ = 'OVN.lines', limit_ = limit_)
         for line in lines:
             print('N = {0[N]:3} id = {0[id]:4} label = {0[label]:5} wavelength = {0[lambda]:6} full name = {0[name]}'.format(line))
 
@@ -230,23 +242,3 @@ class MdB(object):
         else:
             return "<MdB disconnected from {0.base_name}@{0.host}>".format(self)
         
-"""
-class MdB_model(pc.CloudyModel, MdB):
-    
-    def __init__(self, model_name, verbose=None, 
-                 read_all_ext=True, read_emis=True, read_grains=True, read_cont=True,
-                 list_elem=LIST_ELEM, distance=1., line_is_log=False, emis_is_log=True, 
-                 OVN_base_name = 'OVN',OVNtmp_base_name = 'OVN_tmp', user_name = 'OVN_user', user_passwd = 'getenv', 
-                 host = 'taranis', unix_socket = '/var/mysql/mysql.sock', port = 3306,
-                 local = False, connect = True):
-
-        self.log_ = pc.log_
-        self.calling = 'MdB_model'
-        
-        pc.CloudyModel.__init__(self, model_name, verbose, read_all_ext, read_emis, 
-                                read_grains, read_cont, list_elem, distance, line_is_log, emis_is_log)
-        
-        MdB.__init__(self, OVN_base_name, OVNtmp_base_name, user_name, user_passwd, host, unix_socket, port, 
-                     local, connect)
-        
-"""
