@@ -409,6 +409,8 @@ class CloudyModel(object):
                 self.out['###Last'] = line
             elif 'Calculation stopped' in line:
                 self.out['stop'] = line
+            elif 'Cloudy ends' in line:
+                self.out['Cloudy ends'] = line
             elif 'Gas Phase Chemical Composition' in line:
                 for i in range(4):
                     self.out['Chem' + str(i + 1)] = file_.next()
@@ -482,22 +484,20 @@ class CloudyModel(object):
             self.Q[2] = float(pc.sextract(self.out['SED2'], 'Q(4.0-20):', 'Q(20--):'))
             self.Q[3] = float(pc.sextract(self.out['SED2'], 'Q(20--):', 'Ion pht'))
             self.Q = pow(10., self.Q)
-            self.Q0 = self.Q.sum()
             self.plan_par = False
         except:
-#            self.Q = None
-            self.Q0 = None
+            pass
+        self.Q0 = self.Q.sum()
         try:
             self.Phi[0] = float(pc.sextract(self.out['SED2'], 'phi(1.0-1.8):', 'phi(1.8-4.0):'))
             self.Phi[1] = float(pc.sextract(self.out['SED2'], 'phi(1.8-4.0):', 'phi(4.0-20):'))
             self.Phi[2] = float(pc.sextract(self.out['SED2'], 'phi(4.0-20):', 'phi(20--):'))
             self.Phi[3] = float(pc.sextract(self.out['SED2'], 'phi(20--):', 'Ion pht'))
             self.Phi = pow(10., self.Phi)
-            self.Phi0 = self.Phi.sum()
             self.plan_par = True
         except:
-#            self.Q = None
-            self.Phi0 = None
+            pass
+        self.Phi0 = self.Phi.sum()
         
         self.abund = {}
         Chem = self.out['Chem1'][0:-1]
@@ -731,7 +731,7 @@ class CloudyModel(object):
     def log_U_mean_ne(self):
         """ log of mean value of U on the volume weighted by ne.nH"""
         if self.log_U is not None:
-            return np.log10(self.vol_mean(self.nenH*10**self.log_U, self.nenH))
+            return np.log10(self.vol_mean(10**self.log_U, self.nenH))
         else:
             return None      
     
@@ -2058,7 +2058,7 @@ class CloudyInput(object):
             self.log_.message('Input writen in {0}'.format(file_name), calling = self.calling)
             f.close()
             
-    def run_cloudy(self, dir_ = None, n_proc = 1, use_make = False, model_name = None):
+    def run_cloudy(self, dir_ = None, n_proc = 1, use_make = False, model_name = None, precom=""):
         """
         Method to run cloudy.
         Parameters:
@@ -2068,11 +2068,11 @@ class CloudyInput(object):
                 assuming that model_name.in exists
             - model_name:  if None, the models of this object is run, 
                 if not None, used by: make name="model_name" or cloudy < model_name.in
-        
+            - precom: a string to put before Cloudy (e.g. "\nice 10")
         """
         if model_name is None:
             model_name = self.model_name
-        run_cloudy(dir_ = dir_, n_proc = n_proc, use_make = use_make, model_name = model_name)
+        run_cloudy(dir_ = dir_, n_proc = n_proc, use_make = use_make, model_name = model_name, precom=precom)
     
     def print_make_file(self, dir_ = None):
         """
@@ -2111,7 +2111,7 @@ all: $(OBJ)
     makefile.close()
 
 ## Function used to run Cloudy on input files.                
-def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None):
+def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, precom=""):
     """
     Run a (set of ) cloudy model(s)
     
@@ -2122,6 +2122,7 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None):
             assuming that model_name.in exists
         - model_name:  if not None, used by: make name="model_name" or cloudy < model_name.in
             if None and use_make, make will run any pending model
+        - precom: a string to put before Cloudy (e.g. "\nice 10")
     """
     if dir_ is None:
         dir_ = '/'.join(model_name.split('/')[0:-1])
@@ -2135,7 +2136,7 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None):
         if model_name is None:
             pc.log_.error('Model name must be set', calling = 'run_cloudy')
         else:
-            to_run = 'cd {0} ; {1}'.format(dir_, pc.config.cloudy_exe)
+            to_run = 'cd {0} ; {1} {2}'.format(dir_, precom, pc.config.cloudy_exe)
             stdin = file('{0}/{1}.in'.format(dir_, model_name.split('/')[-1]), 'r')
             stdout = file('{0}/{1}.out'.format(dir_, model_name.split('/')[-1]), 'w')   
     pc.log_.message('running: {0}'.format(to_run), calling = 'run_cloudy')

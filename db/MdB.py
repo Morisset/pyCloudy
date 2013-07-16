@@ -2,9 +2,12 @@ import os
 import numpy as np
 import pyCloudy as pc
 from pyCloudy.utils.init import LIST_ELEM
+from pyCloudy.utils.logging import my_logging
 if pc.config.INSTALLED['MySQL']:
     import MySQLdb
-    
+
+import subprocess
+
 def _sql2numpy(sqltype):
     if sqltype == 'float':
         return 'f4'
@@ -26,9 +29,12 @@ def _sql2numpy(sqltype):
 
 class MdB(object):
     
-    def __init__(self, base_name = 'OVN',tmp_base_name = 'OVN_tmp', user_name = 'OVN_user', user_passwd = 'getenv', 
-                 host = 'taranis_loc', unix_socket = '/var/mysql/mysql.sock', port = 3306,
-                 local = False, connect = True):
+    MdBlog_ = my_logging()
+    
+    def __init__(self, OVN_dic = None, base_name = 'OVN',tmp_base_name = 'OVN_tmp', 
+                 user_name = 'OVN_user', user_passwd = 'getenv', 
+                 host = 'taranis', unix_socket = '/var/mysql/mysql.sock', port = 3306,
+                 connect = True):
         """
         This is the package to deal with MySQL OVN database. 
         You need to have installed the mysql client and the mysql-dev library in order to install 
@@ -37,14 +43,31 @@ class MdB(object):
         that the dev and the client are the save version.
         
         Under pip, the MySQLdb package is named MySQL-python
+        
+        Latter, we will also use the ODBC connector. Install the connector from MySQl: http://dev.mysql.com/downloads/connector/odbc/
+        and then use pyodbc with:
+        cnxn = pyodbc.connect('DRIVER={MySQL ODBC 5.2 Driver};SERVER=132.248.1.102;DATABASE=OVN2;UID=OVN_admin2;PWD=oiii4363;SOCKET=/var/mysql/mysql.sock')
+        
         """
 
 
-        self.log_ = pc.log_
+        self.log_ = MdB.MdBlog_
         self.calling = 'MdB'
-        if local:
-            host = '127.0.0.1'
-            port = 3307
+        if OVN_dic is not None:
+            if 'base_name' in OVN_dic:
+                base_name = OVN_dic['base_name']
+            if 'tmp_base_name' in OVN_dic:
+                tmp_base_name = OVN_dic['tmp_base_name']
+            if 'user_name' in OVN_dic:
+                user_name = OVN_dic['user_name']
+            if 'user_passwd' in OVN_dic:
+                user_passwd = OVN_dic['user_passwd']
+            if 'host' in OVN_dic:
+                host = OVN_dic['host']
+            if 'unix_socket' in OVN_dic:
+                unix_socket = OVN_dic['unix_socket']
+            if 'port' in OVN_dic:
+                port = OVN_dic['port']
         self.base_name = base_name
         self.tmp_base_name = tmp_base_name
         self.user_name = user_name
@@ -117,13 +140,13 @@ class MdB(object):
             self.log_.warn('Not connected', calling = self.calling)
 
     def exec_dB(self, command, format_ = 'dict'):
-        if format_ not in ('dict', 'tuple', 'numpy'):
+        if format_ not in ('dict', 'tuple', 'numpy', 'dict2'):
             self.log_.error('format"{0}" not recognized'.format(format_), calling = self.calling)
         if not self.connected:
             self.log_.error('Not connected to a database', calling = self.calling)
             return None
         self.log_.message('Command sent: {0}'.format(command), calling = self.calling)
-        if format_ == 'dict':
+        if format_[0:4] == 'dict':
             cursor = self._cursor
         else:
             cursor = self._cursor_tuple
@@ -147,9 +170,33 @@ class MdB(object):
                         format_='numpy')
             loglog(dd['L_26']/dd['L_1'], dd['L_21']/dd['L_1'], 'r+')            
         """
-        req = 'SELECT {0} FROM {1} '.format(select_, from_)
+        if (type(select_) == type(())) or (type(select_) == type([])):
+            this_select = ''
+            for w in select_:
+                this_select += w + ', '
+            this_select = this_select[:-2]
+        else:
+            this_select = select_
+
+        if (type(where_) == type(())) or (type(where_) == type([])):
+            this_where = ''
+            for w in where_:
+                this_where += w + ' and '
+            this_where = this_where[:-5]
+        else:
+            this_where = where_
+
+        if (type(from_) == type(())) or (type(from_) == type([])):
+            this_from = ''
+            for w in from_:
+                this_from += w + ', '
+            this_from = this_from[:-2]
+        else:
+            this_from = from_
+            
+        req = 'SELECT {0} FROM {1} '.format(this_select, this_from)
         if where_ is not None:
-            req += 'WHERE ({0}) '.format(where_)
+            req += 'WHERE ({0}) '.format(this_where)
         if order_ is not None:
             req += 'ORDER BY {0} '.format(order_)
         if group_ is not None:
@@ -157,11 +204,17 @@ class MdB(object):
         if limit_ is not None:
             req += 'LIMIT {0:d}'.format(limit_)
         res, N = self.exec_dB(req, format_ = format_)
-
-        if format_ == 'numpy':
+        if N == 0:
+            res = None
+        elif format_ == 'numpy':
             if dtype_ is None:
                 dtype_ = self.get_dtype(select_ = select_, from_ = from_) 
             res = np.fromiter(res, dtype_)
+        elif format_ == 'dict2':
+            res2 = {}
+            for key in res[0]:
+                res2[key] = np.array([r[key] for r in res])
+            res = res2
         return res, N 
     
     def count_dB(self, from_ = 'OVN.tab1', where_ = None):
@@ -242,3 +295,100 @@ class MdB(object):
         else:
             return "<MdB disconnected from {0.base_name}@{0.host}>".format(self)
         
+class MdB_subproc(object):
+    
+    def __init__(self, OVN_dic = None, base_name = 'OVN',tmp_base_name = 'OVN_tmp', 
+                 user_name = 'OVN_user', user_passwd = 'getenv', 
+                 host = 'taranis', unix_socket = '/var/mysql/mysql.sock', port = 3306,
+                 connect = True):
+        
+        self.log_ = MdB.MdBlog_
+        self.calling = 'MdB'
+        if OVN_dic is not None:
+            if 'base_name' in OVN_dic:
+                base_name = OVN_dic['base_name']
+            if 'tmp_base_name' in OVN_dic:
+                tmp_base_name = OVN_dic['tmp_base_name']
+            if 'user_name' in OVN_dic:
+                user_name = OVN_dic['user_name']
+            if 'user_passwd' in OVN_dic:
+                user_passwd = OVN_dic['user_passwd']
+            if 'host' in OVN_dic:
+                host = OVN_dic['host']
+            if 'unix_socket' in OVN_dic:
+                unix_socket = OVN_dic['unix_socket']
+            if 'port' in OVN_dic:
+                port = OVN_dic['port']
+        self.base_name = base_name
+        self.tmp_base_name = tmp_base_name
+        self.user_name = user_name
+        if user_passwd == 'getenv':
+            self.user_passwd = os.getenv('{0}_pass'.format(user_name))
+        else:
+            self.user_passwd = user_passwd
+        self.port = port
+        self.host = host
+        self.unix_socket = unix_socket
+        self._dB = None
+        self._cursor = None
+        self._cursor_tuple = None
+        self.connected = True
+
+    def connect_dB(self):
+        pass
+    
+    def exec_dB(self, command, format_ = 'dict'):
+        if format_ not in ('dict', 'tuple', 'numpy', 'dict2'):
+            self.log_.error('format"{0}" not recognized'.format(format_), calling = self.calling)
+        if not self.connected:
+            self.log_.error('Not connected to a database', calling = self.calling)
+            return None
+        self.log_.message('Command sent: {0}'.format(command), calling = self.calling)
+
+
+        proc = subprocess.Popen(["mysql", 
+                                 "--host={0}".format(self.host),
+                                 "--user={0}".format(self.user_name), 
+                                 "--password={0}".format(self.user_passwd), 
+                                 "{0}".format(self.base_name)],
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE)
+        out, err = proc.communicate(command)
+        try:
+            out = out.split('\n')
+        except:
+            pass
+        try:
+            N = len(out)
+        except:
+            N = None
+        return out, N
+
+    def select_dB(self, select_ = '*', from_ = 'OVN.tab1', where_ = None, order_ = None, group_ = None, limit_ = 1,
+                  format_ = 'dict', dtype_ = None):
+        """
+        Usage:
+            dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', 
+                        where_ = 'ref like "DIG12HR_"', 
+                        limit_ = 100000, 
+                        format_='numpy')
+            loglog(dd['L_26']/dd['L_1'], dd['L_21']/dd['L_1'], 'r+')            
+        """
+        req = 'SELECT {0} FROM {1} '.format(select_, from_)
+        if where_ is not None:
+            req += 'WHERE ({0}) '.format(where_)
+        if order_ is not None:
+            req += 'ORDER BY {0} '.format(order_)
+        if group_ is not None:
+            req += 'GROUP BY {0} '.format(group_)
+        if limit_ is not None:
+            req += 'LIMIT {0:d}'.format(limit_)
+        res, N = self.exec_dB(req, format_ = format_)
+        try:
+            for i,line in enumerate(res):
+                res[i] = line.split('\t')
+        except:
+            pass
+        
+    
+    

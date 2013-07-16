@@ -1,8 +1,9 @@
 Ne3_3343A     Ne 3  3343A
 O2_3726A      O II  3726A
 O2_3729A      O II  3729A
-H1_3750A           ABSENT
-H1_3771A           ABSENT
+O2_3727A+     TOTL  3727A
+H1_3750A      H  1  3750A
+H1_3771A      H  1  3771A
 S3_3798A      H  1  3798A
 He1_3820A     He 1  3820A
 H1_3835A      H  1  3835A
@@ -15,15 +16,16 @@ H1_3970A      H  1  3970A
 N2_4026A      N  2  4026A
 S2_4069A      S II  4070A
 S2_4076A      S II  4078A
-H1_4101A           ABSENT
+H1_4101A      H  1  4102A
 C2_4267A      C  2  4267A
 H1_4340A      H  1  4340A
 Fe2_4359A          ABSENT
 O3_4363A      TOTL  4363A
+O3_4363Ar     REC   4363A
 He1_4388A     He 1  4388A
 He1_4471A     He 1  4471A
 N2_4631A           ABSENT
-Fe3_4658A          ABSENT
+Fe3_4659A     Fe 3  4659A
 He2_4686A     He 2  4686A
 Ar4_4711A     Ar 4  4711A
 He1_4713A     He 1  4713A
@@ -37,6 +39,7 @@ Ar3_5192A     Ar 3  5192A
 Cl3_5518A     Cl 3  5518A
 Cl3_5538A     Cl 3  5538A
 N2_5755A      N  2  5755A
+N2_5755Ar     N 2r  5755A
 He1_5876A     He 1  5876A
 O1_6300A      O  1  6300A
 S3_6312A      S  3  6312A
@@ -67,7 +70,7 @@ Ar2_7.0m      Ar 2 6.980m
 Ar3_9.0m      Ar 3 9.000m
 Ar3_21.8m     Ar 3 21.83m
 S3_18.7m      S  3 18.67m
-S3_33.5m      S  3 33.47m
+S3_33.6m      S  3 33.47m
 S4_10.5m      S  4 10.51m
 Ne3_15.6m     Ne 3 15.55m
 Ne3_36.0m     Ne 3 36.01m
