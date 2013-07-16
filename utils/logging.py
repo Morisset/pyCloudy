@@ -49,11 +49,7 @@ class my_logging(object):
 
         """
         self.log_ = {}
-        self.log_['messages'] = []
-        self.log_['warnings'] = []
-        self.log_['errors'] = []
-        self.log_['timer'] = []
-        self.log_['debug'] = []
+        self.clean_log()
         
         self.caller_max_size = 0
         self.level = level if level is not None else 2
@@ -65,6 +61,14 @@ class my_logging(object):
         self.print_time = print_time
         self.open_file(file_)
         self.no_exit = no_exit
+    
+    def clean_log(self):
+        
+        self.log_['messages'] = []
+        self.log_['warnings'] = []
+        self.log_['errors'] = []
+        self.log_['timer'] = []
+        self.log_['debug'] = []
     
     def _pprint(self, mess_type, message, calling=None):
         if calling is None:
