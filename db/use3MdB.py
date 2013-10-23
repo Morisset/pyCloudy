@@ -434,6 +434,7 @@ class writeTab(object):
         if self.CloudyModel.n_zones > 1:
             for clabel in self.CloudyModel.emis_labels:
                 self.insert_in_dic(clabel, self.CloudyModel.get_emis_vol(clabel))
+                self.insert_in_dic(clabel+'_rad', self.CloudyModel.get_emis_rad(clabel))
                   
     def insert_model(self):
         if not self.MdB.connected:
@@ -942,16 +943,20 @@ class ObsfromMdB(object):
 class manage3MdB(object):
     
     def __init__(self, OVN_dic, models_dir='/DATA/MdB', Nprocs=pn.config.Nprocs):
-        
-        self.all_threads = []
-        for i in xrange(Nprocs):
-            self.all_threads.append(runCloudyByThread(OVN_dic, models_dir))
-            
+        self.OVN_dic = OVN_dic
+        self.models_dir = models_dir
+        self.Nprocs = Nprocs
+                
     def start(self):
+        self.all_threads = []
+        for i in xrange(self.Nprocs):
+            self.all_threads.append(runCloudyByThread(self.OVN_dic, self.models_dir))
         for t in self.all_threads:
             t.start()
     
     def stop(self):
         for t in self.all_threads: 
             t.stop()
+
             
+    

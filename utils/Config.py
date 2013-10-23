@@ -63,6 +63,15 @@ class _Config(object):
             self.INSTALLED['np.genfromtxt new'] = False
         if not self.INSTALLED['np.genfromtxt new']:
             _Config.log_.warn('pyCloudy works better with numpy >= 1.6.0', calling = 'pyCloudy config')
+
+        try:
+            import multiprocessing as mp
+            self.INSTALLED['mp'] = True
+            self.Nprocs = mp.cpu_count()
+        except:
+            self.INSTALLED['mp'] = False
+            self.log_.message('multiprocessing not available', calling=self.calling)
+            self.Nprocs = 1
         
         self.SAVE_LIST = [['radius', '.rad'],
                           ['continuum', '.cont'],
