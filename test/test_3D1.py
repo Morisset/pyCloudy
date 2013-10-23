@@ -2,10 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pyCloudy as pc
 
-pc.config.cloudy_exe = '/usr/local/Cloudy/c13.00_rc1/source/cloudy.exe'
+#pc.config.cloudy_exe = '/usr/local/Cloudy/c13.00_rc1/source/cloudy.exe'
 
-#dir_ = '/Users/christophemorisset/Using_pyCloudy/Models'
-dir_ = '.'
+dir_ = '/Users/christophemorisset/Using_pyCloudy/Models'
+#dir_ = '.'
 
 """
 Run a 3D model of a bipolar nebula. Compute the line profiles and some images and statistics. 
@@ -131,7 +131,7 @@ def plot_RGB(m3d):
     plt.figure(3)
     plt.imshow(m3d.get_RGB(('H__1__4861A', 'N__2__6584A', 'O__3__5007A'), axes = 1))
 
-model_name = "M3D_1"
+model_name = "M3D_5"
 pc.log_.calling = 'Model3D : ' + model_name
 pc.log_.level = 3
 
@@ -140,7 +140,7 @@ n_cut = (dim-1) /2
 proj_axis = 0
 
 set_models(dir_, model_name)
-pc.run_cloudy(dir_ = dir_, n_proc = 6, model_name = model_name, use_make = True)
+pc.run_cloudy(dir_ = dir_, n_proc = 3, model_name = model_name, use_make = True)
 
 liste_of_models = pc.load_models('{0}/{1}'.format(dir_, model_name), list_elem=['H', 'He', 'C', 'N', 'O', 'Ar', 'Ne'],  
                                            read_cont = False, read_grains = False)
@@ -152,7 +152,6 @@ def_profiles(m3d)
 im = m3d.get_RGB(list_emis = [0, 3, 7])
 plt.imshow(im, origin = 'lower')
 m3d.plot_profiles(ref = 3, i_fig = 1, Nx=20, Ny=20)
-
 
 plot_profiles(m3d, 55, 55)
 other_plots(m3d, proj_axis)

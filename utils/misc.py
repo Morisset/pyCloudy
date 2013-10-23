@@ -423,6 +423,24 @@ def revert_seterr(oldsettings):
     np.seterr(invalid = oldsettings['invalid'])
     np.seterr(under = oldsettings['under'])
      
+def quiet_divide(a, b):
+    """
+    This function returns the division of a by b, without any waring in case of b beeing 0.
+    """
+    oldsettings = np.seterr(all='ignore')
+    to_return = a / b # this will not issue Warning messages
+    revert_seterr(oldsettings)
+    return to_return
+
+def quiet_log10(a):
+    """
+    This function returns the log10 of a, without any waring in case of b beeing 0.
+    """
+    oldsettings = np.seterr(all='ignore')
+    to_return = np.log10(a) # this will not issue Warning messages
+    revert_seterr(oldsettings)
+    return to_return
+     
 class ImportFromFile(object):
     """
     Create an object with parameters as defined in the file_to_import (which is a python-style file)

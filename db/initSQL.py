@@ -1,6 +1,20 @@
 import pyCloudy as pc
 
 
+OVN_dic = {'host' : 'localhost',
+       'user_name' : 'user',
+       'user_passwd' : 'getenv',
+       'base_name' : 'OVN2',
+       'tmp_name' : 'OVN_tmp',
+       'pending_table' : '`pending2`',
+       'master_table' : '`tab2`',
+       'teion_table' : '`teion2`',
+       'abion_table' : '`abion2`',
+       'temis_table' : '`temis2`',
+       'lines_table' : '`lines`',
+       'procIDs_table' : '`procIDs`'
+       }
+
 lines_list = [('BAC___3646A', 'Bac ', 3646.0, 'BalmHead'), 
               ('COUT__3646A', 'cout', 3646.0, 'OutwardBalmPeak'), 
               ('CREF__3646A', 'cref', 3646.0, 'ReflectedBalmPeak'),
@@ -16,10 +30,13 @@ lines_list = [('BAC___3646A', 'Bac ', 3646.0, 'BalmHead'),
             ('H__1_2625M', 'H  1', 2.625, 'H  1 2.625'),
             ('H__1_7458M', 'H  1', 7.458, 'H  1 7.458'),
             ('HE_1__5876A', 'He 1', 5876.0, 'HeI 5876'),
+            ('CA_B__5876A', 'Ca B', 5876.0, 'HeI 5876 Bcase'),
             ('HE_1__7281A', 'He 1', 7281.0, 'He 1 7281'),
             ('HE_1__7065A', 'He 1', 7065.0, 'He 1 7065'),
             ('HE_1__4471A', 'He 1', 4471.0, 'He 1 4471'),
+            ('CA_B__4471A', 'Ca B', 4471.0, 'He 1 4471 Bcase'),
             ('HE_1__6678A', 'He 1', 6678.0, 'He 1 6678'),
+            ('CA_B__6678A', 'Ca B', 6678.0, 'He 1 6678 Bcase'),
             ('TOTL_1083M', 'TOTL',  1.083, 'He 1 1.083'),
             ('HE_2__1640A', 'He 2', 1640.0, 'He 2 1640'),
             ('HE_2__4686A', 'He 2', 4686.0, 'HeII 4686'),
@@ -100,6 +117,7 @@ lines_list = [('BAC___3646A', 'Bac ', 3646.0, 'BalmHead'),
             ('NE_3__1815A', 'Ne 3', 1815.0, 'Ne 3 1815'),
             ('NE_4__1602A', 'Ne 4', 1602.0, 'Ne 4 1602'),
             ('NE_4__2424A', 'Ne 4', 2424.0, 'Ne 4 2424'),
+            ('NE_4__4720A', 'Ne 4', 4720.0, 'Ne 4 4720+'),
             ('NE_5__3426A', 'Ne 5', 3426.0, 'Ne 5 3426'),
             ('NE_5__3346A', 'Ne 5', 3346.0, 'Ne 5 3346'),
             ('NE_5__2976A', 'Ne 5', 2976.0, 'Ne 5 2976'),
@@ -133,6 +151,7 @@ lines_list = [('BAC___3646A', 'Bac ', 3646.0, 'BalmHead'),
             ('TOTL__8494A', 'TOTL', 8494.0, 'Cl 3 8494+'),
             ('CL_3__5518A', 'Cl 3', 5518.0, 'Cl 3 5518'),
             ('CL_3__5538A', 'Cl 3', 5538.0, 'Cl 3 5538'),
+            ('CL_4__7532A', 'Cl 4', 7532.0, 'Cl 4 7532'),
             ('CL_4_2040M', 'Cl 4', 20.40, 'Cl 4 20.40'),
             ('CL_4_1170M', 'Cl 4', 11.70, 'Cl 4 22.70'),
             ('AR_2_6980M', 'Ar 2', 6.98, 'Ar 2 6.98'),
@@ -144,6 +163,7 @@ lines_list = [('BAC___3646A', 'Bac ', 3646.0, 'BalmHead'),
             ('AR_4__7171A', 'Ar 4', 7171.0, 'Ar 4 7171'),
             ('AR_4__4711A', 'Ar 4', 4711.0, 'Ar 4 4711'),
             ('AR_4__4740A', 'Ar 4', 4740.0, 'Ar 4 4740'),
+            ('AR_5__7005A', 'Ar 5', 7005.0, 'Ar 5 7005'),
             ('AR_5_1310M', 'Ar 5', 13.1, 'Ar 5 13.1'),
             ('AR_5_8000M', 'Ar 5', 8.0, 'Ar 5 8.00'),
             ('FE_2__8617A', 'Fe 2', 8617.0, 'Fe 2 8617'),
@@ -349,6 +369,7 @@ def init_tab(OVN_dic=OVN_dic, MdB=None,delete_before=False):
         command += '`{0}` double NOT NULL DEFAULT -40,'.format(elem[0])
     for line in lines_list:
         command += "`{0[0]}` double NOT NULL DEFAULT 0, ".format(line)
+        command += "`{0[0]}_rad` double NOT NULL DEFAULT 0, ".format(line)
     command += """`DepthFrac` double NOT NULL DEFAULT 1,
   `MassFrac` double NOT NULL DEFAULT 1,
   `rout` double NOT NULL DEFAULT 0,
@@ -393,6 +414,9 @@ def init_tab(OVN_dic=OVN_dic, MdB=None,delete_before=False):
   `interpol` int(11) NOT NULL DEFAULT '0',
   `datetime` datetime NOT NULL DEFAULT 0,
   `N_pending` bigint(20) NOT NULL DEFAULT 0,
+  `N1` bigint(20) NOT NULL DEFAULT -1,
+  `N2` bigint(20) NOT NULL DEFAULT -1,
+  `W1` float NOT NULL DEFAULT 1,
   PRIMARY KEY (`N`),
   KEY `ref` (`ref`),
   KEY `user` (`user`),
@@ -488,9 +512,13 @@ def update_lines(OVN_dic=OVN_dic, MdB=None):
     lines_temis = MdB.get_fields(OVN_dic['temis_table'])
     for line in lines_list:
         if line[0] not in lines_tab:
-            command = 'ALTER TABLE {0} ADD `{1}` double NOT NULL DEFAULT -40;'.format(OVN_dic['master_table'], line[0])
+            command = 'ALTER TABLE {0} ADD `{1}` double NOT NULL DEFAULT 0;'.format(OVN_dic['master_table'], line[0])
             MdB.exec_dB(command)
             print('Adding line {0}'.format(line[0]))
+        if line[0]+'_rad' not in lines_tab:
+            command = 'ALTER TABLE {0} ADD `{1}_rad` double NOT NULL DEFAULT 0;'.format(OVN_dic['master_table'], line[0])
+            MdB.exec_dB(command)
+            print('Adding line {0}_rad'.format(line[0]))
         if 'T_{0}'.format(line[0]) not in lines_temis:
             command = 'ALTER TABLE {0} ADD `T_{1}` double NOT NULL DEFAULT 0;'.format(OVN_dic['temis_table'], line[0])
             MdB.exec_dB(command)
