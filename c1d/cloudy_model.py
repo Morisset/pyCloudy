@@ -217,6 +217,12 @@ class CloudyModel(object):
                 self.r_out = self.radius_full + self.dr_full/2   
             self.r_in_cut = self.r_in
             self.r_out_cut = self.r_out
+            if self.Phi0 == 0.:
+                self.Phi = self.Q / (4 * np.pi * self.r_in**2)
+                self.Phi0 = self.Phi.sum()
+
+            
+
     ## 
     # @var r_in 
     # Initial radius [float] (cm)
@@ -707,15 +713,16 @@ class CloudyModel(object):
         """ Return the mean value of a weighted by b on the radius"""
         return self._quiet_div(self.rad_integ(a * b), self.rad_integ(b))    
 
-    ## log(U) in each zone [float array], with U(r) = \f$ Q_0 / (4.\pi.r^2.n_H.c)\f$
+    ## log(U) in each zone [float array], with U(r) = \f$ Phi_0 * (r_0/r)^2/ (n_H.c)\f$
     @property
     def log_U(self):
-        """ U = Q0 /(4 pi radius**2 nH c)"""
+        """ U = Phi0 * (r_in/rarius) / (nH c)"""
         try:
-            return np.log10(self.Q0 / (4. * np.pi * self.radius ** 2 * self.nH * pc.CST.CLIGHT))
+            log_U = np.log10(self.Phi0 * (self.r_in/self.radius)**2 / (self.nH * pc.CST.CLIGHT))
         except:
             self.log_.warn('No U computed', calling = self.calling)
-            return None
+            log_U = None
+        return log_U
         
     ## log_U_mean = \f$\frac{\int U.dV}{\int dV}\f$ [float]
     @property

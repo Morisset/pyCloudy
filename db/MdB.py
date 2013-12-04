@@ -33,7 +33,7 @@ class MdB(object):
     
     def __init__(self, OVN_dic = None, base_name = 'OVN',tmp_base_name = 'OVN_tmp', 
                  user_name = 'OVN_user', user_passwd = 'getenv', 
-                 host = 'taranis', unix_socket = '/var/mysql/mysql.sock', port = 3306,
+                 host = 'localhost', unix_socket = '/var/mysql/mysql.sock', port = 3306,
                  connect = True):
         """
         This is the package to deal with MySQL OVN database. 
@@ -296,10 +296,12 @@ class MdB(object):
             return "<MdB disconnected from {0.base_name}@{0.host}>".format(self)
         
 class MdB_subproc(object):
-    
+    """
+    Alternative way, when MySQLdb not available. Still in development.
+    """
     def __init__(self, OVN_dic = None, base_name = 'OVN',tmp_base_name = 'OVN_tmp', 
                  user_name = 'OVN_user', user_passwd = 'getenv', 
-                 host = 'taranis', unix_socket = '/var/mysql/mysql.sock', port = 3306,
+                 host = 'localhost', unix_socket = '/var/mysql/mysql.sock', port = 3306,
                  connect = True):
         
         self.log_ = MdB.MdBlog_
