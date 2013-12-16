@@ -107,20 +107,19 @@ class CloudyModel(object):
         """
 
         self.log_ = pc.log_
-        self.calling = 'CloudyModel'
         if verbose is not None:
             self.log_.level = verbose
         self.model_name = model_name
+        self.info = '<Cloudy model from {0}>'.format(self.model_name) 
+        self.calling = 'CloudyModel {0.model_name}'.format(self)
         self.log_.message('Creating CloudyModel for {0.model_name}'.format(self), calling = self.calling)
         self.model_name_s = model_name.split('/')[-1]
         self.line_is_log = line_is_log
         self.emis_is_log = emis_is_log
         self.distance = distance  
         self._read_stout()
-        if read_all_ext and self.out_exists:
-
+        if self.out_exists and not self.aborted and read_all_ext:
             self._init_all2zero()
-            
             if read_rad:
                 self._init_rad()
             if read_phy:
@@ -392,7 +391,6 @@ class CloudyModel(object):
     def _read_stout(self):
         self.out = {}
         file_name = self.model_name + '.out'
-        self.date_model = time.ctime(os.path.getctime(file_name))
         self.C3D_comments = []
         self.comments = []
         self.warnings = []
@@ -401,10 +399,11 @@ class CloudyModel(object):
             file_ = open(file_name, 'r')
             self.out_exists = True
         except:
-            self.log_.error(file_name + ' NOT read.', calling = self.calling)
+            self.log_.warn(file_name + ' NOT read.', calling = self.calling)
             self.out_exists = False
+            self.info = '<!!! Model {0} without output file>'.format(self.model_name)
             return None
-        
+        self.date_model = time.ctime(os.path.getctime(file_name))
         self.cloudy_version = file_.readline().strip()
         self.cloudy_version_major = pc.sextract(self.cloudy_version,'Cloudy ','.')
         self.Teff = None
@@ -526,6 +525,14 @@ class CloudyModel(object):
             if (ab_str in ATOMIC_MASS) and (ab_str in self.abund):
                 self.gas_mass_per_H += 10**self.abund[ab_str] * ATOMIC_MASS[ab_str]
                 
+        if ("ABORT" in self.out['Cloudy ends']) or ("aborted" in self.out['stop']):
+            self.aborted = True
+            self.log_.warn('Model aborted', calling = self.calling)
+            self.info = '<!!! Model {0} aborted>'.format(self.model_name)
+        else:
+            self.aborted = False
+        return True
+    
     def read_outputs(self, extension, delimiter='\t', comments=';', names=True, **kwargs):
         file_ = self.model_name + '.' + extension
         if os.path.exists(file_):
@@ -1536,10 +1543,10 @@ class CloudyModel(object):
             pass
         
     def __repr__(self):
-        return "<Cloudy model from {0.model_name}>".format(self)
+        return "{0.info}".format(self)
     
     def __str__(self):
-        return "<Cloudy model from {0.model_name}>".format(self)
+        return "{0.info}".format(self)
     
 ## @include copyright.txt
 def load_models(model_name = None, mod_list = None, n_sample = None, verbose = False, **kwargs):

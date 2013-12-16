@@ -201,7 +201,7 @@ class writePending(object):
                 return
             for i_dust, dtype in enumerate(dust_type):
                 self.set_dust(dtype, dust_value[i_dust], i_dust)
-        else:    
+        else:
             type_str = 'dust_type{0}'.format(i_dust+1)
             value_str = 'dust_value{0}'.format(i_dust+1)
             self.insert_in_dic(type_str, dust_type)
@@ -369,11 +369,18 @@ class writeTab(object):
         self.update_status('Read model')
         try:
             self.CloudyModel = pc.CloudyModel('{0}/{1}/{2}'.format(self.models_dir, self.pending['dir'], name), read_cont=False)
-            self.update_status('Model read')
+            if not self.CloudyModel.aborted:
+                self.update_status('Model read')
+                status = True
+            else:
+                self.update_status('Model not read')
+                status = False
         except:
             self.update_status('Model not read')
-            self.log_.error('Model {0} not read in {1}'.format(name, self.models_dir))
+            status = False
+            self.log_.warn('Model {0} not read in {1}/{2}/{3}'.format(name, self.models_dir, self.pending['dir'], name))
         self.insert_in_dic('file', name)
+        return status
         
     def pending2dic(self):
         
@@ -745,16 +752,16 @@ class runCloudyByThread(threading.Thread):
                 try:
                     rC.CloudyInput.run_cloudy(precom="\\nice -10")
                     rC.update_status('Cloudy run')
-                    insert_it = True
+                    read_it = True
                 except:
                     self.log_.warn('Cloudy model {0} failed'.format(self.selectedN))
                     rC.update_status('Cloudy failed')
-                    insert_it = False
-                if insert_it:
+                    read_it = False
+                if read_it:
                     wT = writeTab(self.MdB, OVN_dic = self.OVN_dic, models_dir = self.models_dir)
                     wT.read_pending(self.selectedN)
-                    wT.read_model()
-                    
+                    insert_it = wT.read_model()
+                if insert_it:
                     if rC.pending['GuessMassFrac'] < 1.0:
                         wT.CloudyModel.H_mass_cut = rC.pending['GuessMassFrac'] * wT.CloudyModel.H_mass_full[-1]
                         wT.insert_model()
