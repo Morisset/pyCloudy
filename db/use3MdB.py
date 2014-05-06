@@ -2,8 +2,9 @@ import os
 import time
 import threading
 import numpy as np
+import datetime
 import pyCloudy as pc
-from pyCloudy.utils.init import SYM2ELEM
+from pyCloudy.utils.init import SYM2ELEM, LIST_ALL_ELEM
 from pyCloudy.utils.misc import cloudy2pyneb
 import pyneb as pn
 
@@ -23,6 +24,13 @@ status_dic = {'Read_pending':2,
               'Temis inserted':17,
               'Master table updated':50,
               }
+
+save_list_elems = [e[0] for e in pc.config.SAVE_LIST_ELEMS]
+for elem in SYM2ELEM.values():
+    if elem not in save_list_elems:
+        syms = [key for key,value in SYM2ELEM.items() if value==elem ]
+        if syms != []:
+            pc.config.SAVE_LIST_ELEMS.append([elem, '.ele_{0}'.format(syms[0])])
     
 def select_from_priorities(Ps):
         Pmax = np.max(Ps)
@@ -211,7 +219,6 @@ class writePending(object):
         
         self.insert_in_dic('iterate', n_iter)
         
-        
     def set_stop(self, stopping_crit=None, i_stop=0):
         
         if i_stop > 5:
@@ -275,6 +282,10 @@ class writePending(object):
         else:
             com_str = 'com{0}'.format(i_com+1)
             self.insert_in_dic(com_str, comments)
+            
+    def set_C_version(self, version=None):
+        if version in pc.config.cloudy_dict:
+            self.insert_in_dic('C_version', version)
 
     def insert_model(self):
         
@@ -368,7 +379,8 @@ class writeTab(object):
             name = self.pending['file']
         self.update_status('Read model')
         try:
-            self.CloudyModel = pc.CloudyModel('{0}/{1}/{2}'.format(self.models_dir, self.pending['dir'], name), read_cont=False)
+            self.CloudyModel = pc.CloudyModel('{0}/{1}/{2}'.format(self.models_dir, self.pending['dir'], name), 
+                                              read_cont=False, list_elem = LIST_ALL_ELEM)
             if not self.CloudyModel.aborted:
                 self.update_status('Model read')
                 status = True
@@ -389,7 +401,6 @@ class writeTab(object):
         for field in self.pending_fields:
             if field in self.fields and field[0:4] != 'date' and field != 'N':
                 self.insert_in_dic(field, self.pending[field])
-        
         
     def model2dic(self):
         
@@ -443,7 +454,7 @@ class writeTab(object):
                 self.insert_in_dic(clabel, self.CloudyModel.get_emis_vol(clabel))
                 self.insert_in_dic(clabel+'_rad', self.CloudyModel.get_emis_rad(clabel))
                   
-    def insert_model(self):
+    def insert_model(self, add2dic=None):
         if not self.MdB.connected:
             self.log_.error('Not connected')
             return None
@@ -451,6 +462,9 @@ class writeTab(object):
         self.pending2dic()
         self.model2dic()
         self.lines2dic()
+        if add2dic is not None:
+            for key in add2dic:
+                self.insert_in_dic(key, add2dic[key])
         
         fields_str = '`datetime`, '
         values_str = 'now(), '
@@ -473,15 +487,15 @@ class writeTab(object):
         self.last_N = res[0]['last_insert_id()']
         self.log_.message('Model sent to {0} with N={1}'.format(self.table, self.last_N))
         self.update_status('Model inserted')
-        
+        # ToDo : Loosing a lot of time in the following, check why
         if self.CloudyModel.n_zones > 1:
-            ab_fields_str = '`N`, '
-            t_fields_str = '`N`, '
-            values_ab_str = '{0}, '.format(self.last_N)
-            values_te_str = '{0}, '.format(self.last_N)        
+            ab_fields_str = '`N`, `ref`, '
+            t_fields_str = '`N`, `ref`, '
+            values_ab_str = "{0}, '{1}', ".format(self.last_N, self._dic['ref'])
+            values_te_str = "{0}, '{1}', ".format(self.last_N, self._dic['ref'])        
             abion_fields = self.MdB.get_fields(from_ = self.OVN_dic['abion_table'])
             for abion_field in abion_fields:
-                if abion_field != 'N':
+                if (abion_field != 'N') and (abion_field != 'ref'):
                     ab,elem_long, integ, ion = abion_field.split('_')
                     ion = int(ion)
                     elem = None
@@ -519,8 +533,8 @@ class writeTab(object):
          
          
         if self.CloudyModel.n_zones > 1:
-            fields_str = '`N`, '
-            values_tem_str = '{0}, '.format(self.last_N)
+            fields_str = '`N`, `ref`,'
+            values_tem_str = "{0}, '{1}',".format(self.last_N,  self._dic['ref'])
             for clabel in self.CloudyModel.emis_labels:
                 try:
                     fields_str += '`T_{0}`, '.format(clabel)
@@ -555,7 +569,7 @@ class runCloudy(object):
         self.proc_name = proc_name
         self.models_dir = models_dir
         self.lines,N_lines = MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
-                                           limit_=None, format_='numpy')
+                                           where_='used = 1', limit_=None, format_='numpy')
        
         self.get_ID()
         self.init_CloudyInput()
@@ -642,6 +656,7 @@ class runCloudy(object):
 
         if not self.MdB.connected:
             self.log_.error('Not connected to the database')
+            self.pending = None
             return None
         
         if N_pending is None:
@@ -655,7 +670,7 @@ class runCloudy(object):
         else:
             self.pending = res[0]
     
-    def fill_CloudyInput(self, N_pending=None):
+    def fill_CloudyInput(self, N_pending=None, noinput=False):
         
         if N_pending is None:
             N_pending = self.selectedN
@@ -663,6 +678,7 @@ class runCloudy(object):
         P = self.pending
         if P is not None:
             self.CloudyInput.model_name = '{0}/{1}/{2}'.format(self.models_dir, P['dir'], P['file'])
+            self.CloudyInput.cloudy_version = P['C_version']
             self.CloudyInput.set_distance(P['distance'])
             if P['dens'] != 0:
                 self.CloudyInput.set_cste_density(P['dens'], P['ff'])
@@ -719,17 +735,20 @@ class runCloudy(object):
             self.CloudyInput.set_emis_tab(self.emis_tab)
             self.update_status('Cloudy Input filled')
             
-            self.CloudyInput.print_input()
+            if not noinput:
+                self.CloudyInput.print_input()
             self.update_status('Cloudy Input printed')
 
 class runCloudyByThread(threading.Thread):
 
-    def __init__(self, OVN_dic, models_dir):
+    def __init__(self, OVN_dic, models_dir, norun=False, noinput=False):
         
         self.log_ = pc.log_
         threading.Thread.__init__(self)
         self._stop = threading.Event()
         self.models_dir = models_dir
+        self.norun = norun
+        self.noinput = noinput
         self.MdB = None
         self.sleep_time = 10.
         self.setDaemon(True)
@@ -747,11 +766,12 @@ class runCloudyByThread(threading.Thread):
             rC.select_pending()
             self.selectedN = rC.selectedN 
             if self.selectedN is not None:
-                rC.fill_CloudyInput()
+                rC.fill_CloudyInput(noinput = self.noinput)
                 rC.update_status('Cloudy start')
                 try:
-                    rC.CloudyInput.run_cloudy(precom="\\nice -10")
-                    rC.update_status('Cloudy run')
+                    if not self.norun:
+                        rC.CloudyInput.run_cloudy(precom="\\nice -10")
+                        rC.update_status('Cloudy run')
                     read_it = True
                 except:
                     self.log_.warn('Cloudy model {0} failed'.format(self.selectedN))
@@ -761,6 +781,8 @@ class runCloudyByThread(threading.Thread):
                     wT = writeTab(self.MdB, OVN_dic = self.OVN_dic, models_dir = self.models_dir)
                     wT.read_pending(self.selectedN)
                     insert_it = wT.read_model()
+                else:
+                    insert_it = False
                 if insert_it:
                     if rC.pending['GuessMassFrac'] < 1.0:
                         wT.CloudyModel.H_mass_cut = rC.pending['GuessMassFrac'] * wT.CloudyModel.H_mass_full[-1]
@@ -947,6 +969,7 @@ class ObsfromMdB(object):
                 else:
                     if EL.corrIntens.size == n_lines:
                         self.obs.addLine(EL)
+
 class manage3MdB(object):
     
     def __init__(self, OVN_dic, models_dir='/DATA/MdB', Nprocs=pn.config.Nprocs):
@@ -954,16 +977,95 @@ class manage3MdB(object):
         self.models_dir = models_dir
         self.Nprocs = Nprocs
                 
-    def start(self):
+    def start(self, norun=False, noinput=False):
         self.all_threads = []
         for i in xrange(self.Nprocs):
-            self.all_threads.append(runCloudyByThread(self.OVN_dic, self.models_dir))
+            self.all_threads.append(runCloudyByThread(self.OVN_dic, self.models_dir, norun=norun, noinput=noinput))
         for t in self.all_threads:
             t.start()
     
     def stop(self):
         for t in self.all_threads: 
             t.stop()
-
             
+def print_all_refs(MdB = None, OVN_dic=None):
+    """
+    Print all the references from the master table, with the number of entries for each.
+    """
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic=OVN_dic)
+    if not isinstance(MdB, pc.MdB):
+        self.log_.error('The first argument must be a MdB object')    
+    res, N_ref = MdB.select_dB(select_ = 'distinct(ref), count(*)', from_ = OVN_dic['master_table'], group_ = 'ref', limit_ = None)
+    for row in res:
+        print('The ref "{0:15}" counts {1:8d} entries.'.format(row['ref'], row['count(*)']))
+    print('Number of distinct references = {0}'.format(N_ref))
     
+def print_all_lines(MdB = None, OVN_dic=None, limit_=None):
+    """
+    Print all the emission lines.
+    A limit can be given
+    """
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic=OVN_dic)
+    if not isinstance(MdB, pc.MdB):
+        self.log_.error('The first argument must be a MdB object')    
+    lines, N_lines = MdB.select_dB(select_ = '*', from_ = OVN_dic['lines_table'], limit_ = limit_)
+    for line in lines:
+        print('Nl = {0[Nl]:3} id = {0[id]:4} label = {0[label]:5} wavelength = {0[lambda]:6} full name = {0[name]}'.format(line))
+
+def print_status_stats(MdB = None, OVN_dic=None, ref_=None):
+    """
+    Print the number of pending models for each status.
+    A reference can be given. 
+    """
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic=OVN_dic)
+    if not isinstance(MdB, pc.MdB):
+        self.log_.error('The first argument must be a MdB object')
+    if ref_ is not None:
+        where_ = 'ref = "{0}"'.format(ref_)
+    else:
+        where_ = None
+    res, N_res = MdB.select_dB(select_='status, count(*) as ct',from_=OVN_dic['pending_table'],
+                               where_=where_, group_='status', limit_=None)
+    for status in res: 
+        print('{0:7} models with status = {1:4}.'.format(status['ct'], status['status']))
+
+def print_mean_running_time(MdB = None, OVN_dic=None, ref_=None):
+    """
+    Print the mean time to run photoionization models.
+    A reference can be given
+    """
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic=OVN_dic)
+    if not isinstance(MdB, pc.MdB):
+        self.log_.error('The first argument must be a MdB object')
+    if ref_ is not None:
+        where_ = 'ref = "{0}"'.format(ref_)
+    else:
+        where_ = None
+    res, N_res = MdB.select_dB(select_='avg(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MRT, '\
+                               'min(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MN, '\
+                               'max(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MX',
+                              from_=OVN_dic['master_table'], where_=where_, limit_=None)
+    print('Mean running time = {0[MRT]}, min = {0[MN]}, max = {0[MX]}'.format(res[0]))
+    
+def print_elapsed_time(MdB = None, OVN_dic=None, ref_=None):
+    """
+    Print the time elapsed between the first and the last model run.
+    A reference can be given
+    """
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic=OVN_dic)
+    if not isinstance(MdB, pc.MdB):
+        self.log_.error('The first argument must be a MdB object')
+    if ref_ is not None:
+        where_ = 'ref = "{0}"'.format(ref_)
+    else:
+        where_ = None
+    res, N_res = MdB.select_dB(select_='time_to_sec(timediff(max(datetime),min(datetime))) as ET',
+                               from_=OVN_dic['master_table'], where_=where_, limit_=None)
+    print('Models running during = {0}'.format(datetime.timedelta(seconds=res[0]['ET'])))
+    
+  

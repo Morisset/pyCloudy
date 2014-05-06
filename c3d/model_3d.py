@@ -400,6 +400,9 @@ class C3D(object):
             - n_dims [int]
             - file_coeffs [str] file_ to store the coeffs (not used yet)
             - interp_method [str] method used for the interpolation of theta and phi
+            - plan_sym [Boolean] If True, the theta angles are only from 0 to 90, negative values are obtained by
+                mirror symmetry on the equatorial plane
+            - r_max [float] (cm) Geometrical size of the cube 
             - r_interp_method [str] method used for the radial interpolation (numpy or scipy)
         """
         self.log_ = pc.log_

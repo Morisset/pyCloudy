@@ -46,7 +46,7 @@ class MdB(object):
         
         Latter, we will also use the ODBC connector. Install the connector from MySQl: http://dev.mysql.com/downloads/connector/odbc/
         and then use pyodbc with:
-        cnxn = pyodbc.connect('DRIVER={MySQL ODBC 5.2 Driver};SERVER=132.248.1.102;DATABASE=OVN2;UID=OVN_admin2;PWD=oiii4363;SOCKET=/var/mysql/mysql.sock')
+        cnxn = pyodbc.connect('DRIVER={MySQL ODBC 5.2 Driver};SERVER=127.0.0.1;DATABASE=OVN;UID=OVN_user;PWD=oiii5007;SOCKET=/var/mysql/mysql.sock')
         
         """
 
@@ -278,17 +278,6 @@ class MdB(object):
                     dtype_list.append((name, ntype))        
         return np.dtype(dtype_list)
             
-    def print_all_refs(self, from_ = 'OVN.tab1'):
-        res, N_ref = self.select_dB(select_ = 'distinct(ref), count(*)', from_ = from_, group_ = 'ref', limit_ = None)
-        for row in res:
-            print('The ref "{0:15}" counts {1:8d} entries.'.format(row['ref'], row['count(*)']))
-        print('Number of distinct references = {0}'.format(N_ref))
-        
-    def print_all_lines(self, limit_ = None):
-        lines, N_lines = self.select_dB(select_ = '*', from_ = 'OVN.lines', limit_ = limit_)
-        for line in lines:
-            print('N = {0[N]:3} id = {0[id]:4} label = {0[label]:5} wavelength = {0[lambda]:6} full name = {0[name]}'.format(line))
-
     def __repr__(self):
         if self.connected:
             return "<MdB connected to {0.base_name}@{0.host}>".format(self)
@@ -391,6 +380,5 @@ class MdB_subproc(object):
                 res[i] = line.split('\t')
         except:
             pass
-        
-    
+          
     
