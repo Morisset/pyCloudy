@@ -234,6 +234,7 @@ fields1 = """`N` bigint(20) NOT NULL AUTO_INCREMENT,
   `ref` varchar(40) NOT NULL DEFAULT '',
   `file` varchar(40) NOT NULL DEFAULT '',
   `dir` varchar(80) NOT NULL DEFAULT '',
+  `C_version` varchar(10) NOT NULL DEFAULT '10.00',
   `geom` varchar(10) NOT NULL DEFAULT '',
   `atm_cmd` varchar(60) NOT NULL DEFAULT '',
   `atm_file` varchar(40) NOT NULL DEFAULT '',
@@ -313,6 +314,7 @@ def init_lines(OVN_dic=OVN_dic, MdB=None,delete_before=False):
 `id` varchar(20) DEFAULT NULL,
 `lambda` double DEFAULT NULL,
 `name` varchar(40) NOT NULL,
+`used` int(2) DEFAULT 1,
 PRIMARY KEY (`Nl`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1;
 """.format(table)
@@ -437,7 +439,7 @@ def init_teion(OVN_dic=OVN_dic, MdB=None, delete_before=False):
         MdB.exec_dB(command)
 
     command = "CREATE TABLE IF NOT EXISTS {0} (`N` bigint(20) NOT NULL DEFAULT '0',".format(table)
-    
+    command += "`ref` varchar(40) NOT NULL ,".format(elem[0], i)
     for elem in elem_list:
         for i in xrange(elem[1]+1):
             command += "`T_{0}_vol_{1}` double NOT NULL DEFAULT '-40',".format(elem[0], i)
@@ -457,7 +459,8 @@ def init_abion(OVN_dic=OVN_dic, MdB=None, delete_before=False):
         MdB.exec_dB(command)
 
     command = "CREATE TABLE IF NOT EXISTS {0} (`N` bigint(20) NOT NULL DEFAULT '0',".format(table)
-    
+    command += "`ref` varchar(40) NOT NULL ,".format(elem[0], i)
+
     for elem in elem_list:
         for i in xrange(elem[1]+1):
             command += "`A_{0}_vol_{1}` double NOT NULL DEFAULT '-40',".format(elem[0], i)
@@ -477,6 +480,7 @@ def init_temis(OVN_dic=OVN_dic, MdB=None, delete_before=False):
         MdB.exec_dB(command)
 
     command = "CREATE TABLE IF NOT EXISTS {0} (`N` bigint(20) NOT NULL DEFAULT '0',".format(table)
+    command += "`ref` varchar(40) NOT NULL ,".format(elem[0], i)
     for line in lines_list:
         command += "`T_{0[0]}` double NOT NULL DEFAULT 0, ".format(line)
     command += "PRIMARY KEY (`N`) ) ENGINE=MyISAM DEFAULT CHARSET=latin1;"

@@ -116,7 +116,8 @@ class CloudyModel(object):
         self.model_name_s = model_name.split('/')[-1]
         self.line_is_log = line_is_log
         self.emis_is_log = emis_is_log
-        self.distance = distance  
+        self.distance = distance
+        self.empty_model = True
         self._read_stout()
         if self.out_exists and not self.aborted and read_all_ext:
             self._init_all2zero()
@@ -410,7 +411,7 @@ class CloudyModel(object):
         for line in file_:
             if line[0:8] == ' ####  1':
                 self.out['###First'] = line
-            elif line[0:5] == ' ###':
+            elif line[0:4] == ' ###':
                 self.out['###Last'] = line
             elif 'Calculation stopped' in line:
                 self.out['stop'] = line
@@ -1621,6 +1622,7 @@ class CloudyInput(object):
         self._save_list_elems = pc.config.SAVE_LIST_ELEMS
         self.save_list = pc.config.SAVE_LIST
         self._save_list_grains = pc.config.SAVE_LIST_GRAINS
+        self.cloudy_version = None
         
     def set_save_str(self, save = 'save'):
         """
@@ -1742,13 +1744,15 @@ class CloudyInput(object):
             if 'sphere' in self._input:
                 del self._input['sphere']
             
-    def set_iterate(self, n_iter = None):
+    def set_iterate(self, n_iter = None, to_convergence = False):
         """
         Set the iterate parameter.
         Parameter:
             - n_iter: If None, set the iterate parameter to "iterate" in the Cloudy input file,
                 if ==0, unset the iterate (nothing will be printed), otherwise set iterate to the
                 value of n_iter.
+            - to_convergence [False]: If True, iterate to convergence is printed out. 
+                n_iter without effect then
         """
         if n_iter is None:
             self._input['iterate'] = 'iterate'
@@ -1757,6 +1761,8 @@ class CloudyInput(object):
                 del self._input['iterate']
         else:
             self._input['iterate'] = 'iterate {0:d}'.format(n_iter)
+        if to_convergence:
+            self._input['iterate'] = 'iterate to convergence'
 
     def set_grains(self, grains = None):
         """
@@ -2086,7 +2092,8 @@ class CloudyInput(object):
         """
         if model_name is None:
             model_name = self.model_name
-        run_cloudy(dir_ = dir_, n_proc = n_proc, use_make = use_make, model_name = model_name, precom=precom)
+        run_cloudy(dir_ = dir_, n_proc = n_proc, use_make = use_make, model_name = model_name, precom=precom,
+                   cloudy_version=self.cloudy_version)
     
     def print_make_file(self, dir_ = None):
         """
@@ -2125,7 +2132,7 @@ all: $(OBJ)
     makefile.close()
 
 ## Function used to run Cloudy on input files.                
-def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, precom=""):
+def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, precom="", cloudy_version=None):
     """
     Run a (set of ) cloudy model(s)
     
@@ -2137,9 +2144,15 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
         - model_name:  if not None, used by: make name="model_name" or cloudy < model_name.in
             if None and use_make, make will run any pending model
         - precom: a string to put before Cloudy (e.g. "\nice 10")
+        - cloudy_version: one of the keys of pc.config.cloudy_dict, pointing to the location of the executable,
+            e.g. '10.00' or '13.03'. If set to None (default), then pc.config.cloudy.exe is used
     """
     if dir_ is None:
         dir_ = '/'.join(model_name.split('/')[0:-1])
+    cloudy_exe = pc.config.cloudy_exe
+    if cloudy_version is not None:
+        if cloudy_version in pc.config.cloudy_dict:
+            cloudy_exe = pc.config.cloudy_dict[cloudy_version]
     if use_make:
         to_run = 'cd {0} ; make -j {1:d}'.format(dir_, n_proc)
         if model_name is not None:
@@ -2150,7 +2163,7 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
         if model_name is None:
             pc.log_.error('Model name must be set', calling = 'run_cloudy')
         else:
-            to_run = 'cd {0} ; {1} {2}'.format(dir_, precom, pc.config.cloudy_exe)
+            to_run = 'cd {0} ; {1} {2}'.format(dir_, precom, cloudy_exe)
             stdin = file('{0}/{1}.in'.format(dir_, model_name.split('/')[-1]), 'r')
             stdout = file('{0}/{1}.out'.format(dir_, model_name.split('/')[-1]), 'w')   
     pc.log_.message('running: {0}'.format(to_run), calling = 'run_cloudy')

@@ -1,12 +1,13 @@
 LIST_ELEM = ['H', 'He', 'C', 'N', 'O', 'Ne', 'Ar', 'S', 'Cl', 'Fe', 'Si']
 
-LIST_ALL_ELEM = ['H', 'He', 'Li', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg',
+LIST_ALL_ELEM = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg',
                  'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca',
                  'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn']
 
-SYM2ELEM = {
-            'H' : 'hydrogen',
+SYM2ELEM = {'H' : 'hydrogen',
             'He' : 'helium',
+            'Li': 'lithium',
+            'Be': 'beryllium',
             'B' : 'boron',
             'C' : 'carbon',
             'N' : 'nitrogen',
@@ -23,13 +24,13 @@ SYM2ELEM = {
             'Ar' : 'argon',
             'K' : 'potassium',
             'Ca' : 'calcium',
+            'Sc' : 'scandium',
+            'Ti' : 'titanium',
+            'V' : 'vanadium',
             'Cr' : 'chromium',
+            'Mn' : 'manganese',
             'Fe' : 'iron',
             'Co' : 'cobalt',
             'Ni' : 'nickel',
             'Cu' : 'copper',
-            'Zn' : 'zinc',
-            'Kr' : 'krypton',
-            'Ag' : 'silver',
-            'Au' : 'gold'
-            }
+            'Zn' : 'zinc'}

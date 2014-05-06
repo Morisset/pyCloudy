@@ -14,6 +14,9 @@ class _Config(object):
             self.cloudy_exe = os.environ['CLOUDY_EXE']
         else:
             self.cloudy_exe = 'cloudy.exe'
+        
+        self.cloudy_dict = {'10.00': '/usr/local/Cloudy/c10.00/cloudy.exe',
+                       '13.03': '/usr/local/Cloudy/c13.03/cloudy.exe'}
             
         self.INSTALLED ={}
         try:

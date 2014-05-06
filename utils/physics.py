@@ -120,5 +120,138 @@ def atomic_mass(elem):
         return ATOMIC_MASS[elem]
     else:
         return None
-    
-    
+
+abund_Asplund_2009 = {'Al': 6.45 -12,
+            'Ar': 6.40 -12,
+            'B': 2.70 -12,
+            'Be': 1.38 -12,
+            'C': 8.43 - 12,
+            'Ca': 6.34 -12,
+            'Cl': 5.50 -12,
+            'Co': 4.99 -12,
+            'Cr': 5.64 -12,
+            'Cu': 4.19 -12,
+            'F': 4.56 -12,
+            'Fe': 7.50 -12,
+            'He': 10.93 - 12,
+            'K': 5.03 -12,
+            'Li': 1.05 -12,
+            'Mg': 7.60 -12,
+            'Mn': 5.43 -12,
+            'N': 7.83 -12,
+            'Na': 6.24 -12,
+            'Ne': 7.93 -12,
+            'Ni': 6.22 -12,
+            'O': 8.69 -12,
+            'P': 5.41 -12,
+            'S': 7.12 -12,
+            'Sc': 3.15 -12,
+            'Si': 7.51 -12,
+            'Ti': 4.95 -12,
+            'V': 3.93 -12,
+            'Zn': 4.56 - 12}
+
+abund_Lodder_2003 = {'Al': 6.54 -12,
+            'Ar': 6.62 -12,
+            'B': 2.85 -12,
+            'Be': 1.48 -12,
+            'C': 8.46 - 12,
+            'Ca': 6.41 -12,
+            'Cl': 5.33 -12,
+            'Co': 4.98 -12,
+            'Cr': 5.72 -12,
+            'Cu': 4.34 -12,
+            'F': 4.53 -12,
+            'Fe': 7.54 -12,
+            'He': 10.984 - 12,
+            'K': 5.18 -12,
+            'Li': 3.35 -12,
+            'Mg': 7.62 -12,
+            'Mn': 5.58 -12,
+            'N': 7.90 -12,
+            'Na': 6.37 -12,
+            'Ne': 7.95 -12,
+            'Ni': 6.29 -12,
+            'O': 8.76 -12,
+            'P': 5.54 -12,
+            'S': 7.26 -12,
+            'Sc': 3.15 -12,
+            'Si': 7.61 -12,
+            'Ti': 5.00 -12,
+            'V': 4.07 -12,
+            'Zn': 4.70 - 12}
+
+depletion_cloudy_13 = {}
+depletion_cloudy_13['He']= 1.00 #noble gas
+depletion_cloudy_13['Li']=  0.16 #White, 1986
+depletion_cloudy_13['Be']=  0.6 # York et al., 1982
+depletion_cloudy_13['B']=  0.13 #Federman et al., 1993
+depletion_cloudy_13['C']=  0.4
+depletion_cloudy_13['N']=  1.
+depletion_cloudy_13['O']=  0.6
+depletion_cloudy_13['F']=  0.3 # Snow and York, 1981
+depletion_cloudy_13['Ne']= 1.0 # noble gas
+depletion_cloudy_13['Na']= 0.2
+depletion_cloudy_13['Mg']= 0.2
+depletion_cloudy_13['Al']= 0.01
+depletion_cloudy_13['Si']= 0.03
+depletion_cloudy_13['P']= 0.25 #Cardelli et al., 1991
+depletion_cloudy_13['S']=  1.0
+depletion_cloudy_13['Cl']= 0.4
+depletion_cloudy_13['Ar']=  1.0 # noble gas
+depletion_cloudy_13['K']=  0.3 # Chaffee and White, 1982
+depletion_cloudy_13['Ca']=  1e-4
+depletion_cloudy_13['Sc']=  5e-3 #Snow and Dodgen, 1980
+depletion_cloudy_13['Ti']=  8e-3 #Crinklaw et al., 1994
+depletion_cloudy_13['V']=  6e-3 #Cardelli, 1994
+depletion_cloudy_13['Cr']= 6e-3 #Cardelli et al., 1991
+depletion_cloudy_13['Mn']=  5e-2 #Cardelli et al., 1991
+depletion_cloudy_13['Fe']=  1e-2
+depletion_cloudy_13['Co']=  1e-2
+depletion_cloudy_13['Ni']=  1e-2
+depletion_cloudy_13['Cu']=  0.1 # Cardelli et al., 1991
+depletion_cloudy_13['Zn']=  0.25 #Cardelli et al., 1991
+
+depletion_dopita_2013 = {} # 10** : dopita_ et al 2013, ApJSS 208
+depletion_dopita_2013['C']=  10**-0.3
+depletion_dopita_2013['N']=  10**-0.05
+depletion_dopita_2013['O']=  10**-0.07
+depletion_dopita_2013['Na']= 10**-1
+depletion_dopita_2013['Mg']= 10**-1.08
+depletion_dopita_2013['Al']= 10**-1.39
+depletion_dopita_2013['Si']= 10**-0.81
+depletion_dopita_2013['Cl']= 10**-1.0
+depletion_dopita_2013['Ca']=  10**-2.52
+depletion_dopita_2013['Fe']=  10**-1.31
+depletion_dopita_2013['Ni']=  10**-2
+
+depletion_jenkins_2009 = {}
+depletion_jenkins_2009['C']=  10**-0.112
+depletion_jenkins_2009['N']=  10**-0.109
+depletion_jenkins_2009['O']=  10**-0.010
+depletion_jenkins_2009['Mg']= 10**-0.270
+depletion_jenkins_2009['Si']= 10**-0.223
+depletion_jenkins_2009['P']= 10**0.296
+depletion_jenkins_2009['Cl']= 10**0.442
+depletion_jenkins_2009['Ti']=  10**-1.077
+depletion_jenkins_2009['Cr']= 10**-0.827
+depletion_jenkins_2009['Mn']=  10**-0.909
+depletion_jenkins_2009['Fe']=  10**-0.951
+depletion_jenkins_2009['Cu']=  10**-0.597
+depletion_jenkins_2009['Zn']=  10**0.059
+
+depletion_jenkins_2009l = {}
+depletion_jenkins_2009l['C']=  10**-0.213
+depletion_jenkins_2009l['N']=  10**-0.109
+depletion_jenkins_2009l['O']=  10**-0.236
+depletion_jenkins_2009l['Mg']= 10**-1.267
+depletion_jenkins_2009l['Si']= 10**-1.359
+depletion_jenkins_2009l['P']= 10**-0.649
+depletion_jenkins_2009l['Cl']= 10**-0.800
+depletion_jenkins_2009l['Ti']=  10**-3.125
+depletion_jenkins_2009l['Cr']= 10**-2.274
+depletion_jenkins_2009l['Mn']=  10**-1.765
+depletion_jenkins_2009l['Fe']=  10**-2.236
+depletion_jenkins_2009l['Cu']=  10**-1.307
+depletion_jenkins_2009l['Zn']=  10**-0.551
+
