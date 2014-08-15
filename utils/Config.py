@@ -54,6 +54,11 @@ class _Config(object):
             self.INSTALLED['MySQL'] = True
         except:
             self.INSTALLED['MySQL'] = False
+        try:
+            import pandas
+            self.INSTALLED['pandas'] = True
+        except:
+            self.INSTALLED['pandas'] = False
             
         try:
             test_str = ['#one\t two\t three', '1\t 2\t 3']
