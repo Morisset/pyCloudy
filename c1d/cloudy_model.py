@@ -192,6 +192,7 @@ class CloudyModel(object):
         self.gdsize = None
         self.gdgrat_labels = None        
         self.plan_par = None
+        self.Hbeta_full = None
     
     def _init_rad(self):
         key = 'rad'
@@ -303,7 +304,10 @@ class CloudyModel(object):
             self.log_.message('Number of emissivities: {0.n_emis:d}'.format(self), calling = self.calling)
             self.emis_full = np.zeros((self.n_emis, np.size(emis)))
             for i, label in enumerate(self.emis_labels):
-                self.emis_full[i] = trans_emis(emis[label])                   
+                self.emis_full[i] = trans_emis(emis[label])
+            if 'H__1__4861A' in self.emis_labels:
+                self.Hbeta_full = (self.get_emis('H__1__4861A') * self.dvff).cumsum()
+                self.__Hbeta_cut = self.Hbeta_full[-1]
 
     def _init_ionic(self, elem, str_key = 'ele_'):
         key = str_key + elem
@@ -408,6 +412,8 @@ class CloudyModel(object):
         self.cloudy_version = file_.readline().strip()
         self.cloudy_version_major = pc.sextract(self.cloudy_version,'Cloudy ','.')
         self.Teff = None
+        self.out['Cloudy ends'] = ''
+        self.out['stop'] = ''
         for line in file_:
             if line[0:8] == ' ####  1':
                 self.out['###First'] = line
@@ -422,6 +428,8 @@ class CloudyModel(object):
                     self.out['Chem' + str(i + 1)] = file_.next()
             elif 'Grain Chemical Composition' in line:
                 self.out['GrainChem'] = file_.next()
+            elif 'Dust to gas ratio' in line:
+                self.out['D/G'] = line
             elif 'iterate' in line:
                 self.out['iterate'] = line
             elif 'Hi-Con' in line:
@@ -506,27 +514,30 @@ class CloudyModel(object):
         self.Phi0 = self.Phi.sum()
         
         self.abund = {}
-        Chem = self.out['Chem1'][0:-1]
-        if self.out['Chem2'] != ' \n':
-            Chem += self.out['Chem2'][0:-1]
-            if self.out['Chem3'] != ' \n':
-                Chem += self.out['Chem3'][0:-1]
-                if self.out['Chem4'] != ' \n':
-                    Chem += self.out['Chem4'][0:-1]
-        self.gas_mass_per_H = 0.
-        for ab_str in LIST_ALL_ELEM:
-            if len(ab_str) == 1:
-                sub1 = ab_str + ' : '
-            else:
-                sub1 = ab_str + ': '
-            try:             
-                self.abund[ab_str] = float(pc.sextract(Chem, sub1, 7))
-            except:
-                self.log_.message(ab_str + ' abundance not defined', calling = self.calling)
-            if (ab_str in ATOMIC_MASS) and (ab_str in self.abund):
-                self.gas_mass_per_H += 10**self.abund[ab_str] * ATOMIC_MASS[ab_str]
-                
-        if ("ABORT" in self.out['Cloudy ends']) or ("aborted" in self.out['stop']):
+        try:
+            Chem = self.out['Chem1'][0:-1]
+            chem_is_ok = True
+            if self.out['Chem2'] != ' \n':
+                Chem += self.out['Chem2'][0:-1]
+                if self.out['Chem3'] != ' \n':
+                    Chem += self.out['Chem3'][0:-1]
+                    if self.out['Chem4'] != ' \n':
+                        Chem += self.out['Chem4'][0:-1]
+            self.gas_mass_per_H = 0.
+            for ab_str in LIST_ALL_ELEM:
+                if len(ab_str) == 1:
+                    sub1 = ab_str + ' : '
+                else:
+                    sub1 = ab_str + ': '
+                try:             
+                    self.abund[ab_str] = float(pc.sextract(Chem, sub1, 7))
+                except:
+                    self.log_.message(ab_str + ' abundance not defined', calling = self.calling)
+                if (ab_str in ATOMIC_MASS) and (ab_str in self.abund):
+                    self.gas_mass_per_H += 10**self.abund[ab_str] * ATOMIC_MASS[ab_str]
+        except:
+            chem_is_ok = False
+        if ("ABORT" in self.out['Cloudy ends']) or ("aborted" in self.out['stop']) or (not chem_is_ok):
             self.aborted = True
             self.log_.warn('Model aborted', calling = self.calling)
             self.info = '<!!! Model {0} aborted>'.format(self.model_name)
@@ -1168,8 +1179,8 @@ class CloudyModel(object):
         elif 'Cont__nu' in self._res['cont'].dtype.names:
             hnu = self._res['cont']['Cont__nu']
         else:
-            self.log_.error('Hnu NOT defined in the continuum', calling = self.calling)
-            hnu = None
+            self.log_.warn('Hnu NOT defined in the continuum', calling = self.calling)
+            return None
         if unit == 'Ryd':
             to_return = hnu
         elif unit == 'eV':
@@ -1357,6 +1368,18 @@ class CloudyModel(object):
             
     H_mass_cut = property(_get_H_mass_cut, _set_H_mass_cut, None, None)
 
+    def _get_Hbeta_cut(self):
+        return self.__Hbeta_cut
+    
+    def _set_Hbeta_cut(self, value):
+        if value > self.Hbeta_full[1]:
+            self.r_out_cut = self.radius_full[self.Hbeta_full <= value][-1]
+            self.__Hbeta_cut = self.Hbeta
+        else:
+            self.log_.warn('Hbeta_cut must be greater than minimal value', calling = self.calling)
+
+    Hbeta_cut = property(_get_Hbeta_cut, _set_Hbeta_cut, None, None)
+
     ## Hp_mass = \f$ \int m_H.n_{H^+}.ff.dV\f$ [solar mass]
     @property        
     def Hp_mass(self):
@@ -1387,6 +1410,17 @@ class CloudyModel(object):
             self.log_.warn('H mass_tot not available', calling = self.calling)
             return None
         
+    ## Hbeta = \f$ \int Hbeta.n_H.ff.dV\f$ [solar mass]                
+    @property        
+    def Hbeta(self):
+        """Return the intensity of Hbeta"""
+        try:
+            return self.get_emis_vol('H__1__4861A')
+        except:
+            self.log_.warn('H beta not available', calling = self.calling)
+            return None
+        
+    
     ## Mean Temperature \f$T0=\frac{\int T_e.n_e.n_H.ff.dV}{\int n_e.n_H.ff.dV}\f$
     @property        
     def T0(self):
@@ -1415,7 +1449,43 @@ class CloudyModel(object):
             return self.get_emis_vol('H__1__4861A') / (self.r_out_cut**2 * np.pi * 206265.**2)
         else:
             self.log_.warn('Hbeta emissivity not in emis file', calling = self.calling + '.get_Hb_SB')
-        
+    
+    ## Hb_EW = -$\lambda_\beta$ x I$_\beta^{line}$ / $\lambda.F_\beta^{cont}$
+    def get_Hb_EW(self):
+        """
+        Hbeta Equivalent Width:
+        Returns -4861 * I(H__1__4861A) / continuum(4860)
+        where continuum(4860) is estimated by looking for the minimum of the net transmited continuum between
+            4560 and 4860 on one side, and 4860 and 5160 on the other side, and meaning them.
+        """
+        if 'H__1__4861A' in self.emis_labels:
+            mask_low = (self.get_cont_x('Ang') < 4860) & (self.get_cont_x('Ang') > 4560)
+            I_low = np.min(self.get_cont_y('ntrans', 'es')[mask_low])
+            mask_high = (self.get_cont_x('Ang') > 4860) & (self.get_cont_x('Ang') < 5160)
+            I_high = np.min(self.get_cont_y('ntrans', 'es')[mask_high])
+            return -4861 * self.get_emis_vol('H__1__4861A') / np.mean((I_low, I_high)) 
+        else:
+            self.log_.warn('Hbeta line not in emis file', calling = self.calling + '.get_Hb_EW')
+            return None
+
+    ## Ha_EW = -$\lambda_\alpha$ x I$_\alpha^{line}$ / $\lambda.F_\alpha^{cont}$
+    def get_Ha_EW(self):
+        """
+        Hbeta Equivalent Width:
+        Returns -6563 * I(H__1__6563A) / continuum(6563)
+        where continuum(6563) is estimated by looking for the minimum of the net transmited continuum between
+            6260 and 6560 on one side, and 6560 and 6860 on the other side, and meaning them.
+        """
+        if 'H__1__6563A' in self.emis_labels:
+            mask_low = (self.get_cont_x('Ang') < 6560) & (self.get_cont_x('Ang') > 6260)
+            I_low = np.min(self.get_cont_y('ntrans', 'es')[mask_low])
+            mask_high = (self.get_cont_x('Ang') > 6560) & (self.get_cont_x('Ang') < 6860)
+            I_high = np.min(self.get_cont_y('ntrans', 'es')[mask_high])
+            return -6563 * self.get_emis_vol('H__1__6563A') / np.mean((I_low, I_high)) 
+        else:
+            self.log_.warn('Halpha line not in emis file', calling = self.calling + '.get_Hb_EW')
+            return None
+
     ## is_valid_ion(elem, ion) return True if elem, ion is available in get_ionic.
     def is_valid_ion(self, elem, ion):        
         """
@@ -1579,7 +1649,9 @@ def load_models(model_name = None, mod_list = None, n_sample = None, verbose = F
             model_name = outfile[0:-4]
         else:
             model_name = outfile
-        m.append(CloudyModel(model_name, **kwargs))
+        cm = CloudyModel(model_name, **kwargs)
+        if not cm.aborted:
+            m.append(cm)
         if verbose:
             print  '{0} model read'.format(outfile[0:-4])
     pc.log_.message('{0} models read'.format(np.size(mod_list)), calling = 'load_models')

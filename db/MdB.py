@@ -1,12 +1,13 @@
 import os
+import subprocess
 import numpy as np
 import pyCloudy as pc
 from pyCloudy.utils.init import LIST_ELEM
 from pyCloudy.utils.logging import my_logging
 if pc.config.INSTALLED['MySQL']:
     import MySQLdb
-
-import subprocess
+if pc.config.INSTALLED['pandas']:
+     import pandas.io.sql as psql
 
 def _sql2numpy(sqltype):
     if sqltype == 'float':
@@ -51,7 +52,7 @@ class MdB(object):
         """
 
 
-        self.log_ = MdB.MdBlog_
+        self.log_ = self.__class__.MdBlog_
         self.calling = 'MdB'
         if OVN_dic is not None:
             if 'base_name' in OVN_dic:
@@ -140,12 +141,18 @@ class MdB(object):
             self.log_.warn('Not connected', calling = self.calling)
 
     def exec_dB(self, command, format_ = 'dict'):
-        if format_ not in ('dict', 'tuple', 'numpy', 'dict2'):
+        if format_ not in ('dict', 'tuple', 'numpy', 'dict2', 'pandas'):
             self.log_.error('format"{0}" not recognized'.format(format_), calling = self.calling)
         if not self.connected:
             self.log_.error('Not connected to a database', calling = self.calling)
             return None
         self.log_.message('Command sent: {0}'.format(command), calling = self.calling)
+        if format_ == 'pandas':
+            if pc.config.INSTALLED['pandas']:
+                res = psql.frame_query(command, con=self._dB)
+                return res, len(res)
+            else:
+                pc.log_.error('pandas is not available, use another format', calling=self.calling)
         if format_[0:4] == 'dict':
             cursor = self._cursor
         else:
@@ -160,8 +167,8 @@ class MdB(object):
             self.log_.error('Error on reading result of {0}'.format(command), calling = self.calling)
         return res, N
             
-    def select_dB(self, select_ = '*', from_ = 'OVN.tab1', where_ = None, order_ = None, group_ = None, limit_ = 1,
-                  format_ = 'dict', dtype_ = None):
+    def select_dB(self, select_ = '*', from_ = 'OVN.tab1', where_ = None, order_ = None, group_ = None, 
+                  limit_ = 1, format_ = 'dict', dtype_ = None):
         """
         Usage:
             dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', 
@@ -288,12 +295,13 @@ class MdB_subproc(object):
     """
     Alternative way, when MySQLdb not available. Still in development.
     """
+    MdBlog_ = my_logging()
     def __init__(self, OVN_dic = None, base_name = 'OVN',tmp_base_name = 'OVN_tmp', 
                  user_name = 'OVN_user', user_passwd = 'getenv', 
                  host = 'localhost', unix_socket = '/var/mysql/mysql.sock', port = 3306,
                  connect = True):
         
-        self.log_ = MdB.MdBlog_
+        self.log_ = self.__class__.MdBlog_
         self.calling = 'MdB'
         if OVN_dic is not None:
             if 'base_name' in OVN_dic:
@@ -328,6 +336,9 @@ class MdB_subproc(object):
     def connect_dB(self):
         pass
     
+    def close_dB(self):
+        pass
+    
     def exec_dB(self, command, format_ = 'dict'):
         if format_ not in ('dict', 'tuple', 'numpy', 'dict2'):
             self.log_.error('format"{0}" not recognized'.format(format_), calling = self.calling)
@@ -340,7 +351,8 @@ class MdB_subproc(object):
         proc = subprocess.Popen(["mysql", 
                                  "--host={0}".format(self.host),
                                  "--user={0}".format(self.user_name), 
-                                 "--password={0}".format(self.user_passwd), 
+                                 "--password={0}".format(self.user_passwd),
+                                 "--port={0}".format(self.port),
                                  "{0}".format(self.base_name)],
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
@@ -356,7 +368,7 @@ class MdB_subproc(object):
         return out, N
 
     def select_dB(self, select_ = '*', from_ = 'OVN.tab1', where_ = None, order_ = None, group_ = None, limit_ = 1,
-                  format_ = 'dict', dtype_ = None):
+                  format_ = 'dict2', dtype_ = None):
         """
         Usage:
             dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', 
@@ -374,11 +386,24 @@ class MdB_subproc(object):
             req += 'GROUP BY {0} '.format(group_)
         if limit_ is not None:
             req += 'LIMIT {0:d}'.format(limit_)
-        res, N = self.exec_dB(req, format_ = format_)
+        res_tmp, N = self.exec_dB(req, format_ = format_)
         try:
-            for i,line in enumerate(res):
-                res[i] = line.split('\t')
+            for i,line in enumerate(res_tmp):
+                res_tmp[i] = line.split('\t')
         except:
             pass
-          
+        if N == 0:
+            res = None
+            return res,N
+        if format_ in ('dict', 'dict2'):
+            res = {}
+            resnp = np.array(res_tmp[1:-1])
+            for i, key in enumerate(res_tmp[0]):
+                try:
+                    res[key] = np.array(resnp[:,i], dtype='float')
+                except:
+                    res[key] = resnp[:,i]
+        return res,N-2
+            
+            
     

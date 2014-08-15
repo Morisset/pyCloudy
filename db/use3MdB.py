@@ -269,6 +269,9 @@ class writePending(object):
     def set_N_Mass_cut(self, N = None):
         self.insert_in_dic('N_Mass_cut', N)
         
+    def set_N_Hb_cut(self, N = None):
+        self.insert_in_dic('N_Hb_cut', N)
+        
     def set_GuessMassFrac(self, massFrac=None):
         self.insert_in_dic('GuessMassFrac', massFrac)
 
@@ -309,8 +312,8 @@ class writePending(object):
         values_str = values_str[:-2]
         command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.table, fields_str, values_str)
         self.MdB.exec_dB(command)
-        res, N = self.MdB.select_dB(select_='last_insert_id()', from_=self.table)
-        self.last_N = res[0]['last_insert_id()']
+        res, N = self.MdB.select_dB(select_='last_insert_id()', from_=self.table, format_ = 'dict2')
+        self.last_N = res['last_insert_id()'][0]
         command = 'UPDATE {0} SET FILE="{1}_{2}" WHERE N={2};'.format(self.table, self._dic['file'], 
                                                                       self.last_N)
         self.MdB.exec_dB(command)
@@ -319,13 +322,13 @@ class writePending(object):
         
 class writeTab(object):
     
-    def __init__(self, MdB=None, OVN_dic=None, models_dir = './'):
+    def __init__(self, MdB=None, OVN_dic=None, models_dir = './', do_update_status=True):
         
         self.log_ = pc.log_
         if MdB is None:
             MdB = pc.MdB(OVN_dic=OVN_dic)
         if not isinstance(MdB, pc.MdB):
-            self.log_.error('The second argument must be a MdB object')    
+            self.log_.error('The first argument must be a MdB object')    
         self.MdB = MdB
         if not self.MdB.connected:
             self.MdB.connect_dB()
@@ -337,6 +340,7 @@ class writeTab(object):
         self.pending_fields = self.MdB.get_fields(from_ = self.pending_table)
         self._dic = {}
         self.selectedN = None
+        self.do_update_status = do_update_status
          
     def insert_in_dic(self, key, value):
         
@@ -355,6 +359,8 @@ class writeTab(object):
     
     def update_status(self, status):
         
+        if not self.do_update_status:
+            return
         if status in status_dic and self.selectedN is not None:
             command = 'UPDATE {0} SET `status`={1} WHERE N = {2}'.format(self.pending_table, 
                                                                          status_dic[status], self.selectedN)   
@@ -380,7 +386,7 @@ class writeTab(object):
         self.update_status('Read model')
         try:
             self.CloudyModel = pc.CloudyModel('{0}/{1}/{2}'.format(self.models_dir, self.pending['dir'], name), 
-                                              read_cont=False, list_elem = LIST_ALL_ELEM)
+                                              read_cont=True, list_elem = LIST_ALL_ELEM)
             if not self.CloudyModel.aborted:
                 self.update_status('Model read')
                 status = True
@@ -421,6 +427,7 @@ class writeTab(object):
         if self.CloudyModel.n_zones > 1:
             self.insert_in_dic('DepthFrac', self.CloudyModel.depth[-1] / self.CloudyModel.depth_full[-1])
             self.insert_in_dic('MassFrac', self.CloudyModel.H_mass / self.CloudyModel.H_mass_full[-1])
+            self.insert_in_dic('HbFrac', self.CloudyModel.Hbeta / self.CloudyModel.Hbeta_full[-1])
             if 'Cloudy ends' in self.CloudyModel.out:
                 self.insert_in_dic('CloudyEnds', self.CloudyModel.out['Cloudy ends'])
             if '###First' in self.CloudyModel.out:
@@ -446,6 +453,8 @@ class writeTab(object):
             self.insert_in_dic('nH_in', self.CloudyModel.nH[0])
             self.insert_in_dic('nH_out', self.CloudyModel.nH[-1])
             self.insert_in_dic('Hb_SB', self.CloudyModel.get_Hb_SB())
+            self.insert_in_dic('Hb_EW', self.CloudyModel.get_Hb_EW())
+            self.insert_in_dic('Ha_EW', self.CloudyModel.get_Ha_EW())
                  
     def lines2dic(self):
         
@@ -593,7 +602,9 @@ class runCloudy(object):
     
     def init_CloudyInput(self):
         self.CloudyInput = pc.CloudyInput()
-        self.CloudyInput.save_list = [['radius', '.rad'], ['physical conditions', '.phy']]
+        self.CloudyInput.save_list = [['radius', '.rad'], 
+                                      ['physical conditions', '.phy'],
+                                      ['continuum', '.cont']]
         self.CloudyInput._save_list_grains = []
         self.emis_tab = self.get_emis_table()
         
@@ -797,7 +808,13 @@ class runCloudyByThread(threading.Thread):
                                 wT.CloudyModel.H_mass_cut = mass_cut * wT.CloudyModel.H_mass_full[-1]
                                 wT.insert_model()
                                 master_N.append(wT.last_N)
-                    
+                        Ncuts = rC.pending['N_Hb_cut']
+                        for Hbeta_cut in np.linspace(0, 1, Ncuts + 2)[1:-1]:
+                            if wT.CloudyModel.n_zones > 1:
+                                wT.CloudyModel.Hbeta_cut = Hbeta_cut * wT.CloudyModel.Hbeta_full[-1]
+                                wT.insert_model()
+                                master_N.append(wT.last_N)
+
                     self.log_.message('model {0} finished, inserted into {1}.'.format(self.selectedN, master_N), 
                                  calling=self.calling)
             else:
@@ -935,7 +952,7 @@ class ObsfromMdB(object):
     def init_obs(self):
         self.obs = pn.Observation()
 
-    def readModel(self, select_='*', from_=None, N=None, where_=None, limit_ = None):
+    def readModel(self, select_='*', from_=None, N=None, where_=None, order_ = None, limit_ = None):
         
         if not self.MdB.connected:
             self.log_.error('Not connected to the database')
@@ -950,7 +967,7 @@ class ObsfromMdB(object):
         if where_ is None:
             where_ = 'N={0}'.format(self.N)
             
-        models, n = self.MdB.select_dB(select_=select_, from_=from_, where_=where_, 
+        models, n = self.MdB.select_dB(select_=select_, from_=from_, where_=where_, order_=order_,
                                        limit_=limit_, format_='dict2')
         if n == 0:
             self.models = None
