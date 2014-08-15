@@ -204,13 +204,12 @@ class CubCoord(object):
         
     def _poly(self, params):
         tmp = 0.
-        r_norm = self.r/np.max(self.r)
         for i, param in enumerate(params):
-            tmp += param * r_norm**i
+            tmp += param * self.r**i
         oldsettings = np.seterr(all='ignore')
-        tmp = tmp / r_norm
+        tmp = tmp / self.r
         misc.revert_seterr(oldsettings)
-        tt = (r_norm == 0.)
+        tt = (self.r == 0.)
         tmp[tt] = 0
         vel_x = tmp * self.x / np.max(self.r)
         vel_y = tmp * self.y / np.max(self.r)
