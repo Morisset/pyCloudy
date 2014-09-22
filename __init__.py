@@ -7,12 +7,16 @@ Chris.Morisset@Gmail.com
 """
 
 __all__ = ['c1d', 'c3d', 'utils', 'db']
-__version__ = '0.8.37'
+__version__ = '0.8.38'
 
 from utils.Config import _Config
 config = _Config()
 log_ = _Config.log_
 log_.message('Starting pyCloudy.', calling = 'PyCloudy init')
+
+log_.level=0
+config.db_connector = 'MySQL'
+log_.level=2
 
 from c1d.cloudy_model import CloudyModel, load_models, CloudyInput, print_make_file, run_cloudy
 from c3d.model_3d import CubCoord, C3D

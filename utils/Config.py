@@ -55,6 +55,11 @@ class _Config(object):
         except:
             self.INSTALLED['MySQL'] = False
         try:
+            import pymysql
+            self.INSTALLED['PyMySQL'] = True
+        except:
+            self.INSTALLED['PyMySQL'] = False
+        try:
             import pandas
             self.INSTALLED['pandas'] = True
         except:
@@ -105,7 +110,7 @@ class _Config(object):
                                 ['chlorin','.ele_Cl'],
                                 ['iron','.ele_Fe'],
                                 ['silicon','.ele_Si']]
-
+    
     
     def _get_cloudy_exe(self):
         return self.__cloudy_exe
@@ -115,4 +120,18 @@ class _Config(object):
         _Config.log_.message('cloudy_exe set to {0}'.format(self.__cloudy_exe), calling = '_Config')
 
     cloudy_exe = property(_get_cloudy_exe, _set_cloudy_exe, None, None)
+    
+    def _get_db_coonector(self):
+        return self.__db_connector
+    
+    def _set_db_coonector(self, value):
+        connector_list = ['MySQL', 'PyMySQL'] 
+        if value not in connector_list:
+            _Config.log_.error('db_connector not in {}'.format(connector_list))
+        self.__db_connector = value
+        _Config.log_.message('db_connector set to {}'.format(value), calling = '_Config')
+        if not self.INSTALLED[value]:
+            _Config.log_.warn('db_connector {} not installed'.format(value))
+    
+    db_connector = property(_get_db_coonector, _set_db_coonector, None, None)
     
