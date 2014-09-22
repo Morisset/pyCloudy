@@ -52,7 +52,8 @@ class writePending(object):
         self.MdB = MdB
         self.OVN_dic = OVN_dic
         self.table = OVN_dic['pending_table']
-        self.fields = self.MdB.get_fields(from_ = self.table)
+        if self.MdB.connected:
+            self.fields = self.MdB.get_fields(from_ = self.table)            
         self._dic = {}
         self.set_status(0)
         self.calling = 'writePending'
@@ -706,7 +707,7 @@ class runCloudy(object):
                     value = P[SYM2ELEM[elem].upper()]
                     if value > -35:
                         self.CloudyInput.set_abund(elem = elem, value = value)
-                    
+            SED_params = None
             if P['atm1'] is not None:
                 SED_params = ' {0}'.format(P['atm1'])
             if P['atm2'] is not None:
@@ -717,6 +718,7 @@ class runCloudy(object):
             self.CloudyInput.set_star(SED = P['atm_cmd'], SED_params = SED_params, 
                                       lumi_unit = P['lumi_unit'], lumi_value = P['lumi'])
             if P['atm_cmd2'] is not '':
+                SED_params = None
                 if P['atm12'] is not None:
                     SED_params = ' {0}'.format(P['atm12'])
                 if P['atm22'] is not None:

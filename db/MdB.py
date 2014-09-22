@@ -4,11 +4,9 @@ import numpy as np
 import pyCloudy as pc
 from pyCloudy.utils.init import LIST_ELEM
 from pyCloudy.utils.logging import my_logging
-if pc.config.INSTALLED['MySQL']:
-    import MySQLdb
 if pc.config.INSTALLED['pandas']:
-     import pandas.io.sql as psql
-
+    import pandas.io.sql as psql
+    
 def _sql2numpy(sqltype):
     if sqltype == 'float':
         return 'f4'
@@ -54,6 +52,13 @@ class MdB(object):
 
         self.log_ = self.__class__.MdBlog_
         self.calling = 'MdB'
+        if pc.config.db_connector =='MySQL' and pc.config.INSTALLED['MySQL']:
+            import MySQLdb as SQLdb
+        elif pc.config.db_connector =='PyMySQL' and pc.config.INSTALLED['PyMySQL']:
+            import pymysql as SQLdb
+        else:
+            log_.error('No SQL connector available', calling='MdB')
+        self.SQLdb = SQLdb
         if OVN_dic is not None:
             if 'base_name' in OVN_dic:
                 base_name = OVN_dic['base_name']
@@ -95,15 +100,18 @@ class MdB(object):
             self.log_.warn('Already connected', calling = self.calling)
             return None
         try:
-            self._dB = MySQLdb.connect(host = self.host, user = self.user_name, passwd = self.user_passwd, 
+            self._dB = self.SQLdb.connect(host = self.host, user = self.user_name, passwd = self.user_passwd, 
                                         db = self.base_name, port = self.port, unix_socket = self.unix_socket)
-            self._cursor = self._dB.cursor(MySQLdb.cursors.DictCursor)
-            self._cursor_tuple = self._dB.cursor(MySQLdb.cursors.Cursor)
             self.connected = True
             self.log_.message('Connected to {0}'.format(self.host), calling = self.calling)
         except:
             self.log_.warn('Connection to {0} failed'.format(self.host), calling = self.calling)
-
+        try:
+            self._cursor = self._dB.cursor(self.SQLdb.cursors.DictCursor)
+            self._cursor_tuple = self._dB.cursor(self.SQLdb.cursors.Cursor)
+        except:
+            self.log_.warn('Cursor to {0} failed'.format(self.host), calling = self.calling)
+            
     def use_dB(self, base_name = None):
         if not self.connected:
             pc.log_.error('Not connected to the database')
