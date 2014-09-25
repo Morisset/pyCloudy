@@ -1,6 +1,7 @@
 import os
 import subprocess
 import numpy as np
+from getpass import getpass
 import pyCloudy as pc
 from pyCloudy.utils.init import LIST_ELEM
 from pyCloudy.utils.logging import my_logging
@@ -57,7 +58,7 @@ class MdB(object):
         elif pc.config.db_connector =='PyMySQL' and pc.config.INSTALLED['PyMySQL']:
             import pymysql as SQLdb
         else:
-            log_.error('No SQL connector available', calling='MdB')
+            self.log_.error('No SQL connector available', calling='MdB')
         self.SQLdb = SQLdb
         if OVN_dic is not None:
             if 'base_name' in OVN_dic:
@@ -79,6 +80,8 @@ class MdB(object):
         self.user_name = user_name
         if user_passwd == 'getenv':
             self.user_passwd = os.getenv('{0}_pass'.format(user_name))
+        elif user_passwd is 'getit':
+            self.user_passwd = getpass()
         else:
             self.user_passwd = user_passwd
         self.port = port
@@ -267,7 +270,7 @@ class MdB(object):
                 res, N = self.exec_dB(req)
             return res
         else:
-            res = ()
+            res = []
             for this_from in froms:
                 res += self.get_cols(select_ = select_, from_ = this_from)
             return res
