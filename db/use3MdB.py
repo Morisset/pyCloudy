@@ -117,21 +117,23 @@ class writePending(object):
         self.insert_in_dic('radius', r_in)
 
     def set_star(self, SED_shape=None, atm1=None, atm2=None, atm3=None,
-                 lumi_unit=None, lumi_value=None, i_star = 0):
+                 lumi_unit=None, lumi_value=None, i_star = 0, atm_file=None):
             
         if type(SED_shape) == type(()) or type(SED_shape) == type([]):
+            fil = None if atm_file is None else atm_file[0]
             at1 = None if atm1 is None else atm1[0]
             at2 = None if atm2 is None else atm2[0]
             at3 = None if atm3 is None else atm3[0]
             self.set_star(self, SED_shape = SED_shape[0], lumi_unit=lumi_unit[0], 
-                          atm1=at1, atm2=at2, atm3=at3,
+                          atm_file=fil1, atm1=at1, atm2=at2, atm3=at3,
                           lumi_value=lumi_value[0], i_star = 0)
             
+            fil = None if atm_file is None else atm_file[1]
             at1 = None if atm1 is None else atm1[1]
             at2 = None if atm2 is None else atm2[1]
             at3 = None if atm3 is None else atm3[1]
             self.set_star(self, SED_shape = SED_shape[1], lumi_unit=lumi_unit[1], 
-                          atm1=at1, atm2=at2, atm3=at3,
+                          atm_file=fil1, atm1=at1, atm2=at2, atm3=at3,
                           lumi_value=lumi_value[1], i_star = 1)
         else:
             if i_star == 0:
@@ -139,6 +141,7 @@ class writePending(object):
             else:
                 i_star_str = '2'
             self.insert_in_dic('atm_cmd{0}'.format(i_star_str), SED_shape)
+            self.insert_in_dic('atm_file{0}'.format(i_star_str), atm_file)
             self.insert_in_dic('lumi_unit{0}'.format(i_star_str), lumi_unit)
             self.insert_in_dic('lumi{0}'.format(i_star_str), lumi_value)
             self.insert_in_dic('atm1{0}'.format(i_star_str), atm1)
@@ -291,7 +294,7 @@ class writePending(object):
         if version in pc.config.cloudy_dict:
             self.insert_in_dic('C_version', version)
 
-    def insert_model(self):
+    def insert_model(self, verbose_only=True):
         
         if not self.MdB.connected:
             self.log_.error('Not connected to the database')
@@ -312,14 +315,17 @@ class writePending(object):
         fields_str = fields_str[:-2]
         values_str = values_str[:-2]
         command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.table, fields_str, values_str)
-        self.MdB.exec_dB(command)
-        res, N = self.MdB.select_dB(select_='last_insert_id()', from_=self.table, format_ = 'dict2')
-        self.last_N = res['last_insert_id()'][0]
-        command = 'UPDATE {0} SET FILE="{1}_{2}" WHERE N={2};'.format(self.table, self._dic['file'], 
-                                                                      self.last_N)
-        self.MdB.exec_dB(command)
-        self.log_.message('Model sent to {0} with N={1}'.format(self.table, self.last_N),
-                        calling=self.calling)
+        if verbose_only:
+            print(command)
+        else:
+            self.MdB.exec_dB(command)
+            res, N = self.MdB.select_dB(select_='last_insert_id()', from_=self.table, format_ = 'dict2')
+            self.last_N = res['last_insert_id()'][0]
+            command = 'UPDATE {0} SET FILE="{1}_{2}" WHERE N={2};'.format(self.table, self._dic['file'], 
+                                                                          self.last_N)
+            self.MdB.exec_dB(command)
+            self.log_.message('Model sent to {0} with N={1}'.format(self.table, self.last_N),
+                              calling=self.calling)
         
 class writeTab(object):
     
@@ -673,6 +679,8 @@ class runCloudy(object):
         
         if N_pending is None:
             N_pending = self.selectedN
+        else:
+            self.selectedN = N_pending
         res, Nres = self.MdB.select_dB(select_='*', from_=self.pending_table, 
                                        where_='N = {0}'.format(N_pending))
         
@@ -708,6 +716,10 @@ class runCloudy(object):
                     if value > -35:
                         self.CloudyInput.set_abund(elem = elem, value = value)
             SED_params = None
+            if P['atm_file'] == '':
+                SED = '{0}'.format(P['atm_cmd'])
+            else:
+                SED = '{0} "{1}"'.format(P['atm_cmd'],P['atm_file'])
             if P['atm1'] is not None:
                 SED_params = ' {0}'.format(P['atm1'])
             if P['atm2'] is not None:
@@ -715,10 +727,11 @@ class runCloudy(object):
             if P['atm3'] is not None:
                 SED_params += ' {0}'.format(P['atm3'])
             
-            self.CloudyInput.set_star(SED = P['atm_cmd'], SED_params = SED_params, 
+            self.CloudyInput.set_star(SED = SED, SED_params = SED_params, 
                                       lumi_unit = P['lumi_unit'], lumi_value = P['lumi'])
             if P['atm_cmd2'] is not '':
                 SED_params = None
+                SED = '{0} "{1}"'.format(P['atm_cmd2'],P['atm_file2'])
                 if P['atm12'] is not None:
                     SED_params = ' {0}'.format(P['atm12'])
                 if P['atm22'] is not None:
@@ -726,7 +739,7 @@ class runCloudy(object):
                 if P['atm32'] is not None:
                     SED_params += ' {0}'.format(P['atm32'])
                 
-                self.CloudyInput.set_star(SED = P['atm_cmd2'], SED_params = SED_params, 
+                self.CloudyInput.set_star(SED = SED, SED_params = SED_params, 
                                           lumi_unit = P['lumi_unit2'], lumi_value = P['lumi2'])
                 
             if P['geom'] == 'Sphere':
@@ -744,7 +757,11 @@ class runCloudy(object):
             for i_others in xrange(9):
                 if P['cloudy{0}'.format(i_others+1)] != '':
                     self.CloudyInput.set_other(P['cloudy{0}'.format(i_others+1)])
-            self.CloudyInput.set_comment('M3db pending number {0}'.format(N_pending))
+            self.CloudyInput.set_comment('3MdB pending number {0}'.format(N_pending))
+            for i in np.arange(9)+1:
+                com_str = 'com{}'.format(i)
+                if P[com_str] != '':
+                    self.CloudyInput.set_comment('3MdB {0} {1}'.format(com_str, P[com_str]))
             self.CloudyInput.set_emis_tab(self.emis_tab)
             self.update_status('Cloudy Input filled')
             
@@ -1087,4 +1104,80 @@ def print_elapsed_time(MdB = None, OVN_dic=None, ref_=None):
                                from_=OVN_dic['master_table'], where_=where_, limit_=None)
     print('Models running during = {0}'.format(datetime.timedelta(seconds=res[0]['ET'])))
     
-  
+def print_ETA(MdB= None, OVN_dic=None, ref_=None):
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic=OVN_dic)
+    if not isinstance(MdB, pc.MdB):
+        self.log_.error('The first argument must be a MdB object')
+    if ref_ is not None:
+        where_ = 'ref = "{0}"'.format(ref_)
+    else:
+        where_ = ''
+    res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
+                               where_=where_ + ' AND status=0', limit_=None)
+    N_pending = res[0]['count(*)']
+    res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
+                               where_=where_ + 'AND status=50', limit_=None)
+    N_run = res[0]['count(*)']
+    res, N_res = MdB.select_dB(select_='time_to_sec(timediff(max(datetime),min(datetime))) as ET',
+                               from_=OVN_dic['master_table'], where_=where_, limit_=None)
+    ET = res[0]['ET']
+    
+    eta = datetime.datetime.today() + datetime.timedelta(seconds=ET/float(N_run)*N_pending)
+    print 'ETA : ' + str(eta)
+
+def print_efficiency(MdB= None, OVN_dic=None, ref_=None):
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic=OVN_dic)
+    if not isinstance(MdB, pc.MdB):
+        self.log_.error('The first argument must be a MdB object')
+    if ref_ is not None:
+        where_ = 'ref = "{0}"'.format(ref_)
+    else:
+        where_ = ''
+    res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
+                               where_=where_ + 'AND status=50', limit_=None)
+    N_run = res[0]['count(*)']
+    res, N_res = MdB.select_dB(select_='time_to_sec(timediff(max(datetime),min(datetime))) as ET',
+                               from_=OVN_dic['master_table'], where_=where_, limit_=None)
+    ET = res[0]['ET']
+    res, N_res = MdB.select_dB(select_='avg(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MRT, '\
+                               'min(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MN, '\
+                               'max(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MX',
+                              from_=OVN_dic['master_table'], where_=where_, limit_=None)
+    MRT = res[0]['MRT']
+    
+    print('Mean efficiency = {}'.format(np.float(N_run)*MRT/ET))
+    
+def print_infos(MdB= None, OVN_dic=None, ref_=None):
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic=OVN_dic)
+    if not isinstance(MdB, pc.MdB):
+        self.log_.error('The first argument must be a MdB object')
+    if ref_ is not None:
+        where_ = 'ref = "{0}"'.format(ref_)
+    else:
+        where_ = ''
+    res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
+                               where_=where_ + ' AND status=0', limit_=None)
+    N_pending = res[0]['count(*)']
+    res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
+                               where_=where_ + 'AND status=50', limit_=None)
+    N_run = res[0]['count(*)']
+    res_et, N_res = MdB.select_dB(select_='time_to_sec(timediff(max(datetime),min(datetime))) as ET',
+                               from_=OVN_dic['master_table'], where_=where_, limit_=None)
+    ET = res_et[0]['ET']
+    
+    eta = datetime.datetime.today() + datetime.timedelta(seconds=ET/float(N_run)*N_pending)
+    res, N_res = MdB.select_dB(select_='avg(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MRT, '\
+                               'min(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MN, '\
+                               'max(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MX',
+                              from_=OVN_dic['master_table'], where_=where_, limit_=None)
+    MRT = float(res[0]['MRT'])
+    MN = float(res[0]['MN'])
+    MX = float(res[0]['MX'])
+    print('{} pending, {} run'.format(N_pending, N_run))
+    print('Mean running time = {0:.0f}s, min = {1:.0f}s, max = {2:.0f}s'.format(MRT, MN, MX))
+    print('Models running during {0}'.format(datetime.timedelta(seconds=ET)))
+    print 'ETA : ' + str(eta)
+    print('Mean efficiency = {0:.1f}'.format(np.float(N_run)*MRT/ET))

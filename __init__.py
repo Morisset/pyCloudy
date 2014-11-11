@@ -7,7 +7,7 @@ Chris.Morisset@Gmail.com
 """
 
 __all__ = ['c1d', 'c3d', 'utils', 'db']
-__version__ = '0.8.40'
+__version__ = '0.8.42'
 
 from utils.Config import _Config
 config = _Config()

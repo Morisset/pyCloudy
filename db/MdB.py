@@ -7,7 +7,8 @@ from pyCloudy.utils.init import LIST_ELEM
 from pyCloudy.utils.logging import my_logging
 if pc.config.INSTALLED['pandas']:
     import pandas.io.sql as psql
-    
+from StringIO import StringIO   
+
 def _sql2numpy(sqltype):
     if sqltype == 'float':
         return 'f4'
@@ -34,16 +35,12 @@ class MdB(object):
     def __init__(self, OVN_dic = None, base_name = 'OVN',tmp_base_name = 'OVN_tmp', 
                  user_name = 'OVN_user', user_passwd = 'getenv', 
                  host = 'localhost', unix_socket = '/var/mysql/mysql.sock', port = 3306,
-                 connect = True):
+                 connect = True, master_table='tab'):
         """
         This is the package to deal with MySQL OVN database. 
-        You need to have installed the mysql client and the mysql-dev library in order to install 
-        the MySQLdb python package.
-        The dev libraries are named mysql15-dev in the fink distro. Check with 'fink list mysql' 
-        that the dev and the client are the save version.
-        
-        Under pip, the MySQLdb package is named MySQL-python
-        
+        You must have MySQL or PyMySQL library installed. The latest is easier to get working, as it comes with its own
+        mysql client.
+         
         Latter, we will also use the ODBC connector. Install the connector from MySQl: http://dev.mysql.com/downloads/connector/odbc/
         and then use pyodbc with:
         cnxn = pyodbc.connect('DRIVER={MySQL ODBC 5.2 Driver};SERVER=127.0.0.1;DATABASE=OVN;UID=OVN_user;PWD=oiii5007;SOCKET=/var/mysql/mysql.sock')
@@ -75,6 +72,8 @@ class MdB(object):
                 unix_socket = OVN_dic['unix_socket']
             if 'port' in OVN_dic:
                 port = OVN_dic['port']
+            if 'master_table' in OVN_dic:
+                master_table = OVN_dic['master_table']
         self.base_name = base_name
         self.tmp_base_name = tmp_base_name
         self.user_name = user_name
@@ -87,6 +86,7 @@ class MdB(object):
         self.port = port
         self.host = host
         self.unix_socket = unix_socket
+        self.table = master_table
         self._dB = None
         self._cursor = None
         self._cursor_tuple = None
@@ -117,7 +117,7 @@ class MdB(object):
             
     def use_dB(self, base_name = None):
         if not self.connected:
-            pc.log_.error('Not connected to the database')
+            pc.log_.error('Not connected to the serevr')
             return None        
         if base_name is None:
             self._dB.select_db(self.base_name)
@@ -126,7 +126,7 @@ class MdB(object):
             
     def use_dB_tmp(self, tmp_base_name = None):
         if not self.connected:
-            pc.log_.error('Not connected to the database')
+            pc.log_.error('Not connected to the server')
             return None
         if tmp_base_name is None:
             self._dB.select_db(self.tmp_base_name)
@@ -151,8 +151,8 @@ class MdB(object):
         else:
             self.log_.warn('Not connected', calling = self.calling)
 
-    def exec_dB(self, command, format_ = 'dict'):
-        if format_ not in ('dict', 'tuple', 'numpy', 'dict2', 'pandas'):
+    def exec_dB(self, command, format_ = 'dict', return_descr=False):
+        if format_ not in ('dict', 'tuple', 'numpy', 'dict2', 'pandas', 'rec'):
             self.log_.error('format"{0}" not recognized'.format(format_), calling = self.calling)
         if not self.connected:
             self.log_.error('Not connected to a database', calling = self.calling)
@@ -164,7 +164,7 @@ class MdB(object):
                 return res, len(res)
             else:
                 pc.log_.error('pandas is not available, use another format', calling=self.calling)
-        if format_[0:4] == 'dict':
+        if format_[0:4] == 'dict' or format_ == 'rec':
             cursor = self._cursor
         else:
             cursor = self._cursor_tuple
@@ -176,9 +176,14 @@ class MdB(object):
             res = cursor.fetchall()
         except:
             self.log_.error('Error on reading result of {0}'.format(command), calling = self.calling)
-        return res, N
+        if format_ == 'rec':
+            res = np.rec.fromrecords([e.values() for e in res], names = res[0].keys())
+        if return_descr:
+            return res, N, cursor.description
+        else:
+            return res, N
             
-    def select_dB(self, select_ = '*', from_ = 'OVN.tab1', where_ = None, order_ = None, group_ = None, 
+    def select_dB(self, select_ = '*', from_ = None, where_ = None, order_ = None, group_ = None, 
                   limit_ = 1, format_ = 'dict', dtype_ = None):
         """
         Usage:
@@ -188,6 +193,8 @@ class MdB(object):
                         format_='numpy')
             loglog(dd['L_26']/dd['L_1'], dd['L_21']/dd['L_1'], 'r+')            
         """
+        if from_ is None:
+            from_ = self.table
         if (type(select_) == type(())) or (type(select_) == type([])):
             this_select = ''
             for w in select_:
@@ -235,14 +242,18 @@ class MdB(object):
             res = res2
         return res, N 
     
-    def count_dB(self, from_ = 'OVN.tab1', where_ = None):
+    def count_dB(self, from_ = None, where_ = None):
+        if from_ is None:
+            from_ = self.table
         req = 'SELECT count(*) FROM {0}'.format(from_)
         if where_ is not None:
             req += ' WHERE ({0})'.format(where_)
         res, N = self.exec_dB(req)
         return res[0]['count(*)']
     
-    def get_fields(self, from_ = 'OVN.tab1'):
+    def get_fields(self, from_ = None):
+        if from_ is None:
+            from_ = self.table
         froms = from_.split(',')
         if len(froms) == 1:
             res, N = self.exec_dB('SHOW COLUMNS FROM {0}'.format(from_))
@@ -255,7 +266,9 @@ class MdB(object):
                 fields.extend(self.get_fields(from_ = this_from))
             return fields
     
-    def get_cols(self, select_ = '*', from_ = 'OVN.tab1'):
+    def get_cols(self, select_ = '*', from_ = None):
+        if from_ is None:
+            from_ = self.table
         froms = from_.split(',')
         
         if len(froms) == 1:
@@ -275,7 +288,9 @@ class MdB(object):
                 res += self.get_cols(select_ = select_, from_ = this_from)
             return res
             
-    def get_dtype(self, select_ = '*', from_ = 'OVN.tab1'):
+    def get_dtype(self, select_ = '*', from_ = None):
+        if from_ is None:
+            from_ = self.table
         dtype_list = []
         if select_ == '*':        
             cols = self.get_cols(select_ = select_, from_ = from_)
@@ -310,7 +325,7 @@ class MdB_subproc(object):
     def __init__(self, OVN_dic = None, base_name = 'OVN',tmp_base_name = 'OVN_tmp', 
                  user_name = 'OVN_user', user_passwd = 'getenv', 
                  host = 'localhost', unix_socket = '/var/mysql/mysql.sock', port = 3306,
-                 connect = True):
+                 connect = True, master_table=None):
         
         self.log_ = self.__class__.MdBlog_
         self.calling = 'MdB'
@@ -329,16 +344,21 @@ class MdB_subproc(object):
                 unix_socket = OVN_dic['unix_socket']
             if 'port' in OVN_dic:
                 port = OVN_dic['port']
+            if 'master_table' in OVN_dic:
+                master_table = OVN_dic['master_table']
         self.base_name = base_name
         self.tmp_base_name = tmp_base_name
         self.user_name = user_name
         if user_passwd == 'getenv':
             self.user_passwd = os.getenv('{0}_pass'.format(user_name))
+        elif user_passwd is 'getit':
+            self.user_passwd = getpass()
         else:
             self.user_passwd = user_passwd
         self.port = port
         self.host = host
         self.unix_socket = unix_socket
+        self.table = master_table
         self._dB = None
         self._cursor = None
         self._cursor_tuple = None
@@ -350,15 +370,16 @@ class MdB_subproc(object):
     def close_dB(self):
         pass
     
-    def exec_dB(self, command, format_ = 'dict'):
-        if format_ not in ('dict', 'tuple', 'numpy', 'dict2'):
-            self.log_.error('format"{0}" not recognized'.format(format_), calling = self.calling)
+    def exec_dB(self, command, outfile=None):
         if not self.connected:
             self.log_.error('Not connected to a database', calling = self.calling)
             return None
         self.log_.message('Command sent: {0}'.format(command), calling = self.calling)
 
-
+        if outfile is None:
+            stdout=subprocess.PIPE
+        else:
+            stdout=file(outfile, 'w')
         proc = subprocess.Popen(["mysql", 
                                  "--host={0}".format(self.host),
                                  "--user={0}".format(self.user_name), 
@@ -366,20 +387,18 @@ class MdB_subproc(object):
                                  "--port={0}".format(self.port),
                                  "{0}".format(self.base_name)],
                                 stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE)
+                                stdout=stdout)
         out, err = proc.communicate(command)
-        try:
-            out = out.split('\n')
-        except:
-            pass
+        if outfile is not None:
+            stdout.close()
         try:
             N = len(out)
         except:
             N = None
         return out, N
 
-    def select_dB(self, select_ = '*', from_ = 'OVN.tab1', where_ = None, order_ = None, group_ = None, limit_ = 1,
-                  format_ = 'dict2', dtype_ = None):
+    def select_dB(self, select_ = '*', from_ = None, where_ = None, order_ = None, group_ = None, limit_ = 1,
+                  format_ = 'dict2', dtype_ = None, outfile=None):
         """
         Usage:
             dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', 
@@ -388,6 +407,8 @@ class MdB_subproc(object):
                         format_='numpy')
             loglog(dd['L_26']/dd['L_1'], dd['L_21']/dd['L_1'], 'r+')            
         """
+        if from_ is None:
+            from_ = self.table
         req = 'SELECT {0} FROM {1} '.format(select_, from_)
         if where_ is not None:
             req += 'WHERE ({0}) '.format(where_)
@@ -397,15 +418,14 @@ class MdB_subproc(object):
             req += 'GROUP BY {0} '.format(group_)
         if limit_ is not None:
             req += 'LIMIT {0:d}'.format(limit_)
-        res_tmp, N = self.exec_dB(req, format_ = format_)
-        try:
-            for i,line in enumerate(res_tmp):
-                res_tmp[i] = line.split('\t')
-        except:
-            pass
-        if N == 0:
+        res_tmp, N = self.exec_dB(req, outfile=outfile)
+        
+        if N == 0 or N is None:
             res = None
-            return res,N
+        else:
+            res = np.genfromtxt(StringIO(res_tmp[0]), names=True, delimiter='\\t')
+            N = len(res)
+        """
         if format_ in ('dict', 'dict2'):
             res = {}
             resnp = np.array(res_tmp[1:-1])
@@ -414,7 +434,8 @@ class MdB_subproc(object):
                     res[key] = np.array(resnp[:,i], dtype='float')
                 except:
                     res[key] = resnp[:,i]
-        return res,N-2
+        """
+        return res, N
             
             
     
