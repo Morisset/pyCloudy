@@ -12,7 +12,9 @@ if pc.config.INSTALLED['PyNeb']:
     import pyneb
 if pc.config.INSTALLED['scipy']:
     from scipy.integrate import cumtrapz
-
+if pc.config.INSTALLED['plt']:
+    import matplotlib.pyplot as plt
+    
 ##
 # @bug There is a problem for plan parallel models (yes Will, you are right!) (when depth << radius) 
 # it can be that all the values in radius are the same, which gives pb to m_cut etc
@@ -1204,7 +1206,7 @@ class CloudyModel(object):
         """
         param:
             cont : one of ['incid','trans','diffout','ntrans','reflec']
-            unit : one of ['esc', 'ec3','es','esA','esAc','esHzc','Jy','Q', 'Wcmu']
+            unit : one of ['esc', 'ec3','es','esA','esAc','esHzc','Jy','Q', 'Wcmu', 'phs']
             dist_norm : one of ['at_earth', 'r_out', a float for a distance in cm]
         return:
             continuum flux or intensity
@@ -1226,7 +1228,7 @@ class CloudyModel(object):
             cont1 = None
 
         """ Define the continuum depending on the unit """
-        if unit not in ('es', 'esA', 'esHz', 'Q'):
+        if unit not in ('es', 'esA', 'esHz', 'Q', 'phs'):
             if self.distance is not None:
                 if dist_norm == 'at_earth':
                     dist_fact = (self.r_in / (self.distance * pc.CST.KPC)) ** 2.
@@ -1243,6 +1245,9 @@ class CloudyModel(object):
         if unit == 'es':
             """ erg.s-1 """            
             to_return = cont1 * 4. * np.pi * self.r_in ** 2.
+#        elif unit == 'phs':
+#            """ photon.s-1 """            
+#            to_return = cont1 * 4. * np.pi * self.r_in ** 2.
         elif unit == 'esA':
             """erg.s-1.A-1"""
             to_return = cont1 / self.get_cont_x(unit='Ang') * 4. * np.pi * self.r_in ** 2.
@@ -1541,6 +1546,21 @@ class CloudyModel(object):
                     pc.log_.warn('ion {0} not in PyNeb'.format(ion), calling = self.calling)
             else:
                 pc.log_.warn('line {0} not in Cloudy2PyNeb'.format(line), calling = self.calling)
+    
+    def plot_spectrum(self, xunit='eV', cont='ntrans', yunit='es', ax=None):
+        
+        if not pc.config.INSTALLED['plt']:
+            pc.log_.error('Matplotlib not available', calling = self.calling)
+        if ax is None:
+            return_ax = True
+            fig, ax = plt.subplots()
+        else:
+            return_ax = False
+        ax.loglog(self.get_cont_x(unit=xunit), self.get_cont_y(cont=cont, unit=yunit))
+        ax.set_xlabel(xunit)
+        ax.set_ylabel(yunit)
+        if return_ax:
+            return ax
                         
     def print_lines(self, ref = None, norm = None, at_earth = False, use_emis = True):
         """
@@ -2221,6 +2241,8 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
     """
     if dir_ is None:
         dir_ = '/'.join(model_name.split('/')[0:-1])
+    if dir == '':
+        dir = './'
     cloudy_exe = pc.config.cloudy_exe
     if cloudy_version is not None:
         if cloudy_version in pc.config.cloudy_dict:
