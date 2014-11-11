@@ -435,7 +435,8 @@ class MdB_subproc(object):
                 except:
                     res[key] = resnp[:,i]
         """
-        return res, N
+        if outfile is not None:
+            return res, N
             
             
     
