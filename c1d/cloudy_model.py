@@ -2241,8 +2241,8 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
     """
     if dir_ is None:
         dir_ = '/'.join(model_name.split('/')[0:-1])
-    if dir == '':
-        dir = './'
+    if dir_ == '':
+        dir_ = './'
     cloudy_exe = pc.config.cloudy_exe
     if cloudy_version is not None:
         if cloudy_version in pc.config.cloudy_dict:
