@@ -294,7 +294,7 @@ class writePending(object):
         if version in pc.config.cloudy_dict:
             self.insert_in_dic('C_version', version)
 
-    def insert_model(self, verbose_only=True):
+    def insert_model(self, verbose_only=False):
         
         if not self.MdB.connected:
             self.log_.error('Not connected to the database')
