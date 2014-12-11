@@ -376,7 +376,7 @@ def init_pending(OVN_dic=OVN_dic, MdB=None,delete_before=False):
   PRIMARY KEY (`N`),
   KEY `status` (`status`),
   KEY `priority` (`priority`)
-  ) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+  ) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 """
 
     MdB.exec_dB(command)

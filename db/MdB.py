@@ -152,7 +152,7 @@ class MdB(object):
         else:
             self.log_.warn('Not connected', calling = self.calling)
 
-    def exec_dB(self, command, format_ = 'dict', return_descr=False):
+    def exec_dB(self, command, format_ = 'dict', return_descr=False, commit=False):
         if format_ not in ('dict', 'tuple', 'numpy', 'dict2', 'pandas', 'rec'):
             self.log_.error('format"{0}" not recognized'.format(format_), calling = self.calling)
         if not self.connected:
@@ -173,6 +173,11 @@ class MdB(object):
             N = cursor.execute(command)
         except:
             self.log_.error('Error on executing {0}'.format(command), calling = self.calling)
+        if commit:
+            try:
+                self._dB.commit()
+            except:
+                self.log_.error('Error on commiting {0}'.format(command), calling = self.calling)
         try:
             res = cursor.fetchall()
         except:

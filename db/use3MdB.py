@@ -320,12 +320,12 @@ class writePending(object):
         if verbose_only:
             print(command)
         else:
-            self.MdB.exec_dB(command)
+            self.MdB.exec_dB(command, commit=True)
             res, N = self.MdB.select_dB(select_='last_insert_id()', from_=self.table, format_ = 'dict2')
             self.last_N = res['last_insert_id()'][0]
             command = 'UPDATE {0} SET FILE="{1}_{2}" WHERE N={2};'.format(self.table, self._dic['file'], 
                                                                           self.last_N)
-            self.MdB.exec_dB(command)
+            self.MdB.exec_dB(command, commit=True)
             self.log_.message('Model sent to {0} with N={1}'.format(self.table, self.last_N),
                               calling=self.calling)
         
@@ -395,7 +395,7 @@ class writeTab(object):
         if status in status_dic and self.selectedN is not None:
             command = 'UPDATE {0} SET `status`={1} WHERE N = {2}'.format(self.pending_table, 
                                                                          status_dic[status], self.selectedN)   
-            self.MdB.exec_dB(command)
+            self.MdB.exec_dB(command, commit=True)
         else:
             self.log_.error('Unknown status "{0}"'.format(status))
 
@@ -676,7 +676,7 @@ class runCloudy(object):
         
         command = 'UPDATE {0} SET `procID`={1}, `status`=1,`date_running`=now() WHERE N = {2} AND status=0'.format(self.pending_table, 
                                                                              self.procID, self.selectedN)   
-        self.MdB.exec_dB(command)
+        self.MdB.exec_dB(command, commit=True)
 
         currentID, N = self.MdB.select_dB(select_='procID', from_=self.pending_table, 
                                           where_='N = {0}'.format(self.selectedN), 
@@ -690,7 +690,7 @@ class runCloudy(object):
         if status in status_dic:
             command = 'UPDATE {0} SET `status`={1} WHERE N = {2}'.format(self.pending_table, 
                                                                          status_dic[status], self.selectedN)   
-            self.MdB.exec_dB(command)
+            self.MdB.exec_dB(command, commit=True)
         else:
             self.log_.error('Unknown status "{0}"'.format(status))
     
