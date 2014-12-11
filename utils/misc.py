@@ -5,7 +5,7 @@ import sys
 import pyCloudy as pc 
 from pyCloudy.utils.init import LIST_ALL_ELEM 
 if pc.config.INSTALLED['Image']:
-    import Image
+    from PIL import Image
 if pc.config.INSTALLED['scipy']:
     from scipy import signal
 

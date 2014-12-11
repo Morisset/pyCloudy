@@ -44,11 +44,11 @@ class _Config(object):
             self.INSTALLED['scipy'] = False
             _Config.log_.warn('pyCloudy works better with scipy', calling = 'pyCloudy config')
         try:
-            import Image
+            from PIL import Image
             self.INSTALLED['Image'] = True
         except:
             self.INSTALLED['Image'] = False
-            _Config.log_.warn('pyCloudy works better with Image (PIL)', calling = 'pyCloudy config')
+            _Config.log_.warn('pyCloudy needs PIL or Pillow for 3 colors images', calling = 'pyCloudy config')
         try:
             import MySQLdb
             self.INSTALLED['MySQL'] = True
@@ -64,7 +64,17 @@ class _Config(object):
             self.INSTALLED['pandas'] = True
         except:
             self.INSTALLED['pandas'] = False
-            
+        try:
+            import pyfits
+            self.INSTALLED['pyfits'] = True
+            self.INSTALLED['pyfits from astropy'] = False
+        except:
+            self.INSTALLED['pyfits'] = False
+            try:
+                import astropy.io.fits as pyfits
+                self.INSTALLED['pyfits from astropy'] = True
+            except:
+                self.INSTALLED['pyfits from astropy'] = False            
         try:
             test_str = ['#one\t two\t three', '1\t 2\t 3']
             test_res = np.genfromtxt(test_str, names=True, comments= ';', delimiter = '\t')

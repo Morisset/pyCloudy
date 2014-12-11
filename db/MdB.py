@@ -57,6 +57,7 @@ class MdB(object):
         else:
             self.log_.error('No SQL connector available', calling='MdB')
         self.SQLdb = SQLdb
+        self.OVN_dic = OVN_dic
         if OVN_dic is not None:
             if 'base_name' in OVN_dic:
                 base_name = OVN_dic['base_name']
