@@ -147,7 +147,7 @@ class writePending(object):
             self.insert_in_dic('atm1{0}'.format(i_star_str), atm1)
             self.insert_in_dic('atm2{0}'.format(i_star_str), atm2)
             self.insert_in_dic('atm3{0}'.format(i_star_str), atm3)
-            
+    
     def set_cste_density(self, dens = None, ff = None):
         self.insert_in_dic('dens', dens)
         self.insert_in_dic('ff', ff)
@@ -294,12 +294,14 @@ class writePending(object):
         if version in pc.config.cloudy_dict:
             self.insert_in_dic('C_version', version)
 
-    def insert_model(self, verbose_only=False):
+    def insert_model(self, verbose_only=False, status=None):
         
         if not self.MdB.connected:
             self.log_.error('Not connected to the database')
             return None
         
+        if status is not None:
+            self.set_status(status)
         fields_str = '`date_submitted`, '
         values_str = 'now(), '
         for key in self._dic:
@@ -326,6 +328,28 @@ class writePending(object):
             self.MdB.exec_dB(command)
             self.log_.message('Model sent to {0} with N={1}'.format(self.table, self.last_N),
                               calling=self.calling)
+        
+def clean_SED(MdB, seds_table, ref, obj_name):
+    command = 'DELETE FROM {} WHERE ref = "{}" AND sed_name LIKE "{}_%"'.format(seds_table, ref, obj_name)
+    
+def insert_SED(MdB, seds_table, ref, sed_name, atm_cmd, atm_file, atm1=None, atm2=None, atm3=None, 
+                   lumi_unit='', lumi_value=None):
+    
+        fields_str = 'ref, sed_name, atm_cmd, atm_file, '
+        values_str = "'{}', '{}', '{}', '{}', ".format(ref, sed_name, atm_cmd, atm_file)
+        if atm1 is not None:
+            fields_str += 'atm1, '
+            values_str += '{}, '.format(atm1)
+        if atm2 is not None:
+            fields_str += 'atm2, '
+            values_str += '{}, '.format(atm2)
+        if atm3 is not None:
+            fields_str += 'atm3, '
+            values_str += '{}, '.format(atm3)
+        fields_str += 'lumi_unit, lumi'
+        values_str += "'{}', {}".format(lumi_unit, lumi_value)
+        command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(seds_table, fields_str, values_str)
+        MdB.exec_dB(command)
         
 class writeTab(object):
     
@@ -502,7 +526,7 @@ class writeTab(object):
         res, N = self.MdB.select_dB(select_='last_insert_id()', from_=self.table)
         self.last_N = res[0]['last_insert_id()']
         self.log_.message('Model sent to {0} with N={1}'.format(self.table, self.last_N))
-        self.update_status('Model inserted')
+        self.update_status('Model inserted') #14
         # ToDo : Loosing a lot of time in the following, check why
         if self.CloudyModel.n_zones > 1:
             ab_fields_str = '`N`, `ref`, '
@@ -541,11 +565,11 @@ class writeTab(object):
             values_ab_str = values_ab_str[:-2]
             command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.OVN_dic['abion_table'], ab_fields_str, values_ab_str)
             self.MdB.exec_dB(command)
-            self.update_status('Abion inserted')
+            self.update_status('Abion inserted') #15
             values_te_str = values_te_str[:-2]
             command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.OVN_dic['teion_table'], t_fields_str, values_te_str)
             self.MdB.exec_dB(command)
-            self.update_status('Teion inserted')
+            self.update_status('Teion inserted') #16
          
          
         if self.CloudyModel.n_zones > 1:
@@ -561,7 +585,7 @@ class writeTab(object):
             values_tem_str = values_tem_str[:-2]
             command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.OVN_dic['temis_table'], fields_str, values_tem_str)
             self.MdB.exec_dB(command)
-        self.update_status('Temis inserted')
+        self.update_status('Temis inserted') #17
             
                 
         self.update_status('Master table updated')
@@ -716,32 +740,44 @@ class runCloudy(object):
                     if value > -35:
                         self.CloudyInput.set_abund(elem = elem, value = value)
             SED_params = None
-            if P['atm_file'] == '':
-                SED = '{0}'.format(P['atm_cmd'])
+            self.CloudyInput.set_star()
+            if P['atm_cmd'] == 'sed_db':
+                seds_table = self.OVN_dic['seds_table']
+                where_ = 'ref = "{0}" and sed_name = "{1}"'.format(P['ref'], P['atm_file'])
+                SEDs, N = self.MdB.select_dB(select_ = '*', from_ = seds_table, where_ = where_, 
+                  limit_ = None, format_ = 'dict')
+                for SED in SEDs:
+                    self.CloudyInput.set_star(SED = '{} "{}"'.format(SED['atm_cmd'], SED['atm_file']), 
+                                              SED_params = (SED['atm1'], SED['atm2']), 
+                                              lumi_unit=SED['lumi_unit'], lumi_value=SED['lumi'])
+                
             else:
-                SED = '{0} "{1}"'.format(P['atm_cmd'],P['atm_file'])
-            if P['atm1'] is not None:
-                SED_params = ' {0}'.format(P['atm1'])
-            if P['atm2'] is not None:
-                SED_params += ' {0}'.format(P['atm2'])
-            if P['atm3'] is not None:
-                SED_params += ' {0}'.format(P['atm3'])
-            
-            self.CloudyInput.set_star(SED = SED, SED_params = SED_params, 
-                                      lumi_unit = P['lumi_unit'], lumi_value = P['lumi'])
-            if P['atm_cmd2'] is not '':
-                SED_params = None
-                SED = '{0} "{1}"'.format(P['atm_cmd2'],P['atm_file2'])
-                if P['atm12'] is not None:
-                    SED_params = ' {0}'.format(P['atm12'])
-                if P['atm22'] is not None:
-                    SED_params += ' {0}'.format(P['atm22'])
-                if P['atm32'] is not None:
-                    SED_params += ' {0}'.format(P['atm32'])
+                if P['atm_file'] == '':
+                    SED = '{0}'.format(P['atm_cmd'])
+                else:
+                    SED = '{0} "{1}"'.format(P['atm_cmd'],P['atm_file'])
+                if P['atm1'] is not None:
+                    SED_params = ' {0}'.format(P['atm1'])
+                if P['atm2'] is not None:
+                    SED_params += ' {0}'.format(P['atm2'])
+                if P['atm3'] is not None:
+                    SED_params += ' {0}'.format(P['atm3'])
                 
                 self.CloudyInput.set_star(SED = SED, SED_params = SED_params, 
-                                          lumi_unit = P['lumi_unit2'], lumi_value = P['lumi2'])
-                
+                                          lumi_unit = P['lumi_unit'], lumi_value = P['lumi'])
+                if P['atm_cmd2'] is not '':
+                    SED_params = None
+                    SED = '{0} "{1}"'.format(P['atm_cmd2'],P['atm_file2'])
+                    if P['atm12'] is not None:
+                        SED_params = ' {0}'.format(P['atm12'])
+                    if P['atm22'] is not None:
+                        SED_params += ' {0}'.format(P['atm22'])
+                    if P['atm32'] is not None:
+                        SED_params += ' {0}'.format(P['atm32'])
+                    
+                    self.CloudyInput.set_star(SED = SED, SED_params = SED_params, 
+                                              lumi_unit = P['lumi_unit2'], lumi_value = P['lumi2'])
+                    
             if P['geom'] == 'Sphere':
                 self.CloudyInput.set_sphere()
             else:
@@ -1141,43 +1177,65 @@ def print_efficiency(MdB= None, OVN_dic=None, ref_=None):
     res, N_res = MdB.select_dB(select_='time_to_sec(timediff(max(datetime),min(datetime))) as ET',
                                from_=OVN_dic['master_table'], where_=where_, limit_=None)
     ET = res[0]['ET']
-    res, N_res = MdB.select_dB(select_='avg(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MRT, '\
-                               'min(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MN, '\
-                               'max(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MX',
+    res, N_res = MdB.select_dB(select_='avg(cast(substring_index(CloudyEnds,"ExecTime(s)", -1) as decimal)) as MRT, '\
+                               'min(cast(substring_index(CloudyEnds,"ExecTime(s)", -1) as decimal)) as MN, '\
+                               'max(cast(substring_index(CloudyEnds,"ExecTime(s)", -1) as decimal)) as MX',
                               from_=OVN_dic['master_table'], where_=where_, limit_=None)
     MRT = res[0]['MRT']
     
     print('Mean efficiency = {}'.format(np.float(N_run)*MRT/ET))
     
-def print_infos(MdB= None, OVN_dic=None, ref_=None):
+def print_infos(MdB= None, OVN_dic=None, ref_=None, where_=None, Nprocs=32):
     if MdB is None:
         MdB = pc.MdB(OVN_dic=OVN_dic)
     if not isinstance(MdB, pc.MdB):
         self.log_.error('The first argument must be a MdB object')
     if ref_ is not None:
-        where_ = 'ref = "{0}"'.format(ref_)
+        this_where_ = 'ref = "{0}"'.format(ref_)
     else:
-        where_ = ''
+        this_where_ = ''
+    if where_ is not None:
+        this_where_ += ' AND {}'.format(where_)
     res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
-                               where_=where_ + ' AND status=0', limit_=None)
+                               where_=this_where_ + ' AND status=0', limit_=None)
     N_pending = res[0]['count(*)']
     res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
-                               where_=where_ + 'AND status=50', limit_=None)
+                               where_=this_where_ + 'AND status=50', limit_=None)
     N_run = res[0]['count(*)']
+    if N_run == 0 and N_pending == 0:
+        print('No entry')
+        return
     res_et, N_res = MdB.select_dB(select_='time_to_sec(timediff(max(datetime),min(datetime))) as ET',
-                               from_=OVN_dic['master_table'], where_=where_, limit_=None)
+                               from_=OVN_dic['master_table'], where_=this_where_, limit_=None)
     ET = res_et[0]['ET']
     
     eta = datetime.datetime.today() + datetime.timedelta(seconds=ET/float(N_run)*N_pending)
-    res, N_res = MdB.select_dB(select_='avg(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MRT, '\
-                               'min(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MN, '\
-                               'max(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MX',
-                              from_=OVN_dic['master_table'], where_=where_, limit_=None)
+    res, N_res = MdB.select_dB(select_='avg(cast(substring_index(CloudyEnds,"ExecTime(s)", -1) as decimal)) as MRT, '\
+                               'min(cast(substring_index(CloudyEnds,"ExecTime(s)", -1) as decimal)) as MN, '\
+                               'max(cast(substring_index(CloudyEnds,"ExecTime(s)", -1) as decimal)) as MX',
+                              from_=OVN_dic['master_table'], where_=this_where_, limit_=None)
     MRT = float(res[0]['MRT'])
     MN = float(res[0]['MN'])
     MX = float(res[0]['MX'])
+    Mean_eff = np.float(N_run)*MRT/ET
+    eta2 = datetime.datetime.today() + datetime.timedelta(seconds=MRT*N_pending/float(Nprocs))
     print('{} pending, {} run'.format(N_pending, N_run))
     print('Mean running time = {0:.0f}s, min = {1:.0f}s, max = {2:.0f}s'.format(MRT, MN, MX))
     print('Models running during {0}'.format(datetime.timedelta(seconds=ET)))
-    print 'ETA : ' + str(eta)
-    print('Mean efficiency = {0:.1f}'.format(np.float(N_run)*MRT/ET))
+    print('ETA1 : {0}, ETA2 : {1}'.format(eta, eta2))
+    print('Mean efficiency = {0:.1f}'.format(Mean_eff))
+    
+def remove_lines(OVN_dic, line_labels):
+    """
+    Usage:
+        remove_lines(OVN_dic, ('FE_6__5177A', 'FE_7__4894A', 'FE_7__5277A'))
+        remove_lines(OVN_dic, ('H__1__4102A', 'H__1__3970A', 'H__1__3835A', 'H__1_2625M', 'H__1_7458M', 'HE_1__4471A', 'CA_B__4471A'))
+    """
+    MdB = pc.MdB(OVN_dic=OVN_dic)
+    for label in line_labels:
+        command = 'update {0} set used = 0 where label = "{1}"'.format(OVN_dic['lines_table'], label)
+        MdB.exec_dB(command)
+    MdB.close_dB()
+        
+    
+    

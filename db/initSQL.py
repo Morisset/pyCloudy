@@ -12,7 +12,8 @@ OVN_dic = {'host' : 'localhost',
        'abion_table' : '`abion`',
        'temis_table' : '`temis`',
        'lines_table' : '`lines`',
-       'procIDs_table' : '`procIDs`'
+       'procIDs_table' : '`procIDs`',
+       'seds_table': '`seds`' 
        }
 
 lines_list = [('BAC___3646A', 'Bac ', 3646.0, 'BalmHead'), 
@@ -329,7 +330,31 @@ PRIMARY KEY (`Nl`)
     MdB.exec_dB(command)
     MdB.close_dB()
     
-
+def init_SEDs(OVN_dic=OVN_dic, MdB=None,delete_before=False):
+    table = OVN_dic['seds_table']
+    
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic = OVN_dic)
+    
+    if delete_before:
+        command = 'DROP TABLE IF EXISTS {0};'.format(table)
+        MdB.exec_dB(command)
+    command = """CREATE TABLE IF NOT EXISTS {0} (
+`N` bigint(20) NOT NULL AUTO_INCREMENT,
+`ref` varchar(40) NOT NULL DEFAULT '',
+`sed_name` varchar(40) NOT NULL DEFAULT '',
+`atm_cmd` varchar(60) NOT NULL DEFAULT '',
+`atm_file` varchar(40) NOT NULL DEFAULT '',
+`atm1` double DEFAULT NULL,
+`atm2` double DEFAULT NULL,
+`atm3` double DEFAULT NULL,
+`lumi_unit` varchar(40) NOT NULL DEFAULT '',
+`lumi` double DEFAULT NULL,
+PRIMARY KEY (`N`)
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1;
+""".format(table)
+    MdB.exec_dB(command)
+    
 def init_pending(OVN_dic=OVN_dic, MdB=None,delete_before=False):
     
     table = OVN_dic['pending_table']
@@ -547,4 +572,4 @@ def init_all():
     init_abion()
     init_temis()
     init_procIDs()
-    
+    init_SEDs()
