@@ -190,7 +190,7 @@ class MdB(object):
             return res, N
             
     def select_dB(self, select_ = '*', from_ = None, where_ = None, order_ = None, group_ = None, 
-                  limit_ = 1, format_ = 'dict', dtype_ = None):
+                  limit_ = 1, format_ = 'dict', dtype_ = None, commit=False):
         """
         Usage:
             dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', 
@@ -234,7 +234,7 @@ class MdB(object):
             req += 'GROUP BY {0} '.format(group_)
         if limit_ is not None:
             req += 'LIMIT {0:d}'.format(limit_)
-        res, N = self.exec_dB(req, format_ = format_)
+        res, N = self.exec_dB(req, format_ = format_, commit=commit)
         if N == 0:
             res = None
         elif format_ == 'numpy':
@@ -248,13 +248,13 @@ class MdB(object):
             res = res2
         return res, N 
     
-    def count_dB(self, from_ = None, where_ = None):
+    def count_dB(self, from_ = None, where_ = None, commit=False):
         if from_ is None:
             from_ = self.table
         req = 'SELECT count(*) FROM {0}'.format(from_)
         if where_ is not None:
             req += ' WHERE ({0})'.format(where_)
-        res, N = self.exec_dB(req)
+        res, N = self.exec_dB(req, commit=commit)
         return res[0]['count(*)']
     
     def get_fields(self, from_ = None):

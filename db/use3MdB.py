@@ -1,4 +1,5 @@
 import os
+import glob
 import time
 import threading
 import numpy as np
@@ -8,11 +9,12 @@ from pyCloudy.utils.init import SYM2ELEM, LIST_ALL_ELEM
 from pyCloudy.utils.misc import cloudy2pyneb
 import pyneb as pn
 
-status_dic = {'Read_pending':2,
-              'Cloudy Input filled':3,
-              'Cloudy Input printed':4,
-              'Cloudy start':5,
-              'Cloudy run':6,
+status_dic = {'Pending model selected':2,
+              'Read_pending':3,
+              'Cloudy Input filled':4,
+              'Cloudy Input printed':5,
+              'Cloudy start':6,
+              'Cloudy run':7,
               'Cloudy failed':-2,
               'Read_pending2':11,
               'Read model':12,
@@ -321,7 +323,7 @@ class writePending(object):
             print(command)
         else:
             self.MdB.exec_dB(command, commit=True)
-            res, N = self.MdB.select_dB(select_='last_insert_id()', from_=self.table, format_ = 'dict2')
+            res, N = self.MdB.select_dB(select_='last_insert_id()', from_=self.table, format_ = 'dict2', commit=True)
             self.last_N = res['last_insert_id()'][0]
             command = 'UPDATE {0} SET FILE="{1}_{2}" WHERE N={2};'.format(self.table, self._dic['file'], 
                                                                           self.last_N)
@@ -407,7 +409,8 @@ class writeTab(object):
             self.log_.error('Not connected')
             return None
         
-        res, Nres = self.MdB.select_dB(select_='*', from_=self.pending_table, where_='N = {0}'.format(N_pending))
+        res, Nres = self.MdB.select_dB(select_='*', from_=self.pending_table, 
+                                       where_='N = {0}'.format(N_pending), commit=True)
         self.update_status('Read_pending2')
         self.pending = res[0]
 
@@ -586,10 +589,14 @@ class writeTab(object):
             command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.OVN_dic['temis_table'], fields_str, values_tem_str)
             self.MdB.exec_dB(command)
         self.update_status('Temis inserted') #17
-            
-                
+                        
         self.update_status('Master table updated')
             
+    def clean_files(self):
+        fname = '{0}/{1}/{2}.*'.format(self.models_dir, self.pending['dir'], self.pending['file'])
+        for f in glob.glob(fname):
+            os.remove(f)
+        
 
 class runCloudy(object):
     
@@ -656,13 +663,14 @@ class runCloudy(object):
 
         if not self.MdB.connected:
             self.log_.error('Not connected')
+            self.selectedN = None
             return
         
         if self.procID is None:
             self.log_.error('Not connected')
         try:
             res, N = self.MdB.select_dB(select_ = 'N, priority', from_ = self.pending_table, 
-                                       where_ = 'status = 0', limit_=None, format_='numpy')
+                                       where_ = 'status = 0', limit_=None, format_='numpy', commit=True)
         except:
             self.log_.error('Error looking for status=0 models in {0}'.format(self.pending_table), 
                           calling='runCloudy.select_pending')
@@ -706,7 +714,7 @@ class runCloudy(object):
         else:
             self.selectedN = N_pending
         res, Nres = self.MdB.select_dB(select_='*', from_=self.pending_table, 
-                                       where_='N = {0}'.format(N_pending))
+                                       where_='N = {0}'.format(N_pending), commit=True)
         
         self.update_status('Read_pending')
         if Nres == 0:
@@ -832,6 +840,7 @@ class runCloudyByThread(threading.Thread):
             rC.select_pending()
             self.selectedN = rC.selectedN 
             if self.selectedN is not None:
+                rC.update_status('Pending model selected')
                 rC.fill_CloudyInput(noinput = self.noinput)
                 rC.update_status('Cloudy start')
                 try:
@@ -869,7 +878,7 @@ class runCloudyByThread(threading.Thread):
                                 wT.CloudyModel.Hbeta_cut = Hbeta_cut * wT.CloudyModel.Hbeta_full[-1]
                                 wT.insert_model()
                                 master_N.append(wT.last_N)
-
+                    wT.clean_files()
                     self.log_.message('model {0} finished, inserted into {1}.'.format(self.selectedN, master_N), 
                                  calling=self.calling)
             else:
@@ -1068,7 +1077,8 @@ def print_all_refs(MdB = None, OVN_dic=None):
         MdB = pc.MdB(OVN_dic=OVN_dic)
     if not isinstance(MdB, pc.MdB):
         self.log_.error('The first argument must be a MdB object')    
-    res, N_ref = MdB.select_dB(select_ = 'distinct(ref), count(*)', from_ = OVN_dic['master_table'], group_ = 'ref', limit_ = None)
+    res, N_ref = MdB.select_dB(select_ = 'distinct(ref), count(*)', from_ = OVN_dic['master_table'], 
+                               group_ = 'ref', limit_ = None)
     for row in res:
         print('The ref "{0:15}" counts {1:8d} entries.'.format(row['ref'], row['count(*)']))
     print('Number of distinct references = {0}'.format(N_ref))
@@ -1100,7 +1110,7 @@ def print_status_stats(MdB = None, OVN_dic=None, ref_=None):
     else:
         where_ = None
     res, N_res = MdB.select_dB(select_='status, count(*) as ct',from_=OVN_dic['pending_table'],
-                               where_=where_, group_='status', limit_=None)
+                               where_=where_, group_='status', limit_=None, commit=True)
     for status in res: 
         print('{0:7} models with status = {1:4}.'.format(status['ct'], status['status']))
 
@@ -1150,10 +1160,10 @@ def print_ETA(MdB= None, OVN_dic=None, ref_=None):
     else:
         where_ = ''
     res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
-                               where_=where_ + ' AND status=0', limit_=None)
+                               where_=where_ + ' AND status=0', limit_=None, commit=True)
     N_pending = res[0]['count(*)']
     res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
-                               where_=where_ + 'AND status=50', limit_=None)
+                               where_=where_ + 'AND status=50', limit_=None, commit=True)
     N_run = res[0]['count(*)']
     res, N_res = MdB.select_dB(select_='time_to_sec(timediff(max(datetime),min(datetime))) as ET',
                                from_=OVN_dic['master_table'], where_=where_, limit_=None)
@@ -1172,7 +1182,7 @@ def print_efficiency(MdB= None, OVN_dic=None, ref_=None):
     else:
         where_ = ''
     res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
-                               where_=where_ + 'AND status=50', limit_=None)
+                               where_=where_ + 'AND status=50', limit_=None, commit=True)
     N_run = res[0]['count(*)']
     res, N_res = MdB.select_dB(select_='time_to_sec(timediff(max(datetime),min(datetime))) as ET',
                                from_=OVN_dic['master_table'], where_=where_, limit_=None)
@@ -1197,10 +1207,10 @@ def print_infos(MdB= None, OVN_dic=None, ref_=None, where_=None, Nprocs=32):
     if where_ is not None:
         this_where_ += ' AND {}'.format(where_)
     res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
-                               where_=this_where_ + ' AND status=0', limit_=None)
+                               where_=this_where_ + ' AND status=0', limit_=None, commit=True)
     N_pending = res[0]['count(*)']
     res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
-                               where_=this_where_ + 'AND status=50', limit_=None)
+                               where_=this_where_ + 'AND status=50', limit_=None, commit=True)
     N_run = res[0]['count(*)']
     if N_run == 0 and N_pending == 0:
         print('No entry')
