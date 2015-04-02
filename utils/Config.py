@@ -20,11 +20,15 @@ class _Config(object):
             
         self.INSTALLED ={}
         try:
-            from matplotlib import delaunay
-            self.INSTALLED['delaunay'] = True
+            try:
+                from matplotlib.tri.triangulation import Triangulation
+            except:
+                from matplotlib.delaunay import Triangulation
+            self.INSTALLED['Triangulation'] = True
         except:
-            self.INSTALLED['delaunay'] = False
-            _Config.log_.warn('pyCloudy works better with matplotlib', calling = 'pyCloudy config')
+            self.INSTALLED['Triangulation'] = False
+            _Config.log_.warn('pyCloudy works better with matplotlib Triangulation', 
+                              calling = 'pyCloudy config')
         try:
             import matplotlib.pyplot as plt
             self.INSTALLED['plt'] = True

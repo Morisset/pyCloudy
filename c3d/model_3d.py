@@ -3,8 +3,11 @@ from numpy import sin, cos, arctan2, arcsin
 import pyCloudy as pc
 from pyCloudy.utils import misc
 from pyCloudy.utils.physics import atomic_mass
-if pc.config.INSTALLED['delaunay']:
-    from matplotlib import delaunay
+if pc.config.INSTALLED['Triangulation']:
+    try:
+        from matplotlib.tri.triangulation import Triangulation
+    except:
+        from matplotlib.delaunay import Triangulation
 if pc.config.INSTALLED['scipy']:
     from scipy.interpolate import interp1d
 if pc.config.INSTALLED['plt']:
@@ -204,16 +207,17 @@ class CubCoord(object):
         
     def _poly(self, params):
         tmp = 0.
+        max_r = np.max(self.r)
         for i, param in enumerate(params):
-            tmp += param * self.r**i
+            tmp += param * (self.r/max_r)**i
         oldsettings = np.seterr(all='ignore')
         tmp = tmp / self.r
         misc.revert_seterr(oldsettings)
         tt = (self.r == 0.)
         tmp[tt] = 0
-        vel_x = tmp * self.x / np.max(self.r)
-        vel_y = tmp * self.y / np.max(self.r)
-        vel_z = tmp * self.z / np.max(self.r)
+        vel_x = tmp * self.x 
+        vel_y = tmp * self.y 
+        vel_z = tmp * self.z 
         return vel_x, vel_y, vel_z
     
     def set_velocity(self, velocity_law = 'poly', params = [1., 1., 0.], user_function = None):
@@ -317,8 +321,8 @@ def _get_interp_tri(x_in, y_in, gr_x, gr_y, method=None):
 
     calling = 'interp_3D'
     pc.log_.message('Entering interp 3D', calling = calling)
-    if not pc.config.INSTALLED['delaunay']:
-        pc.log_.error('delaunay package not available from matplotlib.', calling = calling)
+    if not pc.config.INSTALLED['Triangulation']:
+        pc.log_.error('Triangulation package not available from matplotlib.', calling = calling)
         return None
     if method is None:
         method = methods[0]
@@ -351,7 +355,7 @@ def _get_interp_tri(x_in, y_in, gr_x, gr_y, method=None):
             dsum = d1 + d2 + d3
             return np.squeeze(np.transpose([d1 / dsum, d2 / dsum, d3 / dsum]))
 
-    tri = delaunay.Triangulation(gr_x, gr_y)
+    tri = Triangulation(gr_x, gr_y)
     pc.log_.message('Triangulation done', calling = calling)
     n_triangles = tri.triangle_nodes.shape[0]
     for i, triangle in enumerate(tri.triangle_nodes):
