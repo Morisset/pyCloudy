@@ -193,7 +193,7 @@ class MdB(object):
                   limit_ = 1, format_ = 'dict', dtype_ = None, commit=False):
         """
         Usage:
-            dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', 
+            dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', from_='tab',
                         where_ = 'ref like "DIG12HR_"', 
                         limit_ = 100000, 
                         format_='numpy')
@@ -407,7 +407,7 @@ class MdB_subproc(object):
                   format_ = 'dict2', dtype_ = None, outfile=None):
         """
         Usage:
-            dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', 
+            dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', from_='tab,'
                         where_ = 'ref like "DIG12HR_"', 
                         limit_ = 100000, 
                         format_='numpy')

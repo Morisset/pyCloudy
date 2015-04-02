@@ -353,6 +353,7 @@ def insert_SED(MdB, seds_table, ref, sed_name, atm_cmd, atm_file, atm1=None, atm
         command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(seds_table, fields_str, values_str)
         MdB.exec_dB(command)
         
+        
 class writeTab(object):
     
     def __init__(self, MdB=None, OVN_dic=None, models_dir = './', do_update_status=True):
@@ -600,9 +601,11 @@ class writeTab(object):
 
 class runCloudy(object):
     
-    def __init__(self, MdB = None, OVN_dic=None, proc_name = None, models_dir = './'):
+    def __init__(self, MdB = None, OVN_dic=None, proc_name = None, models_dir = './', 
+                 do_update_status=True, register=True):
         
         self.log_ = pc.log_
+        self.calling = 'runCloudy'
         self.OVN_dic = OVN_dic
         if MdB is None:
             MdB = pc.MdB(OVN_dic=self.OVN_dic)
@@ -615,10 +618,12 @@ class runCloudy(object):
         self.pending_table = self.OVN_dic['pending_table']
         self.proc_name = proc_name
         self.models_dir = models_dir
-        self.lines,N_lines = MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
+        self.do_update_status = do_update_status        
+        self.lines, N_lines = MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
                                            where_='used = 1', limit_=None, format_='numpy')
        
-        self.get_ID()
+        if register:
+            self.get_ID()
         self.init_CloudyInput()
     
     def get_emis_table(self):
@@ -695,9 +700,12 @@ class runCloudy(object):
         
     def update_status(self, status):
         
+        command = 'UPDATE {0} SET `status`={1} WHERE N = {2}'.format(self.pending_table, 
+                                                                    status_dic[status], self.selectedN)   
+        if not self.do_update_status:
+            self.log_.message(command, calling=self.calling)
+            return
         if status in status_dic:
-            command = 'UPDATE {0} SET `status`={1} WHERE N = {2}'.format(self.pending_table, 
-                                                                         status_dic[status], self.selectedN)   
             self.MdB.exec_dB(command, commit=True)
         else:
             self.log_.error('Unknown status "{0}"'.format(status))
@@ -722,12 +730,26 @@ class runCloudy(object):
         else:
             self.pending = res[0]
     
-    def fill_CloudyInput(self, N_pending=None, noinput=False):
-        
+    def fill_CloudyInput(self, N_pending=None, noinput=False, dir=None, parameters=None):
+        """
+        Method that print out a Cloudy input file
+        keywords:
+            - N_pending : value of the N from the pending table where to find the parameters of the model.
+                if set to None (default), the value of runCloudy.selectedN is used
+            - noinput (False): is set to True, no input file is written
+            - dir: if not set to None (default), set the directory where to write the file
+            - parameters: if not set to None (default), is a dictionnary of parameters to substitute the 
+                ones from the pending table
+        """
         if N_pending is None:
             N_pending = self.selectedN
         self.read_pending(N_pending)
         P = self.pending
+        if dir is not None:
+            P['dir'] = dir
+        if type(parameters) is dict:
+            for k in parameters:
+                P[k] = parameters[k]
         if P is not None:
             self.CloudyInput.model_name = '{0}/{1}/{2}'.format(self.models_dir, P['dir'], P['file'])
             self.CloudyInput.cloudy_version = P['C_version']
@@ -812,6 +834,12 @@ class runCloudy(object):
             if not noinput:
                 self.CloudyInput.print_input()
             self.update_status('Cloudy Input printed')
+
+def printInput(N, OVN_dic, dir='./', parameters=None):
+    MdB = pc.MdB(OVN_dic)
+    rc = runCloudy(MdB = MdB, OVN_dic=OVN_dic, do_update_status=False, register=False)
+    rc.fill_CloudyInput(N, dir=dir, parameters=parameters)
+    MdB.close_dB()
 
 class runCloudyByThread(threading.Thread):
 
@@ -1247,5 +1275,22 @@ def remove_lines(OVN_dic, line_labels):
         MdB.exec_dB(command)
     MdB.close_dB()
         
+    
+def remove_models(OVN_dic, where_):
+    """
+    remove_models(OVN_dic, 'ref = "CALIFA_6" AND com1 = "name = NGC4630"')
+    """
+    MdB = pc.MdB(OVN_dic=OVN_dic)
+    command = 'delete temis from temis join tab on temis.N=tab.N where {}'.format(where_)
+    MdB.exec_dB(command)
+    command = 'delete teion from teion join tab on teion.N=tab.N where {}'.format(where_)
+    MdB.exec_dB(command)
+    command = 'delete abion from abion join tab on abion.N=tab.N where {}'.format(where_)
+    MdB.exec_dB(command)
+    command = 'delete from tab where {}'.format(where_)
+    MdB.exec_dB(command)
+    
+    MdB.close_dB()
+    
     
     

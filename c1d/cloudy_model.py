@@ -1476,7 +1476,7 @@ class CloudyModel(object):
     ## Ha_EW = -$\lambda_\alpha$ x I$_\alpha^{line}$ / $\lambda.F_\alpha^{cont}$
     def get_Ha_EW(self):
         """
-        Hbeta Equivalent Width:
+        Halpha Equivalent Width:
         Returns -6563 * I(H__1__6563A) / continuum(6563)
         where continuum(6563) is estimated by looking for the minimum of the net transmited continuum between
             6260 and 6560 on one side, and 6560 and 6860 on the other side, and meaning them.
