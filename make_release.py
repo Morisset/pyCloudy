@@ -26,7 +26,7 @@ def create_zipfile(upload_dir, zip_name):
 if __name__ == '__main__':
     run_doxygen('doxygen_config_user.txt')
     create_zipfile('/tmp/pyCloudy_Manual/html', '$HOME/Dropbox/Python/pyCloudy/dist/pyCloudy_{0}_documentation'.format(pyCloudy.__version__))
-    run("mv /tmp/pyCloudy_Manual/html pyCloudy/docs")
+    #run("mv /tmp/pyCloudy_Manual/html pyCloudy/docs")
     #make_latex('/tmp/pyCloudy_Manual/latex/', 'dist/PyCloudy_{0}_documentation.pdf'.format(pyCloudy.__version__))
 
     #run_doxygen('doxygen_config_devel.txt')
