@@ -6,6 +6,7 @@ import pyCloudy as pc
 from pyCloudy.utils.init import LIST_ELEM
 from pyCloudy.utils.logging import my_logging
 if pc.config.INSTALLED['pandas']:
+    import pandas as pd
     import pandas.io.sql as psql
 from StringIO import StringIO   
 
@@ -57,7 +58,6 @@ class MdB(object):
         else:
             self.log_.error('No SQL connector available', calling='MdB')
         self.SQLdb = SQLdb
-        self.OVN_dic = OVN_dic
         if OVN_dic is not None:
             if 'base_name' in OVN_dic:
                 base_name = OVN_dic['base_name']
@@ -75,6 +75,16 @@ class MdB(object):
                 port = OVN_dic['port']
             if 'master_table' in OVN_dic:
                 master_table = OVN_dic['master_table']
+        else:
+            OVN_dic = {'base_name': base_name,
+                       'tmp_base_name': tmp_base_name,
+                       'user_name': user_name,
+                       'user_passwd': user_passwd,
+                       'host': host,
+                       'unix_socket': unix_socket,
+                       'port': port,
+                       'master_table': master_table}
+        self.OVN_dic = OVN_dic
         self.base_name = base_name
         self.tmp_base_name = tmp_base_name
         self.user_name = user_name
@@ -234,7 +244,14 @@ class MdB(object):
             req += 'GROUP BY {0} '.format(group_)
         if limit_ is not None:
             req += 'LIMIT {0:d}'.format(limit_)
-        res, N = self.exec_dB(req, format_ = format_, commit=commit)
+            
+        if format_ == 'pandas':
+            if not pc.config.INSTALLED['pandas']:
+                pc.log_.error('pandas not installed', calling='MdB.select_dB')
+            res = pd.read_sql(req, con=self._dB)
+            N = len(res)
+        else:
+            res, N = self.exec_dB(req, format_ = format_, commit=commit)
         if N == 0:
             res = None
         elif format_ == 'numpy':

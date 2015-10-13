@@ -481,7 +481,7 @@ class CloudyModel(object):
                 self.comments.append(line)
             elif line[0:3] == ' C-':
                 self.cautions.append(line)
-            elif line[0:3] == '  !':
+            elif line[0:3] == '  !' or line[0:3] == ' W-':
                 self.warnings.append(line)
         file_.close()
         try:
@@ -582,7 +582,7 @@ class CloudyModel(object):
     @property
     def n_zones(self):
         if self.empty_model:
-            return None
+            return 0
         else:
             return self.zones.size
 
@@ -1465,10 +1465,10 @@ class CloudyModel(object):
         """
         if 'H__1__4861A' in self.emis_labels:
             mask_low = (self.get_cont_x('Ang') < 4860) & (self.get_cont_x('Ang') > 4560)
-            I_low = np.min(self.get_cont_y('ntrans', 'es')[mask_low])
+            I_low = np.min(self.get_cont_y('ntrans', 'esA')[mask_low])
             mask_high = (self.get_cont_x('Ang') > 4860) & (self.get_cont_x('Ang') < 5160)
-            I_high = np.min(self.get_cont_y('ntrans', 'es')[mask_high])
-            return -4861 * self.get_emis_vol('H__1__4861A') / np.mean((I_low, I_high)) 
+            I_high = np.min(self.get_cont_y('ntrans', 'esA')[mask_high])
+            return -self.get_emis_vol('H__1__4861A') / np.mean((I_low, I_high)) 
         else:
             self.log_.warn('Hbeta line not in emis file', calling = self.calling + '.get_Hb_EW')
             return None
@@ -1483,10 +1483,10 @@ class CloudyModel(object):
         """
         if 'H__1__6563A' in self.emis_labels:
             mask_low = (self.get_cont_x('Ang') < 6560) & (self.get_cont_x('Ang') > 6260)
-            I_low = np.min(self.get_cont_y('ntrans', 'es')[mask_low])
+            I_low = np.min(self.get_cont_y('ntrans', 'esA')[mask_low])
             mask_high = (self.get_cont_x('Ang') > 6560) & (self.get_cont_x('Ang') < 6860)
-            I_high = np.min(self.get_cont_y('ntrans', 'es')[mask_high])
-            return -6563 * self.get_emis_vol('H__1__6563A') / np.mean((I_low, I_high)) 
+            I_high = np.min(self.get_cont_y('ntrans', 'esA')[mask_high])
+            return -self.get_emis_vol('H__1__6563A') / np.mean((I_low, I_high)) 
         else:
             self.log_.warn('Halpha line not in emis file', calling = self.calling + '.get_Hb_EW')
             return None
@@ -1547,8 +1547,19 @@ class CloudyModel(object):
             else:
                 pc.log_.warn('line {0} not in Cloudy2PyNeb'.format(line), calling = self.calling)
     
-    def plot_spectrum(self, xunit='eV', cont='ntrans', yunit='es', ax=None):
-        
+    def plot_spectrum(self, xunit='eV', cont='ntrans', yunit='es', ax=None, 
+                      xlog=True, ylog=True, **kargv):
+        """
+        plot the spectrum of the model.
+        parameters:
+            - xunit ['eV']
+            - cont ['ntrans']
+            - yunit ['es']
+            - ax
+            - xlog [True]
+            - ylog [True]
+            - **kargv passed to the plot.
+        """
         if not pc.config.INSTALLED['plt']:
             pc.log_.error('Matplotlib not available', calling = self.calling)
         if ax is None:
@@ -1556,7 +1567,14 @@ class CloudyModel(object):
             fig, ax = plt.subplots()
         else:
             return_ax = False
-        ax.loglog(self.get_cont_x(unit=xunit), self.get_cont_y(cont=cont, unit=yunit))
+        if xlog and ylog:
+            ax.loglog(self.get_cont_x(unit=xunit), self.get_cont_y(cont=cont, unit=yunit), **kargv)
+        elif xlog:
+            ax.semilogx(self.get_cont_x(unit=xunit), self.get_cont_y(cont=cont, unit=yunit), **kargv)
+        elif ylog:
+            ax.semilogy(self.get_cont_x(unit=xunit), self.get_cont_y(cont=cont, unit=yunit), **kargv)
+        else:
+            ax.plot(self.get_cont_x(unit=xunit), self.get_cont_y(cont=cont, unit=yunit), **kargv)
         ax.set_xlabel(xunit)
         ax.set_ylabel(yunit)
         if return_ax:
@@ -1792,7 +1810,12 @@ class CloudyInput(object):
             return None
         self._density = 'hden = {0:.3f}'.format(dens)
         if ff is not None:
-            self._filling_factor = 'filling factor = {0:f}'.format(ff)
+            if type(ff) == type(()) or type(ff) == type([]):
+                self._filling_factor = 'filling factor = {0[0]:f} {0[1]:f}'.format(ff)
+            else:
+                self._filling_factor = 'filling factor = {0:f}'.format(ff)
+        else:
+            self._filling_factor = 'filling factor = 1.0'
         
     def set_dlaw(self, dlaw_params, ff = None):
         """

@@ -100,6 +100,12 @@ class _Config(object):
             self.log_.message('multiprocessing not available', calling=self.calling)
             self.Nprocs = 1
         
+        try:
+            import numexpr as ne
+            self.INSTALLED['numexpr'] = True
+        except:
+            self.INSTALLED['numexpr'] = False
+        
         self.SAVE_LIST = [['radius', '.rad'],
                           ['continuum', '.cont'],
                           ['physical conditions', '.phy'],
