@@ -26,14 +26,15 @@ def create_zipfile(upload_dir, zip_name):
 if __name__ == '__main__':
     run_doxygen('doxygen_config_user.txt')
     create_zipfile('/tmp/pyCloudy_Manual/html', '$HOME/Dropbox/Python/pyCloudy/dist/pyCloudy_{0}_documentation'.format(pyCloudy.__version__))
+    run("mv /tmp/pyCloudy_Manual/html pyCloudy/docs")
     #make_latex('/tmp/pyCloudy_Manual/latex/', 'dist/PyCloudy_{0}_documentation.pdf'.format(pyCloudy.__version__))
 
-    run_doxygen('doxygen_config_devel.txt')
+    #run_doxygen('doxygen_config_devel.txt')
     #create_zipfile('pyCloudy/pyCloudy_Manual_devel/html', '../../../dist/pyCloudy_{0}_documentation_devel'.format(pyCloudy.__version__))
     #make_latex('pyCloudy/pyCloudy_Manual_devel/latex/', 'dist/PyCloudy_{0}_documentation_devel.pdf'.format(pyCloudy.__version__))
 
     run('git commit -a -m "This is version {}."'.format(pyCloudy.__version__))
-    run('git tag -a {} -m "This is version {}."'.format(pyCloudy.__version__))
+    run('git tag -a {0} -m "This is version {0}."'.format(pyCloudy.__version__))
     run('git push --follow-tags')
     run('python setup.py sdist upload')
     run('scp dist/pyCloudy-{0}.tar.gz taranis:public_html/pyCloudy'.format(pyCloudy.__version__))

@@ -1,0 +1,38 @@
+\form#0:$cm^3$
+\form#1:$\int a.ff.dr$
+\form#2:$\int a.ff.dV$
+\form#3:$\frac{\int a.b.ff.dV}{\int b.ff.dV}$
+\form#4:$\frac{\int a.b.dr}{\int b.dr}$
+\form#5:$ Phi_0 * (r_0/r)^2/ (n_H.c)$
+\form#6:$\frac{\int U.dV}{\int dV}$
+\form#7:$\frac{\int U.ne.dV}{\int ne.dV}$
+\form#8:$ \frac{\int T_e.n_H.ff.X^i/X.dV}{\int n_H.ff.X^i/X.dV}$
+\form#9:$ \frac{\int T_e.n_H.ff.X^i/X.dr}{\int n_H.ff.X^i/X.dr}$
+\form#10:$ \frac{\int X^i/X.n_H.ff.dr}{\int n_H.ff.dr}$
+\form#11:$\frac{\int X^i/X.n_H.ff.dr}{\int n_H.ff.dr}$
+\form#12:$\frac{\int ne.ne.nH.ff.Xi/X.dV}{\int ne.nH.ff.Xi/X.dV}$
+\form#13:$\frac{\int Te.ne.nH.ff.Xi/X.dV}{\int ne.nH.ff.X^i/X.dV}$
+\form#14:$\frac{\int Te.ne.nH.ff.Xi/X.dr}{\int ne.nH.ff.Xi/X.dr}$
+\form#15:$\frac{\int ne.ne.nH.ff.Xi/X.dr}{\int ne.nH.ff.Xi/X.dr}$
+\form#16:$\frac{\int Xi/X.n_e.n_H.ff.dV}{\int ne.nH.ff.dV}$
+\form#17:$\frac{\int Xi/X.n_e.n_H.ff.dr}{\int ne.nH.ff.dr}$
+\form#18:$\frac{\int (T_e-T_{X^i})^2.n_e.n_H.ff.X^i/X.dV}{T_{X^i}^2.\int ne.nH.ff.X^i/X.dV}$
+\form#19:$\frac{\int (T_e-T_{X^i})^2.n_e.n_H.ff.X^i/X.dr}{T_{X^i}^2.\int ne.nH.ff.X^i/X.dr}$
+\form#20:$ \int \epsilon(ref).dV [/ 4.\pi.(distance)^2]$
+\form#21:$ \int \epsilon(ref).dr$
+\form#22:$\frac{\int T_e.\epsilon(ref).dV}{\int \epsilon(ref).dV}$
+\form#23:$\frac{\int T_e.\epsilon(ref).dr}{\int \epsilon(ref).dr}$
+\form#24:$\frac{\int n_e.\epsilon(ref).dV}{\int \epsilon(ref).dV}$
+\form#25:$\frac{\int (T_e-T(ref))^2.\epsilon(ref).dV}{T(ref)^2\int \epsilon(ref).dV}$
+\form#26:$ \int m_H.n_{H^+}.ff.dV$
+\form#27:$ \int m_H.n_{H^0}.ff.dV$
+\form#28:$ \int m_H.n_H.ff.dV$
+\form#29:$ \int Hbeta.n_H.ff.dV$
+\form#30:$T0=\frac{\int T_e.n_e.n_H.ff.dV}{\int n_e.n_H.ff.dV}$
+\form#31:$t^2=\frac{\int (T_e-T0)^2.n_e.n_H.ff.dV}{T0^2 \int n_e.n_H.ff.dV}$
+\form#32:$ \sqrt{x^2+y^2+z^2}$
+\form#33:$ \Theta = arcsin(z/r)$
+\form#34:$ \Phi = arctan(y/x)+\pi$
+\form#35:$ \int m_H.n_{H^+}.dV$
+\form#36:$ \int m_H.n_{H^0}.dV$
+\form#37:$ \int m_H.n_{H}.dV$
