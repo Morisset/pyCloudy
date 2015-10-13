@@ -1,0 +1,13 @@
+*.pyc
+*.svn-base
+*.*~
+**/.settings
+**/.ipynb_checkpoints/**
+**/.svn/**
+CM/
+dist/
+doxygen*
+make_documentation.py
+tips.txt
+
+.dropbox
