@@ -6,7 +6,7 @@ import pyCloudy
 setup(name='pyCloudy',
       version=pyCloudy.__version__,
       description='Tools to manage Astronomical Cloudy photoionization code',
-      long_description=open('README.rst').read(),
+      long_description=open('README').read(),
       author='Christophe Morisset',
       author_email='chris.morisset@gmail.com',
       maintainer='Christophe Morisset',
