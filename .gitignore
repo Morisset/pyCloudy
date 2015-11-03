@@ -9,5 +9,6 @@ dist/
 doxygen*
 make_documentation.py
 tips.txt
-
+.project
+.pydevproject
 .dropbox
