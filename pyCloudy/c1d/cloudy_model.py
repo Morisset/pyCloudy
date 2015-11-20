@@ -806,7 +806,7 @@ class CloudyModel(object):
             if self.gdsize.size == 1:
                 return res[0]
             else:
-                return res
+                return np.array(res)
         else:
             return None
         
