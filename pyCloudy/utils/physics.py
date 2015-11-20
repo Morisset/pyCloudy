@@ -7,7 +7,7 @@ class CST(object):
     HPLANCK = 6.62606957e-27 # erg s - NIST 2010
     EMASS = 9.10938291e-28 # g - NIST 2010
     PMASS = 1.67262158e-24 # g
-    HMASS = 1.660538921e-24 # g
+    HMASS = 1.660538921e-24 * 1.00794 # g
     ECHARGE = 1.602176565e-19 # Electron charge in Coulomb - NIST 2010
     PI = 3.141592653589793238462643
     BOLTZMANN_ANGK = BOLTZMANN / HPLANCK / CLIGHT / 1.e8 # Boltzmann constant in (Ang * Kelvin) ** -1

@@ -797,6 +797,20 @@ class CloudyModel(object):
         else:
             return None
     
+    @property
+    def gmass(self):
+        if self.gabund_full is not None:
+            res = []
+            for ig in range(self.gdsize.size):
+                res.append(self.vol_integ(self.gabund[ig]) / pc.CST.SUN_MASS)
+            if self.gdsize.size == 1:
+                return res[0]
+            else:
+                return res
+        else:
+            return None
+        
+    
     ## get_T0_ion_vol(X, i) = \f$ \frac{\int T_e.n_H.ff.X^i/X.dV}{\int n_H.ff.X^i/X.dV}\f$
     def get_T0_ion_vol(self, elem=None, ion=None):
         """
