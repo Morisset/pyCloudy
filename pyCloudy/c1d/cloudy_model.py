@@ -1658,7 +1658,7 @@ class CloudyModel(object):
             pass
         try:
             print ' <ne> = {0:.0f},  <nH> = {1:.0f}, T0 = {2.T0:.0f}, t2={2.t2:.4f}'.format(self.vol_mean(self.ne), 
-                                                                                            self.vol_mean(self.ne), self)
+                                                                                            self.vol_mean(self.nH), self)
         except:
             pass
         try:
