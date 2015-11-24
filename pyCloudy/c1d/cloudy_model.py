@@ -1469,23 +1469,66 @@ class CloudyModel(object):
         else:
             self.log_.warn('Hbeta emissivity not in emis file', calling = self.calling + '.get_Hb_SB')
     
+    def get_EW(self, label, lam0, lam_inf, lam_sup):
+        """
+        Equivalent Width:
+        Returns -lam0 * I(label) / continuum(lam0)
+        where continuum(lam0) is estimated by looking for the minimum of the net transmited continuum between
+        lam_inf and lam0 on one side, and lam0 and lam_sup on the other side, and meaning them.
+        In case of steep continuum or absorbtion lines, the mean continuum is underestimated.
+        """
+        if type(label) in (type(()), type([])):
+            res = 0
+            for lab in label:
+                res += self.get_EW(lab, lam0, lam_inf, lam_sup)
+                return res
+        if label in self.emis_labels:
+            mask_low = (self.get_cont_x('Ang') < lam0) & (self.get_cont_x('Ang') > lam_inf)
+            I_low = np.min(self.get_cont_y('ntrans', 'esA')[mask_low])
+            mask_high = (self.get_cont_x('Ang') > lam0) & (self.get_cont_x('Ang') < lam_sup)
+            I_high = np.min(self.get_cont_y('ntrans', 'esA')[mask_high])
+            return -self.get_emis_vol(label) / np.mean((I_low, I_high))
+        else:
+            self.log_.warn('{} line not in emis file'.format(label), calling = self.calling + '.get_EW')
+        return None
+
+    def get_EW2(self, label, lam0, lam_inf, lam_sup, plot=False):
+        """
+        Equivalent Width:
+        Returns -lam0 * I(label) / continuum(lam0)
+        where continuum(lam0) is estimated by fitting the continuum between [lam_inf, lam0*0.99] and [lam0*1.01, lam_sup]
+        and applying the fit to lam0.
+        Of course, if strong emission/absorbtion lines are included in this domain, the results is not correct
+        """
+        if type(label) in (type(()), type([])):
+            res = 0
+            for lab in label:
+                res += self.get_EW2(lab, lam0, lam_inf, lam_sup)
+                return res
+        if label in self.emis_labels:
+            mask_low = (self.get_cont_x('Ang') < lam0*0.99) & (self.get_cont_x('Ang') > lam_inf)
+            mask_high = (self.get_cont_x('Ang') > lam0*1.01) & (self.get_cont_x('Ang') < lam_sup)
+            mask = mask_low | mask_high
+            fit = np.polyfit(self.get_cont_x('Ang')[mask], self.get_cont_y('ntrans', 'esA')[mask], deg=1)
+            if plot:
+                f, ax = plt.subplots()
+                ax.plot(self.get_cont_x('Ang'), self.get_cont_y('ntrans', 'esA'))
+                ax.plot(self.get_cont_x('Ang'), np.polyval(fit, self.get_cont_x('Ang')))
+                ax.set_xlim((lam_inf, lam_sup))
+            return -self.get_emis_vol(label) / np.polyval(fit, lam0)
+        else:
+            self.log_.warn('{} line not in emis file'.format(label), calling = self.calling + '.get_EW')
+            return None
+
     ## Hb_EW = -$\lambda_\beta$ x I$_\beta^{line}$ / $\lambda.F_\beta^{cont}$
     def get_Hb_EW(self):
         """
         Hbeta Equivalent Width:
         Returns -4861 * I(H__1__4861A) / continuum(4860)
         where continuum(4860) is estimated by looking for the minimum of the net transmited continuum between
-            4560 and 4860 on one side, and 4860 and 5160 on the other side, and meaning them.
+        4560 and 4860 on one side, and 4860 and 5160 on the other side, and meaning them.
         """
-        if 'H__1__4861A' in self.emis_labels:
-            mask_low = (self.get_cont_x('Ang') < 4860) & (self.get_cont_x('Ang') > 4560)
-            I_low = np.min(self.get_cont_y('ntrans', 'esA')[mask_low])
-            mask_high = (self.get_cont_x('Ang') > 4860) & (self.get_cont_x('Ang') < 5160)
-            I_high = np.min(self.get_cont_y('ntrans', 'esA')[mask_high])
-            return -self.get_emis_vol('H__1__4861A') / np.mean((I_low, I_high)) 
-        else:
-            self.log_.warn('Hbeta line not in emis file', calling = self.calling + '.get_Hb_EW')
-            return None
+        return self.get_EW('H__1__4861A', 4861, 4560, 5160)
 
     ## Ha_EW = -$\lambda_\alpha$ x I$_\alpha^{line}$ / $\lambda.F_\alpha^{cont}$
     def get_Ha_EW(self):
@@ -1493,18 +1536,10 @@ class CloudyModel(object):
         Halpha Equivalent Width:
         Returns -6563 * I(H__1__6563A) / continuum(6563)
         where continuum(6563) is estimated by looking for the minimum of the net transmited continuum between
-            6260 and 6560 on one side, and 6560 and 6860 on the other side, and meaning them.
+        6260 and 6560 on one side, and 6560 and 6860 on the other side, and meaning them.
         """
-        if 'H__1__6563A' in self.emis_labels:
-            mask_low = (self.get_cont_x('Ang') < 6560) & (self.get_cont_x('Ang') > 6260)
-            I_low = np.min(self.get_cont_y('ntrans', 'esA')[mask_low])
-            mask_high = (self.get_cont_x('Ang') > 6560) & (self.get_cont_x('Ang') < 6860)
-            I_high = np.min(self.get_cont_y('ntrans', 'esA')[mask_high])
-            return -self.get_emis_vol('H__1__6563A') / np.mean((I_low, I_high)) 
-        else:
-            self.log_.warn('Halpha line not in emis file', calling = self.calling + '.get_Hb_EW')
-            return None
-
+        return self.get_EW('H__1__6563A', 6563., 6260, 6860)
+    
     ## is_valid_ion(elem, ion) return True if elem, ion is available in get_ionic.
     def is_valid_ion(self, elem, ion):        
         """
