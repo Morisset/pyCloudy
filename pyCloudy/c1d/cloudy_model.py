@@ -1476,6 +1476,7 @@ class CloudyModel(object):
         Returns -lam0 * I(label) / continuum(lam0)
         where continuum(lam0) is estimated by looking for the minimum of the net transmited continuum between
             lam_inf and lam0 on one side, and lam0 and lam_sup on the other side, and meaning them.
+            In case of steep continuum or absorbtion lines, the mean continuum is underestimated.
         """
         if type(label) in (type(()), type([])):
             res = 0
@@ -1496,7 +1497,9 @@ class CloudyModel(object):
         """
         Equivalent Width:
         Returns -lam0 * I(label) / continuum(lam0)
-        where continuum(lam0) is estimated by f.
+        where continuum(lam0) is estimated by fitting the continuum between [lam_inf, lam0*0.99] and [lam0*1.01, lam_sup] 
+            and applying the fit to lam0. 
+            Of course, if strong emission/absorbtion lines are included in this domain, the results is not correct
         """
         if type(label) in (type(()), type([])):
             res = 0
