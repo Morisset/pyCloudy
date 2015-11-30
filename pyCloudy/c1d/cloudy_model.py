@@ -1896,7 +1896,7 @@ class CloudyInput(object):
             self._fudge = None
         elif type(fudge_params) != type(()) and type(fudge_params) != type([]):
             fudge_params = [fudge_params]
-        self._fudge = 'fudge factors ' + ' , '.join([str(fudge_param) for fudge_param in fudge_params])
+            self._fudge = 'fudge factors ' + ' , '.join([str(fudge_param) for fudge_param in fudge_params])
 
     def set_sphere(self, sphere = True):
         """
