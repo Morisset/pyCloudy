@@ -1996,7 +1996,7 @@ class CloudyInput(object):
             with open(file_) as f:
                 self._imported = f.readlines()
         except:
-            pc.log_.warn('File {0} for not accesible'.format(import_file))
+            pc.log_.warn('File {0} for not accesible'.format(file_))
             
     def set_line_file(self, line_file = None, absolute=False):
         """
