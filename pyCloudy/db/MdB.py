@@ -326,8 +326,13 @@ class MdB(object):
         else:
             fields = select_.split(',')
             for field in fields:
+                name = None
+                if "as" in field:
+                    name = field.split('as')[1].strip()
+                    field = field.split('as')[0].strip()
                 col = self.get_cols(select_ = field.strip(), from_ = from_)[0]
-                name = col['Field']
+                if name is None:
+                    name = col['Field']
                 sqltype = col['Type']
                 ntype = _sql2numpy(sqltype)
                 if (name, ntype) not in dtype_list:

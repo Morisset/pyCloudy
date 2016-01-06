@@ -441,7 +441,13 @@ class CloudyModel(object):
                 self.out['table star'] = line
             elif 'Blackbody' in line:
                 self.out['Blackbody'] = line
-                self.Teff = np.float(pc.sextract(self.out['Blackbody'], 'Blackbody ', '*'))
+                try:
+                    self.Teff = np.float(pc.sextract(self.out['Blackbody'], 'Blackbody ', '*'))
+                except:
+                    try:
+                        self.Teff = np.float(pc.sextract(self.out['Blackbody'], 'Blackbody ', '\n'))
+                    except:
+                        self.Teff = None
             elif 'hden' in line:
                 self.out['hden'] = line
             elif 'dlaw' in line:
