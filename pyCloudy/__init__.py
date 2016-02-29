@@ -15,7 +15,7 @@ log_ = _Config.log_
 log_.message('Starting pyCloudy.', calling = 'PyCloudy init')
 
 log_.level=0
-config.db_connector = 'MySQL'
+config.db_connector = 'PyMySQL'
 log_.level=2
 
 from c1d.cloudy_model import CloudyModel, load_models, CloudyInput, print_make_file, run_cloudy
