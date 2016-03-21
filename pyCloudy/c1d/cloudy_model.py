@@ -1319,6 +1319,9 @@ class CloudyModel(object):
 
     ## get_G0 = integral(f_lambda . dlambda) Between lam_min and lam_max (Ang), normalized by norm, in unit of W.m-2 or erg.cm-3
     def get_G0(self, lam_min = 913, lam_max = 1e8, dist_norm = 'r_out', norm = 1.6e-6, unit = 'Wm'):
+        """
+        Normalisation from Habing 1968: 1.6e-6 erg.cm-2.s-1
+        """
         lam = self.get_cont_x(unit = 'Ang')
         lam_range = (lam > lam_min) & (lam < lam_max)
         if unit == 'Wm':  
