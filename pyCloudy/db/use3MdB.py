@@ -5,6 +5,7 @@ import threading
 import numpy as np
 import datetime
 import pyCloudy as pc
+from random import randint
 from pyCloudy.utils.init import SYM2ELEM, LIST_ALL_ELEM
 from pyCloudy.utils.misc import cloudy2pyneb
 import pyneb as pn
@@ -946,7 +947,7 @@ class Genetic(object):
         self.MdB = MdB
         if not self.MdB.connected:
             self.MdB.connect_dB()
-
+        self.def_variable_list()
         self.N = N
         
     def readModel(self, N=None):
@@ -1032,6 +1033,53 @@ class Genetic(object):
             self.wP.insert_in_dic(key, new_value)
         if sigma != 0.:
             self.shake(key=key, sigma=sigma, addit=addit, lowlim=lowlim, highlim=highlim)
+            
+    def def_variable_list(self, exclude=(), include=()):
+        """
+        This define the tuple of variables that are used to build the chromosome
+        """
+        self.var_chroms_list = ['ARGON', 'CARBON', 'HELIUM', 'IRON', 'NEON', 'NITROGEN',
+                               'OXYGEN', 'SULPHUR', 
+                               'atm1', 'atm12', 'atm2', 'atm22', 'atm3', 'atm32', 
+                               'dens', 
+                               'dust_value1', 'dust_value2', 'dust_value3',
+                               'ff', 'lumi', 'lumi2', 'radius']
+        for e in exclude:
+            if e in self.var_chroms_list:
+                self.var_chroms_list.remove(e)
+        for i in include:
+            if i not in self.var_chroms_list:
+                self.var_chroms_list.append(i)
+        
+                    
+    def crossover(self, M1, M2):
+        C1 = M1.copy()
+        C2 = M2.copy()
+        
+        N_var = len(self.var_chroms_list)
+        i_change = randint(0,N_var-1)
+        for i in range(i_change):
+            C1[self.var_chroms_list[i]] = M2[self.var_chroms_list[i]]
+            C2[self.var_chroms_list[i]] = M1[self.var_chroms_list[i]]
+            
+        v1 = '{}'.format(M1[self.var_chroms_list[i_change]])
+        v2 = '{}'.format(M2[self.var_chroms_list[i_change]])
+        if len(v1) == len(v2):
+            j_change = randint(0,len(v1)-1)
+            v1_n = v2[0:j_change]
+            v2_n = v1[0:j_change]
+            try:
+                C1[i_change] = eval(v1_n)
+                C2[i_change] = eval(v2_n)
+            except:
+                pass
+        return C1, C2
+
+    def mutation(self, M):
+        N_var = len(self.var_chroms_list)
+        i_change = randint(0,N_var-1)
+        M[self.var_chroms_list[i_change]] = M[self.var_chroms_list[i_change]]
+        return M
             
 class ObsfromMdB(object):
     
