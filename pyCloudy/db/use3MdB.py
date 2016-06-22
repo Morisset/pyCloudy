@@ -983,7 +983,7 @@ class Genetic(object):
                  'dust_type1', 'dust_type2', 'dust_type3', 'dust_value1', 'dust_value2', 'dust_value3',
                  'ff', 'geom', 'iterate', 'lumi', 'lumi2', 'lumi_unit', 'lumi_unit2', 'priority', 'radius', 'ref',
                  'stop1', 'stop2', 'stop3', 'stop4', 'stop5', 'stop6',
-                 'distance', 'user']
+                 'distance', 'user', 'dir', 'C_version']
         for key in P_dic:
             if key in self.model:
                 self.wP.insert_in_dic(key, self.model[key])
@@ -1000,20 +1000,22 @@ class Genetic(object):
 
         if np.isinf(sigma) or np.isnan(sigma):
             sigma = 0.
-        
-        if key in self.wP._dic:
-            self.randomcoeff = np.random.standard_normal()
-            if addit:
-                new_value = self.wP._dic[key] + sigma * self.randomcoeff
-            else:
-                new_value = self.wP._dic[key] * (1 + sigma * self.randomcoeff)
-            if lowlim is not None:
-                if new_value < lowlim:
-                    new_value = lowlim
-            if highlim is not None:
-                if new_value > highlim:
-                    new_value = highlim
-            self.wP.insert_in_dic(key, new_value)
+        self.randomcoeff = np.random.standard_normal()
+        if type(key) is str:
+            key = (key,)
+        for k in key:
+            if k in self.wP._dic:
+                if addit:
+                    new_value = self.wP._dic[k] + sigma * self.randomcoeff
+                else:
+                    new_value = self.wP._dic[k] * (1 + sigma * self.randomcoeff)
+                if lowlim is not None:
+                    if new_value < lowlim:
+                        new_value = lowlim
+                if highlim is not None:
+                    if new_value > highlim:
+                        new_value = highlim
+                self.wP.insert_in_dic(k, new_value)
             
     def shift(self, key, delta, addit=True, lowlim=None, highlim=None, sigma=0):
         

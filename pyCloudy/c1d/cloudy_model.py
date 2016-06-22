@@ -1467,7 +1467,7 @@ class CloudyModel(object):
             self.log_.warn('t2 not available', calling = self.calling)
             return None
 
-    ## Hb_SB = I$_\beta / (Rout^2 * pi * 206265.^2)$
+    ## Hb_SB = I\f$_\beta / (Rout^2 * pi * 206265.^2)\f$
     def get_Hb_SB(self):
         """
         Hbeta surface brightness:
@@ -1529,7 +1529,7 @@ class CloudyModel(object):
             self.log_.warn('{} line not in emis file'.format(label), calling = self.calling + '.get_EW')
             return None
 
-    ## Hb_EW = -$\lambda_\beta$ x I$_\beta^{line}$ / $\lambda.F_\beta^{cont}$
+    ## Hb_EW = -\f$\lambda_\beta$ x I$_\beta^{line}$ / $\lambda.F_\beta^{cont}\f$
     def get_Hb_EW(self):
         """
         Hbeta Equivalent Width:
@@ -1539,7 +1539,7 @@ class CloudyModel(object):
         """
         return self.get_EW('H__1__4861A', 4861, 4560, 5160)
 
-    ## Ha_EW = -$\lambda_\alpha$ x I$_\alpha^{line}$ / $\lambda.F_\alpha^{cont}$
+    ## Ha_EW = -\f$\lambda_\alpha$ x I$_\alpha^{line}$ / $\lambda.F_\alpha^{cont}\f$
     def get_Ha_EW(self):
         """
         Halpha Equivalent Width:
