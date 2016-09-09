@@ -760,7 +760,7 @@ class CloudyModel(object):
         else:
             return None      
 
-    ## log_U_mean_ne = \f$\frac{\int U.ne.dV}{\int ne.dV}\f$ [float]
+    ## log_U_mean_ne = \f$\frac{\int U.ne.nH.dV}{\int ne.nH.dV}\f$ [float]
     @property
     def log_U_mean_ne(self):
         """ log of mean value of U on the volume weighted by ne.nH"""
@@ -1222,6 +1222,7 @@ class CloudyModel(object):
             to_return = None
         return to_return
 
+    ## Return the continuum flux (stellar or nebular, depending on cont parameter
     def get_cont_y(self, cont='incid', unit='es', dist_norm='at_earth'):
         """
         param:
