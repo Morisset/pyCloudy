@@ -336,25 +336,26 @@ class writePending(object):
         
 def clean_SED(MdB, seds_table, ref, obj_name):
     command = 'DELETE FROM {} WHERE ref = "{}" AND sed_name LIKE "{}_%"'.format(seds_table, ref, obj_name)
+    MdB.exec_dB(command)
     
 def insert_SED(MdB, seds_table, ref, sed_name, atm_cmd, atm_file, atm1=None, atm2=None, atm3=None, 
                    lumi_unit='', lumi_value=None):
     
-        fields_str = 'ref, sed_name, atm_cmd, atm_file, '
-        values_str = "'{}', '{}', '{}', '{}', ".format(ref, sed_name, atm_cmd, atm_file)
-        if atm1 is not None:
-            fields_str += 'atm1, '
-            values_str += '{}, '.format(atm1)
-        if atm2 is not None:
-            fields_str += 'atm2, '
-            values_str += '{}, '.format(atm2)
-        if atm3 is not None:
-            fields_str += 'atm3, '
-            values_str += '{}, '.format(atm3)
-        fields_str += 'lumi_unit, lumi'
-        values_str += "'{}', {}".format(lumi_unit, lumi_value)
-        command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(seds_table, fields_str, values_str)
-        MdB.exec_dB(command)
+    fields_str = 'ref, sed_name, atm_cmd, atm_file, '
+    values_str = "'{}', '{}', '{}', '{}', ".format(ref, sed_name, atm_cmd, atm_file)
+    if atm1 is not None:
+        fields_str += 'atm1, '
+        values_str += '{}, '.format(atm1)
+    if atm2 is not None:
+        fields_str += 'atm2, '
+        values_str += '{}, '.format(atm2)
+    if atm3 is not None:
+        fields_str += 'atm3, '
+        values_str += '{}, '.format(atm3)
+    fields_str += 'lumi_unit, lumi'
+    values_str += "'{}', {}".format(lumi_unit, lumi_value)
+    command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(seds_table, fields_str, values_str)
+    MdB.exec_dB(command)
         
         
 class writeTab(object):
@@ -939,9 +940,12 @@ class Genetic(object):
     def __init__(self, MdB = None, OVN_dic=None, N=None):
 
         self.log_ = pc.log_
-        self.OVN_dic = OVN_dic
+        
         if MdB is None:
+            self.OVN_dic = OVN_dic
             MdB = pc.MdB(OVN_dic=self.OVN_dic)
+        else:
+            self.OVN_dic = MdB.OVN_dic            
         if not isinstance(MdB, pc.MdB):
             self.log_.error('The second argument must be a MdB object')    
         self.MdB = MdB

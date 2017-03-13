@@ -400,7 +400,7 @@ class C3D(object):
             - dims [int 1- or 3-elements array-list] dimension of the cube. May be different. One may be 1.
             - center [boolean] if True, the coordinate-center is in the center of the cube, otherwise it's in the corner.
             - angles [3-elements array-list] (degrees) rotation angles
-            - n_dims [int]
+            - n_dim [int]
             - file_coeffs [str] file_ to store the coeffs (not used yet)
             - interp_method [str] method used for the interpolation of theta and phi
             - plan_sym [Boolean] If True, the theta angles are only from 0 to 90, negative values are obtained by
@@ -484,6 +484,7 @@ class C3D(object):
         self.__nenHff = None
         self.__te = None
         self.__ff = None
+        self.__log_U = None 
         self._emis = {}
         self._profiles = {}
         self._ionic = {}
@@ -588,6 +589,20 @@ class C3D(object):
         if self.__ff is None:
             self.__ff = self._get_3d('ff')
         return self.__ff
+    
+    @property
+    def log_U(self):
+        if self.__log_U is None:
+            self.__log_U = self._get_3d('log_U')
+        return self.__log_U
+
+    @property
+    def log_U_mean(self):
+        """ log of mean value of U on the volume """
+        if self.log_U is not None:
+            return np.log10(self.vol_mean(10**self.log_U, 1.))
+        else:
+            return None      
     
     def get_emis(self, ref):
         """

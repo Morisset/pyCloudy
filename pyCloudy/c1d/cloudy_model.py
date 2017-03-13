@@ -117,10 +117,9 @@ class CloudyModel(object):
         self.log_.message('Creating CloudyModel for {0.model_name}'.format(self), calling = self.calling)
         self.model_name_s = model_name.split('/')[-1]
         self.line_is_log = line_is_log
-        self.emis_is_log = emis_is_log
         self.distance = distance
         self.empty_model = True
-        self._read_stout()
+        self._read_stout(emis_is_log=emis_is_log)
         if self.out_exists and not self.aborted and read_all_ext:
             self._init_all2zero()
             if read_rad:
@@ -208,7 +207,7 @@ class CloudyModel(object):
             if self.n_zones_full > 1:
                 self.thickness_full = self.depth_full[-1]
             else: 
-                self.thickness_full = 0
+                self.thickness_full = self.depth_full
             self.radius_full = self._res[key]['radius'] 
             self.dr_full = self._res[key]['dr']
             self.dv_full = 4. * np.pi * self.radius_full ** 2 * self.dr_full
@@ -395,7 +394,7 @@ class CloudyModel(object):
                 self.gdgrat_full[i] = gdgrat[label][1::]
                 self.gdsize[i] = gdgrat[label][0]
         
-    def _read_stout(self):
+    def _read_stout(self, emis_is_log):
         self.out = {}
         file_name = self.model_name + '.out'
         self.C3D_comments = []
@@ -411,13 +410,22 @@ class CloudyModel(object):
             self.info = '<!!! Model {0} without output file>'.format(self.model_name)
             return None
         self.date_model = time.ctime(os.path.getctime(file_name))
-        self.cloudy_version = file_.readline().strip()
-        self.cloudy_version_major = pc.sextract(self.cloudy_version,'Cloudy ','.')
         self.Teff = None
         self.out['Cloudy ends'] = ''
         self.out['stop'] = ''
+        self.cloudy_version = ''
         for line in file_:
-            if line[0:8] == ' ####  1':
+            if 'Cloudy' in line and 'testing' not in line and 'Please' not in line and self.cloudy_version == '':
+                self.cloudy_version = line.strip()
+                self.cloudy_version_major = pc.sextract(self.cloudy_version,'Cloudy ','.')
+                try:
+                    if int(self.cloudy_version_major) >= 17:
+                        self.emis_is_log = False
+                    else:
+                        self.emis_is_log = emis_is_log
+                except:
+                    self.emis_is_log = emis_is_log        
+            elif line[0:8] == ' ####  1':
                 self.out['###First'] = line
             elif line[0:4] == ' ###':
                 self.out['###Last'] = line
@@ -576,6 +584,17 @@ class CloudyModel(object):
                 self.log_.warn(file_ + ' does not exist.', calling=self.calling)
                 res = None
         return res
+
+    def _get_over_range(self, var):
+        
+        if self.n_zones > 1:
+            return var[self.r_range]
+        else:
+            if type(var) is np.ndarray:
+                return var.ravel()[0]
+            else:
+                return var
+    
     ## array of zones [int array]
     @property
     def zones(self):
@@ -596,112 +615,95 @@ class CloudyModel(object):
     @property
     def depth(self):
         """ array of depth (on r_range)"""
-        if self.n_zones > 1:
-            return self.depth_full[self.r_range]
-        else:
-            return None
+        return self._get_over_range(self.depth_full)
 
     ## thickness [float array] (cm)
     @property
     def thickness(self):
         """ array of thickness (on r_range)"""
+        
         if self.n_zones > 1:
             return self.depth[-1]-self.depth[0]
         else:
-            return None
+            return 0.0
 
     ## radius [float array] (cm)
     @property
     def radius(self):
         """ array of radius (on r_range)"""
-        if self.n_zones > 1:
-            return self.radius_full[self.r_range]
-        else:
-            return None
+        return self._get_over_range(self.radius_full)
 
     ## size of each zone [float array] (cm)
     @property
     def dr(self):
         """ array of dr (on r_range)"""
-        if self.n_zones > 1:
-            return self.dr_full[self.r_range]
-        else:
-            return 0.
+        return self._get_over_range(self.dr_full)
 
     ## size of each zone taking into account filling factor [float array] (cm)
     @property
     def drff(self):
         """ array of dr (on r_range)"""
-        if self.n_zones > 1:
-            return (self.dr_full * self.ff_full)[self.r_range]
-        else:
-            return 0.
+        return self._get_over_range(self.dr_full * self.ff_full)
 
     ## volume of each zone [float array] (cm^3)
     @property
     def dv(self):
         """ array of volume element (on r_range)"""
-        if self.n_zones > 1:
-            return self.dv_full[self.r_range]
-        else:
-            return 0.
+        return self._get_over_range(self.dv_full)
 
     ## volume of each zone taking into account filling factor [float array] (cm^3)
     @property
     def dvff(self):
         """ array of volume element (on r_range)"""
-        if self.n_zones > 1:
-            return (self.dv_full * self.ff_full)[self.r_range]
-        else:
-            return 0.
+        return self._get_over_range(self.dv_full * self.ff_full)
 
     ## electron density [float array] (cm^-3)
     @property
     def ne(self):
         """ array of electron density (on r_range)"""
-        return self.ne_full[self.r_range]
+        return self._get_over_range(self.ne_full)
 
     ## Hydrogen density [float array] (cm^-3)
     @property
     def nH(self):
         """ array of Hydrogen density (on r_range)"""
-        return self.nH_full[self.r_range]
+        return self._get_over_range(self.nH_full)
 
     ## ne.nH [float array] (cm^-6)
     @property
     def nenH(self):
         """ array of ne.nH (on r_range)"""
-        return self.nenH_full[self.r_range]
+        return self._get_over_range(self.nenH_full)
 
     ## Electron temperature [float array] (K)
     @property
     def te(self):
         """ array of electron temperature (on r_range)"""
-        return self.te_full[self.r_range]
+        return self._get_over_range(self.te_full)
 
     ## te.ne.nH [float array] (K.cm^-6)
     @property
     def tenenH(self):
         """ array of Te.ne.nH (on r_range)"""
-        return self.tenenH_full[self.r_range]
+        return self._get_over_range(self.tenenH_full)
 
     ## filling factor [float array]
     @property
     def ff(self):
         """ array of filling factor (on r_range)"""
-        return self.ff_full[self.r_range]
+        return self._get_over_range(self.ff_full)
 
     ## cooling [float array]
     @property
     def cool(self):
         """ array of colling (on r_range)"""
-        return self.cool_full[self.r_range]
+        return self._get_over_range(self.cool_full)
 
     ## heating [float array]
     @property
     def heat(self):
         """ array of heating (on r_range)"""
-        return self.heat_full[self.r_range]
+        return self._get_over_range(self.heat_full)
     
     def _quiet_div(self, a, b):
         if a is None or b is None:
@@ -1235,19 +1237,21 @@ class CloudyModel(object):
 
         """ First define which of the 5 continua will be return """
         if cont == 'incid':
-            cont1 = self._res['cont']['incident']
+            cont1 = self._res['cont']['incident'].copy()
         elif cont == 'trans':
-            cont1 = self._res['cont']['trans']
+            cont1 = self._res['cont']['trans'].copy()
         elif cont == 'diffout':
-            cont1 = self._res['cont']['DiffOut']
+            cont1 = self._res['cont']['DiffOut'].copy()
         elif cont == 'ntrans':
-            cont1 = self._res['cont']['net_trans']
+            cont1 = self._res['cont']['net_trans'].copy()
         elif cont == 'reflec':
-            cont1 = self._res['cont']['reflec']
+            cont1 = self._res['cont']['reflec'].copy()
         else:
             self.log_.warn("cont must be one of: ['incid','trans','diffout','ntrans','reflec']", calling = self.calling)
             cont1 = None
-
+        
+        if int(self.cloudy_version_major) >= 17:
+            cont1 /= 4. * np.pi * self.r_in ** 2.
         """ Define the continuum depending on the unit """
         if unit not in ('es', 'esA', 'esHz', 'Q', 'phs'):
             if self.distance is not None:
@@ -1646,6 +1650,7 @@ class CloudyModel(object):
             at_earth [boolean] if True, divide the intensity by 4.pi.distance^2
             ref [int or str] reference of a line (if None, all lines are printed)
             norm [int or str] reference of a line to normalize the intensities
+            use_emis [boolean] use integral of emissivity (default) or line intensities
         """      
         if ref != None:
             if norm is not None:
