@@ -784,6 +784,8 @@ class runCloudy(object):
                 where_ = 'ref = "{0}" and sed_name = "{1}"'.format(P['ref'], P['atm_file'])
                 SEDs, N = self.MdB.select_dB(select_ = '*', from_ = seds_table, where_ = where_, 
                   limit_ = None, format_ = 'dict')
+                if N == 0:
+                    print('No SED!!! where_ = {}'.format(where_))
                 for SED in SEDs:
                     self.CloudyInput.set_star(SED = '{} "{}"'.format(SED['atm_cmd'], SED['atm_file']), 
                                               SED_params = (SED['atm1'], SED['atm2']), 
@@ -1318,7 +1320,7 @@ def print_infos(MdB= None, OVN_dic=None, ref_=None, where_=None, Nprocs=32):
                                where_=this_where_ + ' AND status=0', limit_=None, commit=True)
     N_pending = res[0]['count(*)']
     res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
-                               where_=this_where_ + 'AND status=50', limit_=None, commit=True)
+                               where_=this_where_ + ' AND status=50', limit_=None, commit=True)
     N_run = res[0]['count(*)']
     if N_run == 0 and N_pending == 0:
         print('No entry')
@@ -1356,11 +1358,16 @@ def remove_lines(OVN_dic, line_labels):
     MdB.close_dB()
         
     
-def remove_models(OVN_dic, where_):
+def remove_models(MdB= None, OVN_dic=None, where_=None):
     """
-    remove_models(OVN_dic, 'ref = "CALIFA_6" AND com1 = "name = NGC4630"')
+    Usage:
+        remove_models(OVN_dic=OVN_dic, where_='ref = "CALIFA_6" AND com1 = "name = NGC4630"')
+        remove_models(MdB=MdB, where_='ref = "CALIFA_6" AND com1 = "name = NGC4630"')
     """
-    MdB = pc.MdB(OVN_dic=OVN_dic)
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic=OVN_dic)
+    else:
+        OVN_dic = MdB.OVN_dic
     command = 'delete temis from temis join tab on temis.N=tab.N where {}'.format(where_)
     MdB.exec_dB(command)
     command = 'delete teion from teion join tab on teion.N=tab.N where {}'.format(where_)
