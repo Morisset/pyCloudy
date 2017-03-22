@@ -1229,7 +1229,7 @@ class CloudyModel(object):
         """
         param:
             cont : one of ['incid','trans','diffout','ntrans','reflec']
-            unit : one of ['esc', 'ec3','es','esA','esAc','esHzc','Jy','Q', 'Wcmu', 'phs']
+            unit : one of ['esc', 'ec3','es','esA','esAc','esHzc','Jy','Q', 'Wcmu', 'phs', 'phsmu']
             dist_norm : one of ['at_earth', 'r_out', a float for a distance in cm]
         return:
             continuum flux or intensity
@@ -1250,10 +1250,11 @@ class CloudyModel(object):
             self.log_.warn("cont must be one of: ['incid','trans','diffout','ntrans','reflec']", calling = self.calling)
             cont1 = None
         
+        inner_surface = 4. * np.pi * self.r_in ** 2.
         if int(self.cloudy_version_major) >= 17:
-            cont1 /= 4. * np.pi * self.r_in ** 2.
+            cont1 /= inner_surface
         """ Define the continuum depending on the unit """
-        if unit not in ('es', 'esA', 'esHz', 'Q', 'phs'):
+        if unit not in ('es', 'esA', 'esHz', 'Q', 'phs', 'phsmu'):
             if self.distance is not None:
                 if dist_norm == 'at_earth':
                     dist_fact = (self.r_in / (self.distance * pc.CST.KPC)) ** 2.
@@ -1269,16 +1270,13 @@ class CloudyModel(object):
      
         if unit == 'es':
             """ erg.s-1 """            
-            to_return = cont1 * 4. * np.pi * self.r_in ** 2.
-#        elif unit == 'phs':
-#            """ photon.s-1 """            
-#            to_return = cont1 * 4. * np.pi * self.r_in ** 2.
+            to_return = cont1 * inner_surface
         elif unit == 'esA':
             """erg.s-1.A-1"""
-            to_return = cont1 / self.get_cont_x(unit='Ang') * 4. * np.pi * self.r_in ** 2.
+            to_return = cont1 / self.get_cont_x(unit='Ang') * inner_surface
         elif unit == 'esHz':
             """erg.s-1.Hz-1"""
-            to_return = cont1 / self.get_cont_x(unit='Hz') * 4. * np.pi * self.r_in ** 2.
+            to_return = cont1 / self.get_cont_x(unit='Hz') * inner_surface
         elif unit == 'esc':
             """ erg.s-1.cm-2 """
             to_return = cont1 * dist_fact
@@ -1309,13 +1307,18 @@ class CloudyModel(object):
             """ Number of photons emitted per second above the energy hnu"""
             if pc.config.INSTALLED['scipy']:
                 x = self.get_cont_x(unit='Ryd')
-                y = cont1 / (x ** 2 * pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * 4. * np.pi * self.r_in ** 2.
+                y = cont1 / (x ** 2 * pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * inner_surface
                 int_cum = np.zeros_like(y)
                 int_cum[0:-1] = -1. * cumtrapz(y[::-1], x[::-1])[::-1]
                 to_return = int_cum
             else:
                 self.log_.warn('Scipy not found to integrate Q', calling = self.calling)
                 to_return = None
+        elif unit == 'phs':
+            to_return = cont1 / (self.get_cont_x(unit='Ryd') * pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * inner_surface
+        elif unit == 'phsmu':
+            to_return = cont1 / (self.get_cont_x(unit='mu') * self.get_cont_x(unit='Ryd') * 
+                                 pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * inner_surface
         else:
             self.log_.warn("unit must be one of: ['esc', 'ec3','es','esA','esAc','esHzc','WmHz','Wcmu','Jy','Q']",
                             calling = self.calling)
@@ -1572,7 +1575,7 @@ class CloudyModel(object):
     def emis_from_pyneb(self, emis_labels = None, atoms = None):
         """
         change the emissivities using PyNeb.
-        emis_labels: list of line to be changed. If unset, all the lines will be changed. You may generate emis_lables
+        emis_labels: list of line to be changed. If unset, all the lines will be changed. You may generate emis_labels
             this way (here to select only S lines): S_labels = [emis for emis in CloudyModel.emis_labels if emis[0:2] == 'S_']
         atoms: dictionary of pyneb.Atom objects to be used. If unset, all the atoms will be build 
             using pyneb. This allows the user to mix atomic dataset by creating atoms outside CloudyModel. Keys
@@ -1609,6 +1612,41 @@ class CloudyModel(object):
                     pc.log_.warn('ion {0} not in PyNeb'.format(ion), calling = self.calling)
             else:
                 pc.log_.warn('line {0} not in Cloudy2PyNeb'.format(line), calling = self.calling)
+    
+    def add_emis_from_pyneb(self, new_label, pyneb_atom, label=None, wave=None):
+        
+        """
+        Add a new line emissivity using PyNeb.
+        new_label: name of the new emission line
+        pyneb_atom: a Atom or RecAtom PyNeb object
+        label or wave: identifier of the transition in the PyNeb object
+        example:
+            M.add_emis_from_pyneb('O__2__4153', O2, label='4638.86')
+
+        """
+        
+        new_emis_full = np.zeros((len(self.emis_labels)+1, self.n_zones_full))
+        new_emis_full[:-1, :] = self.emis_full
+        if type(pyneb_atom) is pyneb.RecAtom:
+            spec = pyneb_atom.spec
+        else:
+            spec = pyneb_atom.spec - 1
+        
+        if wave is not None:
+            new_emis_full[-1, :] = pyneb_atom.getEmissivity(self.te_full, self.ne_full, wave = wave, product = False) * \
+                                   self.ionic_full[pyneb_atom.elem][spec] * self.ne_full * \
+                                   self.nH_full * 10**self.abund[pyneb_atom.elem]
+        else:
+            new_emis_full[-1, :] = pyneb_atom.getEmissivity(self.te_full, self.ne_full, label = label, product = False) * \
+                                   self.ionic_full[pyneb_atom.elem][spec] * self.ne_full * \
+                                   self.nH_full * 10**self.abund[pyneb_atom.elem]
+        new_emis_labels = np.zeros(len(self.emis_labels)+1, dtype=self.emis_labels.dtype)
+        new_emis_labels[:-1] = self.emis_labels
+        new_emis_labels[-1] = new_label
+        
+        self.emis_full = new_emis_full
+        self.emis_labels = new_emis_labels
+        
     
     def plot_spectrum(self, xunit='eV', cont='ntrans', yunit='es', ax=None, 
                       xlog=True, ylog=True, **kargv):
