@@ -25,6 +25,10 @@ To use the devel package (at your own risks!!!):
 
 * pip install -U git+https://github.com/Morisset/pyCloudy.git
 
+To use the devel package (at your own risks!!!):
+
+* pip install -U git+https://github.com/Morisset/PyNeb_devel.git
+
 Warranty
 ========
 
