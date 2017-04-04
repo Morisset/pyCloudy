@@ -22,6 +22,7 @@ Updates use the same command. You can also use
 * easy_install --user pyCloudy
 
 To use the devel package (at your own risks!!!):
+
 * pip install -U git+https://github.com/Morisset/pyCloudy.git
 
 Warranty
