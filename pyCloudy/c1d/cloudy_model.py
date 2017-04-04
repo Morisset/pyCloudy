@@ -1026,7 +1026,7 @@ class CloudyModel(object):
             return None
     
     def _i_line(self, ref):
-        if type(ref) is str or type(ref) is np.string_:
+        if type(ref) is str or type(ref) is np.str_:
             if ref in self.line_labels:                
                 to_return = np.squeeze(np.where(self.line_labels == ref)).item() # so dirty!!!
             else:
@@ -1050,7 +1050,7 @@ class CloudyModel(object):
         return:
             the indice of the line in the emis liste
         """
-        if type(ref) is str or type(ref) is np.string_:
+        if type(ref) is str or type(ref) is np.str_:
             if ref in self.emis_labels:                
                 to_return = np.squeeze(np.where(self.emis_labels == ref)).item() # so dirty!!!
             else:
@@ -1074,7 +1074,7 @@ class CloudyModel(object):
         return:
             the label of the line
         """
-        if type(ref) is str or type(ref) is np.string_:
+        if type(ref) is str or type(ref) is np.str_:
             if ref in self.emis_labels:                
                 to_return = ref 
             else:

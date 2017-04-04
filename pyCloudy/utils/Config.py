@@ -80,14 +80,19 @@ class _Config(object):
             except:
                 self.INSTALLED['pyfits from astropy'] = False            
         try:
-            test_str = ['#one\t two\t three', '1\t 2\t 3']
-            test_res = np.genfromtxt(test_str, names=True, comments= ';', delimiter = '\t')
-            if test_res.dtype.fields is None:
-                self.INSTALLED['np.genfromtxt new'] = False
-            else:
+            from numpy.version import version as numpy_version    
+            if [int(n) for n in (numpy_version.split('.')[:3])] > [1, 5, 1] :
                 self.INSTALLED['np.genfromtxt new'] = True
         except:
-            self.INSTALLED['np.genfromtxt new'] = False
+            try:
+                test_str = ['#one\t two\t three', '1\t 2\t 3']
+                test_res = np.genfromtxt(test_str, names=True, comments= ';', delimiter = '\t')
+                if test_res.dtype.fields is None:
+                    self.INSTALLED['np.genfromtxt new'] = False
+                else:
+                    self.INSTALLED['np.genfromtxt new'] = True
+            except:
+                self.INSTALLED['np.genfromtxt new'] = False
         if not self.INSTALLED['np.genfromtxt new']:
             _Config.log_.warn('pyCloudy works better with numpy >= 1.6.0', calling = 'pyCloudy config')
 

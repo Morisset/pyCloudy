@@ -504,4 +504,5 @@ def read_atm_ascii(ascii_file):
     i = 0
     while (i < n):
         l = f.readline()
-        
+            
+    
