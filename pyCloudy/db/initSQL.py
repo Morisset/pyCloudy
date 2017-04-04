@@ -470,7 +470,7 @@ def init_teion(OVN_dic=OVN_dic, MdB=None, delete_before=False):
     command = "CREATE TABLE IF NOT EXISTS {0} (`N` bigint(20) NOT NULL DEFAULT '0',".format(table)
     command += "`ref` varchar(40) NOT NULL ,".format(elem[0], i)
     for elem in elem_list:
-        for i in xrange(elem[1]+1):
+        for i in range(elem[1]+1):
             command += "`T_{0}_vol_{1}` double NOT NULL DEFAULT '-40',".format(elem[0], i)
             command += "`T_{0}_rad_{1}` double NOT NULL DEFAULT '-40',".format(elem[0], i)
     command += "PRIMARY KEY (`N`) ) ENGINE=MyISAM DEFAULT CHARSET=latin1;"
@@ -491,7 +491,7 @@ def init_abion(OVN_dic=OVN_dic, MdB=None, delete_before=False):
     command += "`ref` varchar(40) NOT NULL ,".format(elem[0], i)
 
     for elem in elem_list:
-        for i in xrange(elem[1]+1):
+        for i in range(elem[1]+1):
             command += "`A_{0}_vol_{1}` double NOT NULL DEFAULT '-40',".format(elem[0], i)
             command += "`A_{0}_rad_{1}` double NOT NULL DEFAULT '-40',".format(elem[0], i)
     command += "PRIMARY KEY (`N`) ) ENGINE=MyISAM DEFAULT CHARSET=latin1;"

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import pyCloudy
-import os
 import subprocess
 
 def run(command):

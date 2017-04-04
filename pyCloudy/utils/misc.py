@@ -1,5 +1,5 @@
 import numpy as np
-import cPickle
+import pickle
 import os
 import sys
 import pyCloudy as pc 
@@ -134,7 +134,7 @@ def save(file_, *args, **kwargs):
     dico = kwargs
     for name in args:
         dico[name] = eval(name)
-    cPickle.dump(dico, f, protocol=2)
+    pickle.dump(dico, f, protocol=2)
     f.close
     
 ## @include copyright.txt
@@ -144,7 +144,7 @@ def restore(file_):
     Usage: datos = restore('misdatos.pypic')
     """
     f = open(file_, "rb")
-    result = cPickle.load(f)
+    result = pickle.load(f)
     f.close
     return result
 
@@ -244,9 +244,9 @@ def int_to_roman(input_):
 
     """
     if type(input_) != type(1):
-        raise TypeError, "expected integer, got {0}".format(type(input_))
+        raise TypeError("expected integer, got {0}".format(type(input_)))
     if not 0 < input_ < 4000:
-        raise ValueError, "Argument must be between 1 and 3999"   
+        raise ValueError("Argument must be between 1 and 3999")   
     ints = (1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1)
     nums = ('M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I')
     result = ""
@@ -288,14 +288,14 @@ def roman_to_int(input_):
 
     """   
     if type(input_) != type(""):
-        raise TypeError, "expected string, got {0}".format(type(input_))
+        raise TypeError("expected string, got {0}".format(type(input_)))
     input_ = input_.upper()
     nums = ['M', 'D', 'C', 'L', 'X', 'V', 'I']
     ints = [1000, 500, 100, 50, 10, 5, 1]
     places = []
     for c in input_:
         if not c in nums:
-            raise ValueError, "input is not a valid roman numeral: {0}".format(input_)
+            raise ValueError("input is not a valid roman numeral: {0}".format(input_))
     for i in range(len(input_)):
         c = input_[i]
         value = ints[nums.index(c)]
@@ -314,7 +314,7 @@ def roman_to_int(input_):
     if int_to_roman(sum_) == input_:
         return sum_
     else:
-        raise ValueError, 'input is not a valid roman numeral: {0}'.format(input_)
+        raise ValueError('input is not a valid roman numeral: {0}'.format(input_))
       
 def get_elem_ion(label):
     """
@@ -447,8 +447,8 @@ class ImportFromFile(object):
     """
     def __init__(self, file_to_import):
         MM = {}
-        execfile(file_to_import, MM)
-        for key in MM.keys():
+        exec(compile(open(file_to_import).read(), file_to_import, 'exec'), MM)
+        for key in list(MM.keys()):
             vars(self)[key] = MM[key]
 
 def fill_from_file(N, open_file, dtype = np.float64):

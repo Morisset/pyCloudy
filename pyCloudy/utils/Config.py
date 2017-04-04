@@ -1,4 +1,4 @@
-from logging import my_logging
+from .logging import my_logging
 import os
 import numpy as np
 
