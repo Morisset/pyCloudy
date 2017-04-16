@@ -2,6 +2,7 @@
 README
 setup.py
 pyCloudy/__init__.py
+pyCloudy/version.py
 pyCloudy/c1d/__init__.py
 pyCloudy/c1d/cloudy_model.py
 pyCloudy/c3d/__init__.py
