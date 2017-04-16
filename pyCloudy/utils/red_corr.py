@@ -57,15 +57,15 @@ class RedCorr(object):
         return np.asarray(0.61 * cHbeta + 0.024 * cHbeta ** 2.)
     
     def getLaws(self):
-        return self._laws_dict.keys()
+        return list(self._laws_dict.keys())
                          
     def printLaws(self):
-        for law in self._laws_dict.keys():
+        for law in list(self._laws_dict.keys()):
             try:
                 doc = self._laws_dict[law].__doc__
             except:
                 doc = ''
-            print "'{0}': {1}".format(law,doc)
+            print("'{0}': {1}".format(law,doc))
 
     def _get_e_bv(self):
         return self.__E_BV
@@ -83,7 +83,7 @@ class RedCorr(object):
     def _set_r_v(self, value):       
         self.__R_V = np.asarray(value)
     def _set_law(self, value):
-        if value not in self._laws_dict.keys():
+        if value not in list(self._laws_dict.keys()):
             self.log_.error('Unknown extinction law reference: {0}'.format(value), calling = self.calling)
             self.__law = None
             self.X = None

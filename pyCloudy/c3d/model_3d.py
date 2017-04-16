@@ -628,7 +628,7 @@ class C3D(object):
         if available:
             return self.m[0].emis_labels
         else:
-            return self._emis.keys()
+            return list(self._emis.keys())
     
     def del_emis(self, ref):
         """
@@ -687,7 +687,7 @@ class C3D(object):
         """
         Return the labels of the computed ionic fraction cubes 
         """
-        return self._ionic.keys()
+        return list(self._ionic.keys())
     
     def del_ionic(self, elem, ion):
         """
@@ -706,7 +706,7 @@ class C3D(object):
             coeff = 1.
         else:
             coeff = self.get_emis_vol(norm)
-        for line in self.m[0].emis_labels: print line,self.get_emis_vol(line)/coeff
+        for line in self.m[0].emis_labels: print(line,self.get_emis_vol(line)/coeff)
     
     def vol_integ(self, a):
         """
@@ -902,7 +902,7 @@ class C3D(object):
         """
         Return the labels of the computed line profiles
         """
-        return self._profiles.keys()
+        return list(self._profiles.keys())
     
     def del_profile(self, ref = None, axis = 'x'):
         """

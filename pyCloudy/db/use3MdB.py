@@ -29,9 +29,9 @@ status_dic = {'Pending model selected':2,
               }
 
 save_list_elems = [e[0] for e in pc.config.SAVE_LIST_ELEMS]
-for elem in SYM2ELEM.values():
+for elem in list(SYM2ELEM.values()):
     if elem not in save_list_elems:
-        syms = [key for key,value in SYM2ELEM.items() if value==elem ]
+        syms = [key for key,value in list(SYM2ELEM.items()) if value==elem ]
         if syms != []:
             pc.config.SAVE_LIST_ELEMS.append([elem, '.ele_{0}'.format(syms[0])])
     
@@ -67,23 +67,23 @@ class writePending(object):
         self.set_ref()
         self.set_user()
         self.set_radius()
-        for i in xrange(2):
+        for i in range(2):
             self.set_star(i_star = i)
         self.set_cste_density()
         self.set_abund()
         self.set_status(0)
         self.set_file('')
-        for i in xrange(2):
+        for i in range(2):
             self.set_dust(i_dust = i)
-        for i in xrange(5):
+        for i in range(5):
             self.set_stop(i_stop = i)
         self.set_distance()
         self.set_priority()
         self.set_geometry()
         self.set_iterate(1)
-        for i in xrange(8):
+        for i in range(8):
             self.set_cloudy_others(i_other = i)
-        for i in xrange(8):
+        for i in range(8):
             self.set_comments(i_com = i)
         self.set_N_Mass_cut()
         self.set_GuessMassFrac()
@@ -549,7 +549,7 @@ class writeTab(object):
                     ab,elem_long, integ, ion = abion_field.split('_')
                     ion = int(ion)
                     elem = None
-                    for sym, elem_long_dic in SYM2ELEM.iteritems():
+                    for sym, elem_long_dic in SYM2ELEM.items():
                         if elem_long_dic.upper() == elem_long:
                             elem = sym
                     if elem is not None:
@@ -766,7 +766,7 @@ class runCloudy(object):
                 self.CloudyInput.set_cste_density(P['dens'], P['ff'])
             if P['dlaw1'] is not None:
                 dlaws = [P['dlaw1']]
-                for i_dlaw in xrange(8):
+                for i_dlaw in range(8):
                     if P['dlaw{0}'.format(i_dlaw+2)] is not None:
                         dlaws.append(P['dlaw{0}'.format(i_dlaw+2)])
                 self.CloudyInput.set_dlaw(dlaws)
@@ -785,7 +785,7 @@ class runCloudy(object):
                 SEDs, N = self.MdB.select_dB(select_ = '*', from_ = seds_table, where_ = where_, 
                   limit_ = None, format_ = 'dict')
                 if N == 0:
-                    print('No SED!!! where_ = {}'.format(where_))
+                    print(('No SED!!! where_ = {}'.format(where_)))
                 for SED in SEDs:
                     self.CloudyInput.set_star(SED = '{} "{}"'.format(SED['atm_cmd'], SED['atm_file']), 
                                               SED_params = (SED['atm1'], SED['atm2']), 
@@ -823,14 +823,14 @@ class runCloudy(object):
             else:
                 self.CloudyInput.set_sphere(False)
             self.CloudyInput.set_iterate(P['iterate'])
-            for i_dust in xrange(3):
+            for i_dust in range(3):
                 if P['dust_type{0}'.format(i_dust+1)] != '':
                     self.CloudyInput.set_grains('{0} {1}'.format(P['dust_type{0}'.format(i_dust+1)], 
                                                                  P['dust_value{0}'.format(i_dust+1)]))
-            for i_stop in xrange(6):
+            for i_stop in range(6):
                 if P['stop{0}'.format(i_stop+1)] != '':
                     self.CloudyInput.set_stop(P['stop{0}'.format(i_stop+1)])
-            for i_others in xrange(9):
+            for i_others in range(9):
                 if P['cloudy{0}'.format(i_others+1)] != '':
                     self.CloudyInput.set_other(P['cloudy{0}'.format(i_others+1)])
             self.CloudyInput.set_comment('3MdB pending number {0}'.format(N_pending))
@@ -1154,7 +1154,7 @@ class manage3MdB(object):
                 
     def start(self, norun=False, noinput=False):
         self.all_threads = []
-        for i in xrange(self.Nprocs):
+        for i in range(self.Nprocs):
             self.all_threads.append(runCloudyByThread(self.OVN_dic, self.models_dir, norun=norun, noinput=noinput))
         for t in self.all_threads:
             t.start()
@@ -1176,8 +1176,8 @@ def print_all_refs(MdB = None, OVN_dic=None):
     res, N_ref = MdB.select_dB(select_ = 'distinct(ref), count(*)', from_ = OVN_dic['master_table'], 
                                group_ = 'ref', limit_ = None)
     for row in res:
-        print('The ref "{0:15}" counts {1:8d} entries.'.format(row['ref'], row['count(*)']))
-    print('Number of distinct references = {0}'.format(N_ref))
+        print(('The ref "{0:15}" counts {1:8d} entries.'.format(row['ref'], row['count(*)'])))
+    print(('Number of distinct references = {0}'.format(N_ref)))
     
 def print_all_lines(MdB = None, OVN_dic=None, limit_=None):
     """
@@ -1192,7 +1192,7 @@ def print_all_lines(MdB = None, OVN_dic=None, limit_=None):
         self.log_.error('The first argument must be a MdB object')    
     lines, N_lines = MdB.select_dB(select_ = '*', from_ = OVN_dic['lines_table'], limit_ = limit_)
     for line in lines:
-        print('Nl = {0[Nl]:3} id = {0[id]:4} label = {0[label]:5} wavelength = {0[lambda]:6} full name = {0[name]}'.format(line))
+        print(('Nl = {0[Nl]:3} id = {0[id]:4} label = {0[label]:5} wavelength = {0[lambda]:6} full name = {0[name]}'.format(line)))
 
 def print_status_stats(MdB = None, OVN_dic=None, ref_=None):
     """
@@ -1212,7 +1212,7 @@ def print_status_stats(MdB = None, OVN_dic=None, ref_=None):
     res, N_res = MdB.select_dB(select_='status, count(*) as ct',from_=OVN_dic['pending_table'],
                                where_=where_, group_='status', limit_=None, commit=True)
     for status in res: 
-        print('{0:7} models with status = {1:4}.'.format(status['ct'], status['status']))
+        print(('{0:7} models with status = {1:4}.'.format(status['ct'], status['status'])))
 
 def print_mean_running_time(MdB = None, OVN_dic=None, ref_=None):
     """
@@ -1233,7 +1233,7 @@ def print_mean_running_time(MdB = None, OVN_dic=None, ref_=None):
                                'min(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MN, '\
                                'max(substring_index(CloudyEnds,"ExecTime(s)", -1)) as MX',
                               from_=OVN_dic['master_table'], where_=where_, limit_=None)
-    print('Mean running time = {0[MRT]}, min = {0[MN]}, max = {0[MX]}'.format(res[0]))
+    print(('Mean running time = {0[MRT]}, min = {0[MN]}, max = {0[MX]}'.format(res[0])))
     
 def print_elapsed_time(MdB = None, OVN_dic=None, ref_=None):
     """
@@ -1252,7 +1252,7 @@ def print_elapsed_time(MdB = None, OVN_dic=None, ref_=None):
         where_ = None
     res, N_res = MdB.select_dB(select_='time_to_sec(timediff(max(datetime),min(datetime))) as ET',
                                from_=OVN_dic['master_table'], where_=where_, limit_=None)
-    print('Models running during = {0}'.format(datetime.timedelta(seconds=res[0]['ET'])))
+    print(('Models running during = {0}'.format(datetime.timedelta(seconds=res[0]['ET']))))
     
 def print_ETA(MdB= None, OVN_dic=None, ref_=None):
     if MdB is None:
@@ -1276,7 +1276,7 @@ def print_ETA(MdB= None, OVN_dic=None, ref_=None):
     ET = res[0]['ET']
     
     eta = datetime.datetime.today() + datetime.timedelta(seconds=ET/float(N_run)*N_pending)
-    print 'ETA : ' + str(eta)
+    print('ETA : ' + str(eta))
 
 def print_efficiency(MdB= None, OVN_dic=None, ref_=None):
     if MdB is None:
@@ -1301,7 +1301,7 @@ def print_efficiency(MdB= None, OVN_dic=None, ref_=None):
                               from_=OVN_dic['master_table'], where_=where_, limit_=None)
     MRT = res[0]['MRT']
     
-    print('Mean efficiency = {}'.format(np.float(N_run)*MRT/ET))
+    print(('Mean efficiency = {}'.format(np.float(N_run)*MRT/ET)))
     
 def print_infos(MdB= None, OVN_dic=None, ref_=None, where_=None, Nprocs=32):
     if MdB is None:
@@ -1339,11 +1339,11 @@ def print_infos(MdB= None, OVN_dic=None, ref_=None, where_=None, Nprocs=32):
     MX = float(res[0]['MX'])
     Mean_eff = np.float(N_run)*MRT/ET
     eta2 = datetime.datetime.today() + datetime.timedelta(seconds=MRT*N_pending/float(Nprocs))
-    print('{} pending, {} run'.format(N_pending, N_run))
-    print('Mean running time = {0:.0f}s, min = {1:.0f}s, max = {2:.0f}s'.format(MRT, MN, MX))
-    print('Models running during {0}'.format(datetime.timedelta(seconds=ET)))
-    print('ETA1 : {0}, ETA2 : {1}'.format(eta, eta2))
-    print('Mean efficiency = {0:.1f}'.format(Mean_eff))
+    print(('{} pending, {} run'.format(N_pending, N_run)))
+    print(('Mean running time = {0:.0f}s, min = {1:.0f}s, max = {2:.0f}s'.format(MRT, MN, MX)))
+    print(('Models running during {0}'.format(datetime.timedelta(seconds=ET))))
+    print(('ETA1 : {0}, ETA2 : {1}'.format(eta, eta2)))
+    print(('Mean efficiency = {0:.1f}'.format(Mean_eff)))
     
 def remove_lines(OVN_dic, line_labels):
     """

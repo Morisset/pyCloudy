@@ -5,9 +5,9 @@ import os
 import subprocess
 import random
 import time
-from pyCloudy.utils.init import LIST_ELEM, LIST_ALL_ELEM, SYM2ELEM
-from pyCloudy.utils.misc import sextract, cloudy2pyneb
-from pyCloudy.utils.physics import ATOMIC_MASS
+from ..utils.init import LIST_ELEM, LIST_ALL_ELEM, SYM2ELEM
+from ..utils.misc import sextract, cloudy2pyneb
+from ..utils.physics import ATOMIC_MASS
 if pc.config.INSTALLED['PyNeb']:
     import pyneb
 if pc.config.INSTALLED['scipy']:
@@ -128,7 +128,7 @@ class CloudyModel(object):
                 self._init_phy()
             for elem in list_elem:
                 self._init_ionic(elem, str_key = ionic_str_key)
-            self.liste_elem = self.ionic_names.keys()
+            self.liste_elem = list(self.ionic_names.keys())
             if read_opd:
                 self._init_opd()
             if read_lin:
@@ -326,7 +326,7 @@ class CloudyModel(object):
                 self.log_.message('filling ' + elem + ' with ' + str(n_ions) + ' columns', calling = self.calling)
             except:
                 self.log_.message('File {0} not read'.format(key))
-        self.n_elements = np.size(self.n_ions.keys())
+        self.n_elements = np.size(list(self.n_ions.keys()))
 
     def _init_heatcool(self):
         key = 'heat'
@@ -435,16 +435,16 @@ class CloudyModel(object):
                 self.out['Cloudy ends'] = line
             elif 'Gas Phase Chemical Composition' in line:
                 for i in range(4):
-                    self.out['Chem' + str(i + 1)] = file_.next()
+                    self.out['Chem' + str(i + 1)] = next(file_)
             elif 'Grain Chemical Composition' in line:
-                self.out['GrainChem'] = file_.next()
+                self.out['GrainChem'] = next(file_)
             elif 'Dust to gas ratio' in line:
                 self.out['D/G'] = line
             elif 'iterate' in line:
                 self.out['iterate'] = line
             elif 'Hi-Con' in line:
                 for i in range(7):
-                    self.out['SED' + str(i + 1)] = file_.next()
+                    self.out['SED' + str(i + 1)] = next(file_)
             elif 'table star' in line:
                 self.out['table star'] = line
             elif 'Blackbody' in line:
@@ -1026,7 +1026,7 @@ class CloudyModel(object):
             return None
     
     def _i_line(self, ref):
-        if type(ref) is str or type(ref) is np.string_:
+        if type(ref) is str or type(ref) is np.str_:
             if ref in self.line_labels:                
                 to_return = np.squeeze(np.where(self.line_labels == ref)).item() # so dirty!!!
             else:
@@ -1050,7 +1050,7 @@ class CloudyModel(object):
         return:
             the indice of the line in the emis liste
         """
-        if type(ref) is str or type(ref) is np.string_:
+        if type(ref) is str or type(ref) is np.str_:
             if ref in self.emis_labels:                
                 to_return = np.squeeze(np.where(self.emis_labels == ref)).item() # so dirty!!!
             else:
@@ -1074,7 +1074,7 @@ class CloudyModel(object):
         return:
             the label of the line
         """
-        if type(ref) is str or type(ref) is np.string_:
+        if type(ref) is str or type(ref) is np.str_:
             if ref in self.emis_labels:                
                 to_return = ref 
             else:
@@ -1567,7 +1567,7 @@ class CloudyModel(object):
             [boolean] True if elem,ion has value for get_ionic(elem, ion)
         """
         to_return = False
-        if elem in self.ionic_names.keys():
+        if elem in list(self.ionic_names.keys()):
             if (ion >= 0) & (ion < self.n_ions[elem]):
                 to_return = True
         return to_return  
@@ -1695,62 +1695,62 @@ class CloudyModel(object):
                 e_norm = self.get_emis_vol(norm, at_earth = at_earth)
             else:
                 e_norm = 1.
-            print '{0} {1:e}'.format(ref, self.get_emis_vol(ref, at_earth = at_earth)/e_norm) 
+            print('{0} {1:e}'.format(ref, self.get_emis_vol(ref, at_earth = at_earth)/e_norm)) 
         else:
             if use_emis:
                 for em in self.emis_labels:
                     self.print_lines(em, norm=norm, at_earth = at_earth, use_emis = use_emis)
             else:
                 for label, intensity in zip(self.line_labels, self.lines):
-                    print '{0} {1:e}'.format(label, intensity)
+                    print('{0} {1:e}'.format(label, intensity))
                 
     def print_stats(self):
-        print ' Name of the model: {0}'.format(self.model_name)
+        print(' Name of the model: {0}'.format(self.model_name))
         try:
-            print(' R_in (cut) = {0.r_in:.3e} ({0.r_in_cut:.3e}), R_out (cut) = {0.r_out:.3e} ({0.r_out_cut:.3e})'.
-                  format(self))
+            print((' R_in (cut) = {0.r_in:.3e} ({0.r_in_cut:.3e}), R_out (cut) = {0.r_out:.3e} ({0.r_out_cut:.3e})'.
+                  format(self)))
         except:
             pass
         try:
-            print ' H+ mass = {0.Hp_mass:.2e}, H mass = {0.H_mass:.2e}'.format(self)
+            print(' H+ mass = {0.Hp_mass:.2e}, H mass = {0.H_mass:.2e}'.format(self))
         except:
             pass
         try:
-            print ' T0 = {0.T0:.0f}, t2 = {0.t2:.1e}, <nH> = {1:.2}'.format(self, self.get_nH())
+            print(' T0 = {0.T0:.0f}, t2 = {0.t2:.1e}, <nH> = {1:.2}'.format(self, self.get_nH()))
         except:
             pass
         
         try:
-            print ' <H+/H> = {0:.2f}, <He++/He> = {1:.2f}, <He+/He> = {2:.2f}'.format(self.get_ab_ion_vol_ne('H',1), 
+            print(' <H+/H> = {0:.2f}, <He++/He> = {1:.2f}, <He+/He> = {2:.2f}'.format(self.get_ab_ion_vol_ne('H',1), 
                                                                          self.get_ab_ion_vol_ne('He',2), 
-                                                                         self.get_ab_ion_vol_ne('He',1))
+                                                                         self.get_ab_ion_vol_ne('He',1)))
         except:
             pass
         try:
-            print ' <O+++/O> = {0:.2f}, <O++/O> = {1:.2f}, <O+/O> = {2:.2f}'.format(self.get_ab_ion_vol_ne('O',3), 
+            print(' <O+++/O> = {0:.2f}, <O++/O> = {1:.2f}, <O+/O> = {2:.2f}'.format(self.get_ab_ion_vol_ne('O',3), 
                                                                      self.get_ab_ion_vol_ne('O',2), 
-                                                                     self.get_ab_ion_vol_ne('O',1))
+                                                                     self.get_ab_ion_vol_ne('O',1)))
         except:
             pass
         try:
-            print ' <N+++/O> = {0:.2f}, <N++/O> = {1:.2f}, <N+/O> = {2:.2f}'.format(self.get_ab_ion_vol_ne('N',3), 
+            print(' <N+++/O> = {0:.2f}, <N++/O> = {1:.2f}, <N+/O> = {2:.2f}'.format(self.get_ab_ion_vol_ne('N',3), 
                                                                      self.get_ab_ion_vol_ne('N',2), 
-                                                                     self.get_ab_ion_vol_ne('N',1))
+                                                                     self.get_ab_ion_vol_ne('N',1)))
         except:
             pass
         try:
-            print ' T(O+++) = {0:.0f}, T(O++) = {1:.0f}, T(O+) = {2:.0f}'.format(self.get_T0_ion_vol_ne('O',3), 
+            print(' T(O+++) = {0:.0f}, T(O++) = {1:.0f}, T(O+) = {2:.0f}'.format(self.get_T0_ion_vol_ne('O',3), 
                                                                      self.get_T0_ion_vol_ne('O',2), 
-                                                                     self.get_T0_ion_vol_ne('O',1))
+                                                                     self.get_T0_ion_vol_ne('O',1)))
         except:
             pass
         try:
-            print ' <ne> = {0:.0f},  <nH> = {1:.0f}, T0 = {2.T0:.0f}, t2={2.t2:.4f}'.format(self.vol_mean(self.ne), 
-                                                                                            self.vol_mean(self.nH), self)
+            print(' <ne> = {0:.0f},  <nH> = {1:.0f}, T0 = {2.T0:.0f}, t2={2.t2:.4f}'.format(self.vol_mean(self.ne), 
+                                                                                            self.vol_mean(self.nH), self))
         except:
             pass
         try:
-            print ' <log U> = {0.log_U_mean:.2f}'.format(self)
+            print(' <log U> = {0.log_U_mean:.2f}'.format(self))
         except:
             pass
         
@@ -1794,7 +1794,7 @@ def load_models(model_name = None, mod_list = None, n_sample = None, verbose = F
         if not cm.aborted:
             m.append(cm)
         if verbose:
-            print  '{0} model read'.format(outfile[0:-4])
+            print('{0} model read'.format(outfile[0:-4]))
     pc.log_.message('{0} models read'.format(np.size(mod_list)), calling = 'load_models')
     return m 
 

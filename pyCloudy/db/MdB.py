@@ -8,7 +8,7 @@ from pyCloudy.utils.logging import my_logging
 if pc.config.INSTALLED['pandas']:
     import pandas as pd
     import pandas.io.sql as psql
-from StringIO import StringIO   
+from io import StringIO   
 
 def _sql2numpy(sqltype):
     if sqltype == 'float':
@@ -145,7 +145,7 @@ class MdB(object):
             self._dB.select_db(tmp_base_name)
         
     def show_tables(self):
-        print self.exec_dB('show tables')
+        print(self.exec_dB('show tables'))
         
     def share_dB_cursor(self, m):
         self._dB = m._dB
@@ -193,7 +193,7 @@ class MdB(object):
         except:
             self.log_.error('Error on reading result of {0}'.format(command), calling = self.calling)
         if format_ == 'rec':
-            res = np.rec.fromrecords([e.values() for e in res], names = res[0].keys())
+            res = np.rec.fromrecords([list(e.values()) for e in res], names = list(res[0].keys()))
         if return_descr:
             return res, N, cursor.description
         else:
