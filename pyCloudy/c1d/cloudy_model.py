@@ -2208,7 +2208,7 @@ class CloudyInput(object):
         """
         if to_file:
             file_name = self.model_name+'.in' 
-            f = file(file_name,'w')
+            f = open(file_name,'w')
         
         def this_print(s, eol = True):
             if s is None:
@@ -2384,8 +2384,8 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
             pc.log_.error('Model name must be set', calling = 'run_cloudy')
         else:
             to_run = 'cd {0} ; {1} {2}'.format(dir_, precom, cloudy_exe)
-            stdin = file('{0}/{1}.in'.format(dir_, model_name.split('/')[-1]), 'r')
-            stdout = file('{0}/{1}.out'.format(dir_, model_name.split('/')[-1]), 'w')   
+            stdin = open('{0}/{1}.in'.format(dir_, model_name.split('/')[-1]), 'r')
+            stdout = open('{0}/{1}.out'.format(dir_, model_name.split('/')[-1]), 'w')   
     pc.log_.message('running: {0}'.format(to_run), calling = 'run_cloudy')
     proc = subprocess.Popen(to_run, shell=True, stdout=stdout, stdin = stdin)
     proc.communicate()
