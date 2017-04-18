@@ -15,11 +15,11 @@ You may find useful to download, install and upgrade pyCloudy using
 
 For example:
 
-* pip install --user pyCloudy
+* pip install pyCloudy
 
 Updates use the same command. You can also use 
 
-* easy_install --user pyCloudy
+* easy_install pyCloudy
 
 To use the devel package (at your own risks!!!):
 
