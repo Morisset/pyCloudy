@@ -1,5 +1,6 @@
 from .logging import my_logging
 import os
+import sys
 import numpy as np
 
 class _Config(object):
@@ -16,7 +17,8 @@ class _Config(object):
             self.cloudy_exe = 'cloudy.exe'
         
         self.cloudy_dict = {'10.00': '/usr/local/Cloudy/c10.00/cloudy.exe',
-                            '13.03': '/usr/local/Cloudy/c13.03/cloudy.exe'}
+                            '13.03': '/usr/local/Cloudy/c13.03/cloudy.exe',
+                            '17.00': '/usr/local/Cloudy/c17.00_rc1/source/cloudy.exe'}
             
         self.INSTALLED ={}
         try:
@@ -136,6 +138,7 @@ class _Config(object):
                                 ['iron','.ele_Fe'],
                                 ['silicon','.ele_Si']]
     
+        self.def_c13c17()
     
     def _get_cloudy_exe(self):
         return self.__cloudy_exe
@@ -159,4 +162,8 @@ class _Config(object):
             _Config.log_.warn('db_connector {} not installed'.format(value))
     
     db_connector = property(_get_db_coonector, _set_db_coonector, None, None)
+    
+    def def_c13c17(self):
+        filename = os.path.join(os.path.dirname(sys._getframe(1).f_code.co_filename), 'convert_c17_c13.txt')
+        self.c13c17 = np.genfromtxt(filename, dtype='U20, U20', names='c17, c13')
     

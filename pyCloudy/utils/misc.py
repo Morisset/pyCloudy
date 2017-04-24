@@ -505,4 +505,18 @@ def read_atm_ascii(ascii_file):
     while (i < n):
         l = f.readline()
             
+def convert_c13_c17(label):
+    c13c17 = pc.config.c13c17
+    if label in c13c17['c13']:
+        return c13c17['c17'][c13c17['c13'] == label][0]
+    else:
+        return ''
+
+def convert_c17_c13(label):
+    c13c17 = pc.config.c13c17
+    if label in c13c17['c17']:
+        return c13c17['c13'][c13c17['c17'] == label][0]
+    else:
+        return ''
+
     

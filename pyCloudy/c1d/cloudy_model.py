@@ -6,7 +6,7 @@ import subprocess
 import random
 import time
 from ..utils.init import LIST_ELEM, LIST_ALL_ELEM, SYM2ELEM
-from ..utils.misc import sextract, cloudy2pyneb
+from ..utils.misc import sextract, cloudy2pyneb, convert_c13_c17, convert_c17_c13
 from ..utils.physics import ATOMIC_MASS
 if pc.config.INSTALLED['PyNeb']:
     import pyneb
@@ -301,6 +301,25 @@ class CloudyModel(object):
                 trans_emis = lambda x: x
             emis = self._res[key]            
             self.emis_labels = np.asarray(emis.dtype.names[1::])
+            
+            if self.cloudy_version_major > 13:
+                self.emis_labels_13 = self.emis_labels
+                self.emis_labels_17 = []
+                for label in self.emis_labels:
+                    try:
+                        self.emis_labels_17.append(convert_c13_c17(label))
+                    except:
+                        self.emis_labels_17.append('')
+                self.emis_labels_17 = np.array(self.emis_labels_17, dtype=str)
+            else:
+                self.emis_labels_17 = self.emis_labels
+                self.emis_labels_13 = []
+                for label in self.emis_labels:
+                    try:
+                        self.emis_labels_17.append(convert_c17_c13(label))
+                    except:
+                        self.emis_labels_17.append('')            
+                self.emis_labels_13 = np.array(self.emis_labels_13, dtype=str)
             self.n_emis = np.size(self.emis_labels)
             self.log_.message('Number of emissivities: {0.n_emis:d}'.format(self), calling = self.calling)
             self.emis_full = np.zeros((self.n_emis, np.size(emis)))
@@ -1027,8 +1046,10 @@ class CloudyModel(object):
     
     def _i_line(self, ref):
         if type(ref) is str or type(ref) is np.str_:
-            if ref in self.line_labels:                
-                to_return = np.squeeze(np.where(self.line_labels == ref)).item() # so dirty!!!
+            if ref in self.line_labels_13:                
+                to_return = np.argwhere(self.emis_labels_13 == ref)[0][0]
+            elif ref in self.line_labels_17:                
+                to_return = np.argwhere(self.emis_labels_17 == ref)[0][0]
             else:
                 self.log_.warn(ref + ' is not a correct line reference - 1', calling = self.calling)
                 to_return = None
@@ -1051,8 +1072,10 @@ class CloudyModel(object):
             the indice of the line in the emis liste
         """
         if type(ref) is str or type(ref) is np.str_:
-            if ref in self.emis_labels:                
-                to_return = np.squeeze(np.where(self.emis_labels == ref)).item() # so dirty!!!
+            if ref in self.emis_labels_13:                
+                to_return = np.argwhere(self.emis_labels_13 == ref)[0][0]
+            elif ref in self.emis_labels_17:
+                to_return = np.argwhere(self.emis_labels_17 == ref)[0][0]
             else:
                 self.log_.warn(ref + ' is not a correct line reference - 1', calling = self.calling)
                 to_return = None
@@ -1075,8 +1098,10 @@ class CloudyModel(object):
             the label of the line
         """
         if type(ref) is str or type(ref) is np.str_:
-            if ref in self.emis_labels:                
-                to_return = ref 
+            if ref in self.emis_labels_13:                
+                to_return = ref
+            elif ref in self.emis_labels_17:                
+                to_return = ref
             else:
                 self.log_.warn(ref + ' is not a correct line reference - 1', calling = self.calling)
                 to_return = None
