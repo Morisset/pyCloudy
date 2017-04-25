@@ -303,23 +303,25 @@ class CloudyModel(object):
             self.emis_labels = np.asarray(emis.dtype.names[1::])
             
             if self.cloudy_version_major > 13:
+                # We are with c17+ and will create emis_labels_13
+                self.emis_labels_17 = self.emis_labels
+                self.emis_labels_13 = []
+                for label in self.emis_labels:
+                    try:
+                        self.emis_labels_13.append(convert_c17_c13(label))
+                    except:
+                        self.emis_labels_13.append('')
+                self.emis_labels_13 = np.array(self.emis_labels_13, dtype=str)
+            else:
+                # We are with c13 and will create emis_labels_17
                 self.emis_labels_13 = self.emis_labels
                 self.emis_labels_17 = []
                 for label in self.emis_labels:
                     try:
                         self.emis_labels_17.append(convert_c13_c17(label))
                     except:
-                        self.emis_labels_17.append('')
-                self.emis_labels_17 = np.array(self.emis_labels_17, dtype=str)
-            else:
-                self.emis_labels_17 = self.emis_labels
-                self.emis_labels_13 = []
-                for label in self.emis_labels:
-                    try:
-                        self.emis_labels_17.append(convert_c17_c13(label))
-                    except:
                         self.emis_labels_17.append('')            
-                self.emis_labels_13 = np.array(self.emis_labels_13, dtype=str)
+                self.emis_labels_17 = np.array(self.emis_labels_17, dtype=str)
             self.n_emis = np.size(self.emis_labels)
             self.log_.message('Number of emissivities: {0.n_emis:d}'.format(self), calling = self.calling)
             self.emis_full = np.zeros((self.n_emis, np.size(emis)))
@@ -437,6 +439,10 @@ class CloudyModel(object):
             if 'Cloudy' in line and 'testing' not in line and 'Please' not in line and self.cloudy_version == '':
                 self.cloudy_version = line.strip()
                 self.cloudy_version_major = pc.sextract(self.cloudy_version,'Cloudy ','.')
+                try:
+                    self.cloudy_version_major = int(self.cloudy_version_major)
+                except:
+                    pass
                 try:
                     if int(self.cloudy_version_major) >= 17:
                         self.emis_is_log = False

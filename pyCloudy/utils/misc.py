@@ -506,6 +506,9 @@ def read_atm_ascii(ascii_file):
         l = f.readline()
             
 def convert_c13_c17(label):
+    """
+    Transform a label from c13 style into c17+ style
+    """
     c13c17 = pc.config.c13c17
     if label in c13c17['c13']:
         return c13c17['c17'][c13c17['c13'] == label][0]
@@ -513,6 +516,9 @@ def convert_c13_c17(label):
         return ''
 
 def convert_c17_c13(label):
+    """
+    Transform a label from c17+ style into c13 style
+    """
     c13c17 = pc.config.c13c17
     if label in c13c17['c17']:
         return c13c17['c13'][c13c17['c17'] == label][0]
