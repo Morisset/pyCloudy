@@ -487,6 +487,8 @@ class CloudyModel(object):
                 self.out['dlaw'] = line
             elif 'TOTL  4861A' in line:
                 self.out['Hbeta'] = line
+            elif 'H  1      4861.36A' in line:
+                self.out['Hbeta'] = line
             elif 'luminosity' in line:
                 self.out['luminosity'] = line
             elif 'turbulence' in line:
