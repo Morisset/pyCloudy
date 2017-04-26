@@ -14,6 +14,7 @@ pyCloudy/db/use3MdB.py
 pyCloudy/utils/Config.py
 pyCloudy/utils/__init__.py
 pyCloudy/utils/astro.py
+pyCloudy/utils/convert_c17_c13.txt
 pyCloudy/utils/init.py
 pyCloudy/utils/logging.py
 pyCloudy/utils/misc.py

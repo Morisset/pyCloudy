@@ -40,3 +40,4 @@ Manual
 
 * And the reference manual is accessible from this site `HERE
   <http://packages.python.org/pyCloudy/>`_ .
+ 
