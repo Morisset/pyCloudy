@@ -4,7 +4,7 @@
 **/.settings
 **/.ipynb_checkpoints/**
 **/.svn/**
-CM/
+pyCloudy.egg-info/
 dist/
 doxygen*
 make_documentation.py
