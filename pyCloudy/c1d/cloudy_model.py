@@ -1654,7 +1654,7 @@ class CloudyModel(object):
         pyneb_atom: a Atom or RecAtom PyNeb object
         label or wave: identifier of the transition in the PyNeb object
         example:
-            M.add_emis_from_pyneb('O__2__4153', O2, label='4638.86')
+            M.add_emis_from_pyneb('O__2R_4639', O2, label='4638.86')
 
         """
         
