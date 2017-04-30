@@ -2046,7 +2046,7 @@ class CloudyInput(object):
             else:
                 self._stop.append(stop_criter)
     
-    def read_emis_file(self, emis_file):
+    def read_emis_file(self, emis_file, N_char=12):
         """
         Define the name of the file containing the labels for the list of emissivities to output
             in the .emis file
@@ -2054,7 +2054,7 @@ class CloudyInput(object):
         self._emis_tab = []
         try:
             with open(emis_file, 'r') as f:
-                self._emis_tab = [row[0:12] for row in f]
+                self._emis_tab = [row[0:N_char] for row in f]
         except:
             pc.log_.warn('File {0} for emis lines not accesible'.format(emis_file))
             
