@@ -1679,7 +1679,10 @@ class CloudyModel(object):
         
         self.emis_full = new_emis_full
         self.emis_labels = new_emis_labels
-        
+        if self.cloudy_version_major > 16:
+            self.emis_labels_17 = new_emis_labels
+        else:
+            self.emis_labels_13 = new_emis_labels
     
     def plot_spectrum(self, xunit='eV', cont='ntrans', yunit='es', ax=None, 
                       xlog=True, ylog=True, **kargv):
