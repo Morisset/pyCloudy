@@ -526,6 +526,10 @@ def convert_c17_c13(label):
         return ''
 
 def correc_He1(tem=1e4, den=1e2, lambda_ = 5876, print_only_lambdas=False):
+    """
+    Compute the correction to the CA_B__5876A ,  CA_B__4471A , and CA_B__6678A line intensities.
+    Using formula 3 and table 3 from Izotov et al. 2013, A&A 558, A57
+    """
     d = np.genfromtxt(execution_path('Izotov2013_CR.txt'), delimiter='\t', dtype=None, names=True)
     if print_only_lambdas:
         print(np.unique(d['Wavelength']))
@@ -535,10 +539,27 @@ def correc_He1(tem=1e4, den=1e2, lambda_ = 5876, print_only_lambdas=False):
     except:
         raise('Incorrect wavelength')
         return(None)
-    t4 = tem/1e4
+    t4 = np.array(tem)/1e4
+    dens = np.array(den)
+    if np.ndim(dens) == 0:
+        dens = np.ones_like(t4) * dens
     CR = 0
     for i in range(8):
         dd = d[d['i'] == i+1]
         CR += dd['a_i'] * t4**dd['b_i'] * np.exp(dd['c_i']/t4)
-    CR *= 1./(1. + 3552*t4**0.55/den)
+    CR *= 1./(1. + 3552*t4**0.55/dens)
+    mask = t4 < 0.50
+    if type(mask) is bool:
+        if mask:
+            CR = correc_He1(5000, den, lambda_=lambda_) - 1
+    else:
+        if mask.sum() > 0:
+            CR[mask] = correc_He1(np.ones_like(dens[mask])*5000.00, dens[mask], lambda_=lambda_) - 1
+    mask = t4 > 2.50
+    if type(mask) is bool:
+        if mask:
+            CR = correc_He1(25000, den, lambda_=lambda_) - 1
+    else:
+        if mask.sum() > 0:
+            CR[mask] = correc_He1(np.ones_like(dens[mask])*25000.00, dens[mask], lambda_=lambda_) - 1
     return(1. + CR)
