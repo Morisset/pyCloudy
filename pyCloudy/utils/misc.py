@@ -525,4 +525,17 @@ def convert_c17_c13(label):
     else:
         return ''
 
-    
+def correc_He1(tem, den, lambda_ = 5876):
+    d = np.genfromtxt(execution_path('Izotov2013_CR.txt'), delimiter='\t', dtype=None, names=True)
+    try:
+        d = d[d['Wavelength'] == 5876]
+    except:
+        raise('Incorrect wavelength')
+        return(None)
+    t4 = tem/1e4
+    CR = 0
+    for i in range(8):
+        dd = d[d['i'] == i+1]
+        CR += dd['a_i'] * t4**dd['b_i'] * np.exp(dd['c_i']/t4)
+    CR *= 1./(1. + 3552*t4**0.55/den)
+    return(1. + CR)
