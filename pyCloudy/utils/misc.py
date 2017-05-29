@@ -525,8 +525,11 @@ def convert_c17_c13(label):
     else:
         return ''
 
-def correc_He1(tem, den, lambda_ = 5876):
+def correc_He1(tem=1e4, den=1e2, lambda_ = 5876, print_only_lambdas=False):
     d = np.genfromtxt(execution_path('Izotov2013_CR.txt'), delimiter='\t', dtype=None, names=True)
+    if print_only_lambdas:
+        print(np.unique(d['Wavelength']))
+        return(None)
     try:
         d = d[d['Wavelength'] == 5876]
     except:
