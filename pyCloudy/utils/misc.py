@@ -535,7 +535,7 @@ def correc_He1(tem=1e4, den=1e2, lambda_ = 5876, print_only_lambdas=False):
         print(np.unique(d['Wavelength']))
         return(None)
     try:
-        d = d[d['Wavelength'] == 5876]
+        d = d[d['Wavelength'] == lambda_]
     except:
         raise('Incorrect wavelength')
         return(None)
@@ -549,14 +549,14 @@ def correc_He1(tem=1e4, den=1e2, lambda_ = 5876, print_only_lambdas=False):
         CR += dd['a_i'] * t4**dd['b_i'] * np.exp(dd['c_i']/t4)
     CR *= 1./(1. + 3552*t4**0.55/dens)
     mask = t4 < 0.50
-    if type(mask) is bool:
+    if type(mask) is bool or type(mask) is numpy.bool_:
         if mask:
             CR = correc_He1(5000, den, lambda_=lambda_) - 1
     else:
         if mask.sum() > 0:
             CR[mask] = correc_He1(np.ones_like(dens[mask])*5000.00, dens[mask], lambda_=lambda_) - 1
     mask = t4 > 2.50
-    if type(mask) is bool:
+    if type(mask) is bool or type(mask) is numpy.bool_:
         if mask:
             CR = correc_He1(25000, den, lambda_=lambda_) - 1
     else:
