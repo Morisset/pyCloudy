@@ -738,7 +738,26 @@ class runCloudy(object):
         else:
             self.pending = res[0]
     
-    def fill_CloudyInput(self, N_pending=None, noinput=False, dir=None, parameters=None):
+    def read_tab(self, N=None):
+
+        if not self.MdB.connected:
+            self.log_.error('Not connected to the database')
+            self.tab_dic = None
+            return None
+        
+        if N is None:
+            N = self.selectedN
+        else:
+            self.selectedN = N
+        res, Nres = self.MdB.select_dB(select_='*', from_=self.table, 
+                                       where_='N = {0}'.format(N), commit=True)
+        
+        if Nres == 0:
+            self.tab_dic = None
+        else:
+            self.tab_dic = res[0]
+    
+    def fill_CloudyInput(self, N_pending=None, noinput=False, dir=None, parameters=None, read_tab=False):
         """
         Method that print out a Cloudy input file
         keywords:
@@ -748,11 +767,17 @@ class runCloudy(object):
             - dir: if not set to None (default), set the directory where to write the file
             - parameters: if not set to None (default), is a dictionnary of parameters to substitute the 
                 ones from the pending table
+            - read_tab: By default the parameters are read from the pending table. 
+                If read_tab, parameters are read from tab.
         """
         if N_pending is None:
             N_pending = self.selectedN
-        self.read_pending(N_pending)
-        P = self.pending
+        if read_tab:
+            self.read_tab(N_pending)
+            P = self.tab_dic
+        else:
+            self.read_pending(N_pending)
+            P = self.pending
         if dir is not None:
             P['dir'] = dir
         if type(parameters) is dict:
@@ -845,14 +870,19 @@ class runCloudy(object):
                 self.CloudyInput.print_input()
             self.update_status('Cloudy Input printed')
 
-def printInput(N, OVN_dic, dir='./', parameters=None):
+def printInput(N, MdB= None, OVN_dic=None, dir='./', parameters=None, read_tab=False):
     """
-    Procedure that print out the input file corresponding the the entry N in the pending table of OVN_dic
+    Procedure that print out the input file corresponding the entry N in the pending (or master) table of OVN_dic
     It does not write nothing in the database.
+    Take care that some comments may have been added a posteriori to the master table and may break Cloudy.
     """
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic=OVN_dic)
+    else:
+        OVN_dic = MdB.OVN_dic
     MdB = pc.MdB(OVN_dic)
-    rc = runCloudy(MdB = MdB, do_update_status=False, register=False, models_dir='')
-    rc.fill_CloudyInput(N, dir=dir, parameters=parameters)
+    rc = runCloudy(MdB = MdB, do_update_status=False, register=False, models_dir='./')
+    rc.fill_CloudyInput(N, dir=dir, parameters=parameters, read_tab=read_tab)
     MdB.close_dB()
 
 class runCloudyByThread(threading.Thread):
