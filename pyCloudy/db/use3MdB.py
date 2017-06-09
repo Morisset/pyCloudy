@@ -681,19 +681,40 @@ class runCloudy(object):
         
         if self.procID is None:
             self.log_.error('Not connected')
+            
         try:
-            res, N = self.MdB.select_dB(select_ = 'N, priority', from_ = self.pending_table, 
-                                       where_ = 'status = 0', limit_=None, format_='numpy', commit=True)
+            res, N = self.MdB.select_dB(select_ = 'distinct(priority)', from_ = self.pending_table, 
+                                       where_ = 'status = 0', limit_=None, commit=True)
         except:
-            self.log_.error('Error looking for status=0 models in {0}'.format(self.pending_table), 
+            self.log_.error('Error looking for status=0 models in {0} - 1'.format(self.pending_table), 
                           calling='runCloudy.select_pending')
             self.selectedN = None
             return
-        if N == 0:
-            self.selectedN = None
-            return
+        if N == 1:
+            try:
+                res, N = self.MdB.select_dB(select_ = 'N', from_ = self.pending_table, 
+                                       where_ = 'status = 0', 
+                                       limit_=1, commit=True)
+                self.selectedN = res[0]['N']
+            except:
+                self.log_.error('Error looking for status=0 models in {0} - 2'.format(self.pending_table), 
+                              calling='runCloudy.select_pending')
+                self.selectedN = None
+                return
         else:
-            self.selectedN = res['N'][select_from_priorities(res['priority'])]
+            try:
+                res, N = self.MdB.select_dB(select_ = 'N, priority', from_ = self.pending_table, 
+                                           where_ = 'status = 0', limit_=None, format_='numpy', commit=True)
+            except:
+                self.log_.error('Error looking for status=0 models in {0} - 3'.format(self.pending_table), 
+                              calling='runCloudy.select_pending')
+                self.selectedN = None
+                return
+            if N == 0:
+                self.selectedN = None
+                return
+            else:
+                self.selectedN = res['N'][select_from_priorities(res['priority'])]
         
         command = 'UPDATE {0} SET `procID`={1}, `status`=1,`date_running`=now() WHERE N = {2} AND status=0'.format(self.pending_table, 
                                                                              self.procID, self.selectedN)   
