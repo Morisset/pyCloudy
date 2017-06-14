@@ -931,10 +931,10 @@ class C3D(object):
         if (Nx > size_x) or (Ny > size_y):
             pc.log_.warn('Nx and Ny must be smaller or equal to the size of the image ({0}x{1})'.format(size_x, size_y))
             return None
-        sx = size_x / Nx
-        sy = size_y / Ny
-        dx = (size_x - (sx * Nx)) / 2
-        dy = (size_y - (sy * Ny)) / 2
+        sx = int(size_x / Nx)
+        sy = int(size_y / Ny)
+        dx = int((size_x - (sx * Nx)) / 2)
+        dy = int((size_y - (sy * Ny)) / 2)
         fig = plt.figure(i_fig)
         for ix in np.arange(Nx):
             for iy in np.arange(Ny):
