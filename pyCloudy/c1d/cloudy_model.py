@@ -1516,6 +1516,8 @@ class CloudyModel(object):
         """
         if 'H__1__4861A' in self.emis_labels:
             return self.get_emis_vol('H__1__4861A') / (self.r_out_cut**2 * np.pi * 206265.**2)
+        elif 'H__1__486136A' in self.emis_labels:
+            return self.get_emis_vol('H__1__486136A') / (self.r_out_cut**2 * np.pi * 206265.**2)
         else:
             self.log_.warn('Hbeta emissivity not in emis file', calling = self.calling + '.get_Hb_SB')
     
@@ -1578,7 +1580,10 @@ class CloudyModel(object):
         where continuum(4860) is estimated by looking for the minimum of the net transmited continuum between
         4560 and 4860 on one side, and 4860 and 5160 on the other side, and meaning them.
         """
-        return self.get_EW('H__1__4861A', 4861, 4560, 5160)
+        if 'H__1__4861A' in self.emis_labels:
+            return self.get_EW('H__1__4861A', 4861, 4560, 5160)
+        elif 'H__1__486136A' in self.emis_labels:
+            return self.get_EW('H__1__486136A', 4861, 4560, 5160)
 
     ## Ha_EW = -\f$\lambda_\alpha$ x I$_\alpha^{line}$ / $\lambda.F_\alpha^{cont}\f$
     def get_Ha_EW(self):
@@ -1588,8 +1593,11 @@ class CloudyModel(object):
         where continuum(6563) is estimated by looking for the minimum of the net transmited continuum between
         6260 and 6560 on one side, and 6560 and 6860 on the other side, and meaning them.
         """
-        return self.get_EW('H__1__6563A', 6563., 6260, 6860)
-    
+        if 'H__1__6563A'in self.emis_labels:
+            return self.get_EW('H__1__6563A', 6563., 6260, 6860)
+        elif 'H__1__656285A'in self.emis_labels:
+            return self.get_EW('H__1__656285A', 6563., 6260, 6860)
+            
     ## is_valid_ion(elem, ion) return True if elem, ion is available in get_ionic.
     def is_valid_ion(self, elem, ion):        
         """
