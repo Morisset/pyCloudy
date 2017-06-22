@@ -799,6 +799,8 @@ class runCloudy(object):
         else:
             self.read_pending(N_pending)
             P = self.pending
+        if P is None:
+            pc.log_.error('No model corresponds to {}'.format(N_pending), calling='fill_CloudyInput')
         if dir is not None:
             P['dir'] = dir
         if type(parameters) is dict:
@@ -891,7 +893,7 @@ class runCloudy(object):
                 self.CloudyInput.print_input()
             self.update_status('Cloudy Input printed')
 
-def printInput(N, MdB= None, OVN_dic=None, dir='./', parameters=None, read_tab=False):
+def print_input(N, MdB= None, OVN_dic=None, dir='./', parameters=None, read_tab=False):
     """
     Procedure that print out the input file corresponding the entry N in the pending (or master) table of OVN_dic
     It does not write nothing in the database.
@@ -899,12 +901,14 @@ def printInput(N, MdB= None, OVN_dic=None, dir='./', parameters=None, read_tab=F
     """
     if MdB is None:
         MdB = pc.MdB(OVN_dic=OVN_dic)
+        close_after = True
     else:
         OVN_dic = MdB.OVN_dic
-    MdB = pc.MdB(OVN_dic)
+        close_after = False
     rc = runCloudy(MdB = MdB, do_update_status=False, register=False, models_dir='./')
     rc.fill_CloudyInput(N, dir=dir, parameters=parameters, read_tab=read_tab)
-    MdB.close_dB()
+    if close_after:
+        MdB.close_dB()
 
 class runCloudyByThread(threading.Thread):
 
