@@ -238,10 +238,10 @@ class MdB(object):
         req = 'SELECT {0} FROM {1} '.format(this_select, this_from)
         if where_ is not None:
             req += 'WHERE ({0}) '.format(this_where)
-        if order_ is not None:
-            req += 'ORDER BY {0} '.format(order_)
         if group_ is not None:
             req += 'GROUP BY {0} '.format(group_)
+        if order_ is not None:
+            req += 'ORDER BY {0} '.format(order_)
         if limit_ is not None:
             req += 'LIMIT {0:d}'.format(limit_)
             
