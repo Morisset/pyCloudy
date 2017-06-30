@@ -697,7 +697,7 @@ class runCloudy(object):
                                        limit_=1, commit=True)
                 self.selectedN = res[0]['N']
             except:
-                self.log_.error('Error looking for status=0 models in {0} - 2'.format(self.pending_table), 
+                self.log_.warn('Error looking for status=0 models in {0} - 2'.format(self.pending_table), 
                               calling='runCloudy.select_pending')
                 self.selectedN = None
                 return
@@ -1213,6 +1213,10 @@ class manage3MdB(object):
             self.all_threads.append(runCloudyByThread(self.OVN_dic, self.models_dir, norun=norun, noinput=noinput))
         for t in self.all_threads:
             t.start()
+            
+    def restart(self):
+        for t in self.all_threads:
+            t.start()        
     
     def stop(self):
         for t in self.all_threads: 
