@@ -283,6 +283,26 @@ class CloudyModel(object):
                 trans_line = lambda x: x
             lines = self._res[key]
             self.line_labels = np.asarray(lines.dtype.names[1::])
+            if self.cloudy_version_major > 13:
+                # We are with c17+ and will create emis_labels_13
+                self.line_labels_17 = self.line_labels
+                self.line_labels_13 = []
+                for label in self.line_labels:
+                    try:
+                        self.line_labels_13.append(convert_c17_c13(label))
+                    except:
+                        self.line_labels_13.append('')
+                self.line_labels_13 = np.array(self.line_labels_13, dtype=str)
+            else:
+                # We are with c13 and will create emis_labels_17
+                self.line_labels_13 = self.line_labels
+                self.line_labels_17 = []
+                for label in self.line_labels:
+                    try:
+                        self.line_labels_17.append(convert_c13_c17(label))
+                    except:
+                        self.line_labels_17.append('')            
+                self.line_labels_17 = np.array(self.line_labels_17, dtype=str)
             self.n_lines = np.size(self.line_labels)
             self.log_.message('Number of lines: {0.n_lines:d}'.format(self), calling = self.calling)
             self.lines = np.zeros(self.n_lines)
