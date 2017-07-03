@@ -39,5 +39,5 @@ Manual
   <https://sites.google.com/site/pycloudy/>`_ .
 
 * And the reference manual is accessible from this site `HERE
-  <https://morisset.github.io/pyCloudy_Manual/index.html>`_ .
+  <https://morisset.github.io/pyCloudy_Manual/html/index.html>`_ .
  
