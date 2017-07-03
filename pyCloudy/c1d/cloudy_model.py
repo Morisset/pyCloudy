@@ -1075,9 +1075,9 @@ class CloudyModel(object):
     def _i_line(self, ref):
         if type(ref) is str or type(ref) is np.str_:
             if ref in self.line_labels_13:                
-                to_return = np.argwhere(self.emis_labels_13 == ref)[0][0]
+                to_return = np.argwhere(self.line_labels_13 == ref)[0][0]
             elif ref in self.line_labels_17:                
-                to_return = np.argwhere(self.emis_labels_17 == ref)[0][0]
+                to_return = np.argwhere(self.line_labels_17 == ref)[0][0]
             else:
                 self.log_.warn(ref + ' is not a correct line reference - 1', calling = self.calling)
                 to_return = None
