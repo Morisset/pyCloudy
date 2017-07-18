@@ -1391,9 +1391,9 @@ class CloudyModel(object):
 
     def get_integ_spec(self, cont, lam_low, lam_high, unit='es'):
         """
-        Return the integral of the spectrum (in erg.s-1) between lam_low and lam_high (in AA)
+        Return the integral of the spectrum (in unit, see below) between lam_low and lam_high (in AA)
         unit : one of ['es', 'phs', 'esc', 'Wm', 'phsc']
-        e.g.: get_integ_spec('diffout', 5000, 6000)
+        example: get_integ_spec('diffout', 5000, 6000)
         """
         if unit == 'es':
             unitx = 'Ang'
