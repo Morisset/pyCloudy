@@ -8,6 +8,7 @@ if pc.config.INSTALLED['Image']:
     from PIL import Image
 if pc.config.INSTALLED['scipy']:
     from scipy import signal
+from scipy.integrate import trapz
 
 def execution_path(filename):
     return os.path.join(os.path.dirname(sys._getframe(1).f_code.co_filename), filename)
@@ -549,17 +550,65 @@ def correc_He1(tem=1e4, den=1e2, lambda_ = 5876, print_only_lambdas=False):
         CR += dd['a_i'] * t4**dd['b_i'] * np.exp(dd['c_i']/t4)
     CR *= 1./(1. + 3552*t4**0.55/dens)
     mask = t4 < 0.50
-    if type(mask) is bool or type(mask) is numpy.bool_:
+    if type(mask) is bool or type(mask) is np.bool_:
         if mask:
             CR = correc_He1(5000, den, lambda_=lambda_) - 1
     else:
         if mask.sum() > 0:
             CR[mask] = correc_He1(np.ones_like(dens[mask])*5000.00, dens[mask], lambda_=lambda_) - 1
     mask = t4 > 2.50
-    if type(mask) is bool or type(mask) is numpy.bool_:
+    if type(mask) is bool or type(mask) is np.bool_:
         if mask:
             CR = correc_He1(25000, den, lambda_=lambda_) - 1
     else:
         if mask.sum() > 0:
             CR[mask] = correc_He1(np.ones_like(dens[mask])*25000.00, dens[mask], lambda_=lambda_) - 1
     return(1. + CR)
+
+def mytrapz(yin, xin, xinf, xsup):
+    """
+    Trapeze integration, taking into account x-edges not on the x mesh
+    parameters:
+        - yin, xin: arrays for the integration
+        - xinf, xsup: values of the integration limits
+        The lower and higher borders are linearly interpolated.
+    """
+    if xin[-1] < xin[0]:
+        x = xin.copy()[::-1]
+        y = yin.copy()[::-1]
+    else:
+        x = xin.copy()
+        y = yin.copy()
+        
+    mask = (x > xinf) & (x < xsup)
+    try:
+        mask[np.where(mask)[0][0]-1] = True
+        exists_inf = True
+    except:
+        exists_inf = False
+    try:
+        mask[np.where(mask)[0][-1]+1] = True
+        exists_sup = True
+    except:
+        exists_sup = False
+    x = x[mask]
+    y = y[mask]
+    int_inner = trapz(y[1:-1], x[1:-1])
+    int_inf = trapz(y[1:], x[1:])
+    int_sup = trapz(y[:-1], x[:-1])
+    
+    xinf_inf = x[0]
+    xinf_sup = x[1]
+    if exists_inf:
+        coeff_inf = (xinf_sup - xinf) / (xinf_sup - xinf_inf) # -> 0 for xinf -> xinf_sup
+    else:
+        coeff_inf = 0.0
+    xsup_inf = x[-2]
+    xsup_sup = x[-1]
+    if exists_sup:
+        coeff_sup = (xsup_inf - xsup) / (xsup_inf - xsup_sup) # -> 0 for xsup -> xsup_inf
+    else:
+        coeff_sup = 0.0
+    res = int_inner + (int_inf - int_inner) * coeff_inf + (int_sup - int_inner) * coeff_sup
+
+    return res
