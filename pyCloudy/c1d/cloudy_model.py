@@ -6,7 +6,7 @@ import subprocess
 import random
 import time
 from ..utils.init import LIST_ELEM, LIST_ALL_ELEM, SYM2ELEM
-from ..utils.misc import sextract, cloudy2pyneb, convert_c13_c17, convert_c17_c13
+from ..utils.misc import sextract, cloudy2pyneb, convert_c13_c17, convert_c17_c13, mytrapz
 from ..utils.physics import ATOMIC_MASS
 if pc.config.INSTALLED['PyNeb']:
     import pyneb
@@ -379,7 +379,7 @@ class CloudyModel(object):
            
     def _init_cont(self):
         key = 'cont'
-        self._res[key] = self.read_outputs(key, usecols=(0, 1, 2, 3, 4, 5))
+        self._res[key] = self.read_outputs(key, usecols=(0, 1, 2, 3, 4, 5, 6))
 
     def _init_opd(self):
         key = 'opd'
@@ -1281,14 +1281,14 @@ class CloudyModel(object):
     def get_cont_y(self, cont='incid', unit='es', dist_norm='at_earth'):
         """
         param:
-            cont : one of ['incid','trans','diffout','ntrans','reflec']
-            unit : one of ['esc', 'ec3','es','esA','esAc','esHzc','Jy','Q', 'Wcmu', 'phs', 'phsmu']
+            cont : one of ['incid','trans','diffout','ntrans','reflec', 'total']
+            unit : one of ['esc', 'ec3','es','esA','esAc','esHzc','Jy','Q', 'Wcmu', 'WmHz', 'WmA', 'phs', 'phsmu', 'phsc', 'phsmuc']
             dist_norm : one of ['at_earth', 'r_out', a float for a distance in cm]
         return:
             continuum flux or intensity
         """
 
-        """ First define which of the 5 continua will be return """
+        """ First define which of the 6 continua will be return """
         if cont == 'incid':
             cont1 = self._res['cont']['incident'].copy()
         elif cont == 'trans':
@@ -1299,8 +1299,10 @@ class CloudyModel(object):
             cont1 = self._res['cont']['net_trans'].copy()
         elif cont == 'reflec':
             cont1 = self._res['cont']['reflec'].copy()
+        elif cont == 'total':
+            cont1 = self._res['cont']['total'].copy()
         else:
-            self.log_.warn("cont must be one of: ['incid','trans','diffout','ntrans','reflec']", calling = self.calling)
+            self.log_.warn("cont must be one of: ['incid','trans','diffout','ntrans','reflec', 'total']", calling = self.calling)
             cont1 = None
         
         inner_surface = 4. * np.pi * self.r_in ** 2.
@@ -1368,16 +1370,51 @@ class CloudyModel(object):
                 self.log_.warn('Scipy not found to integrate Q', calling = self.calling)
                 to_return = None
         elif unit == 'phs':
+            """photons.s-1"""
             to_return = cont1 / (self.get_cont_x(unit='Ryd') * pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * inner_surface
         elif unit == 'phsmu':
+            """photons.s-1.micron-1"""
             to_return = cont1 / (self.get_cont_x(unit='mu') * self.get_cont_x(unit='Ryd') * 
                                  pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * inner_surface
+        elif unit == 'phsc':
+            """photons.s-1.cm-2"""
+            to_return = cont1 / (self.get_cont_x(unit='Ryd') * pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * dist_fact
+        elif unit == 'phsmuc':
+            """photons.s-1.cm-2.micron"""
+            to_return = cont1 / (self.get_cont_x(unit='mu') * self.get_cont_x(unit='Ryd') * 
+                                 pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * dist_fact
         else:
             self.log_.warn("unit must be one of: ['esc', 'ec3','es','esA','esAc','esHzc','WmHz','Wcmu','Jy','Q']",
                             calling = self.calling)
             to_return = None        
         return to_return
 
+    def get_integ_spec(self, cont, lam_low, lam_high, unit='es'):
+        """
+        Return the integral of the spectrum (in erg.s-1) between lam_low and lam_high (in AA)
+        unit : one of ['es', 'phs', 'esc', 'Wm', 'phsc']
+        e.g.: get_integ_spec('diffout', 5000, 6000)
+        """
+        if unit == 'es':
+            unitx = 'Ang'
+            unity = 'esA'
+        elif unit == 'phs':
+            unitx = 'mu'
+            unity = 'phsmu'
+        elif unit == 'esc':
+            unitx = 'Ang'
+            unity = 'esAc'
+        elif unit == 'Wm':
+            unitx = 'Ang'
+            unity = 'WmA'
+        elif unit == 'phsc':
+            unitx = 'mu'
+            unity = 'phsmuc'
+        else:
+            self.log_.error("unit must be one of: ['es', 'phs', 'esc', 'Wm', 'phsc']", calling = self.calling)
+        integ = mytrapz(self.get_cont_y(cont=cont, unit=unity), self.get_cont_x(unitx), lam_low, lam_high)        
+        return integ
+            
     ## get_G0 = integral(f_lambda . dlambda) Between lam_min and lam_max (Ang), normalized by norm, in unit of W.m-2 or erg.cm-3
     def get_G0(self, lam_min = 913, lam_max = 1e8, dist_norm = 'r_out', norm = 1.6e-6, unit = 'Wm'):
         """
@@ -1617,7 +1654,7 @@ class CloudyModel(object):
             return self.get_EW('H__1__6563A', 6563., 6260, 6860)
         elif 'H__1_656285A'in self.emis_labels:
             return self.get_EW('H__1_656285A', 6563., 6260, 6860)
-            
+
     ## is_valid_ion(elem, ion) return True if elem, ion is available in get_ionic.
     def is_valid_ion(self, elem, ion):        
         """
@@ -1776,7 +1813,7 @@ class CloudyModel(object):
         except:
             pass
         try:
-            print(' H+ mass = {0.Hp_mass:.2e}, H mass = {0.H_mass:.2e}'.format(self))
+            print(' H+ mass = {0.Hp_mass:.2e}, H mass = {0.H_mass:.2e} N zones: {0.n_zones}'.format(self))
         except:
             pass
         try:
