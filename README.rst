@@ -38,11 +38,10 @@ Manual
 * But... there is some examples of use in the `pyCloudy home page
   <https://sites.google.com/site/pycloudy/>`_ .
   
+* And the reference manual is accessible from this site `HERE
+  <https://morisset.github.io/pyCloudy_Manual/html/index.html>`_ .
+ 
 Acknowledgements
 ================
 
 This project is partly supported by grants DGAPA/PAPIIT-107215 and CONACyT-CB2015-254132.
-
-* And the reference manual is accessible from this site `HERE
-  <https://morisset.github.io/pyCloudy_Manual/html/index.html>`_ .
- 
