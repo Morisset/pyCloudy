@@ -366,9 +366,12 @@ def pyneb2cloudy(file_ = 'pyneb2cloudy.txt', with_ = False):
         dic[line_py] = line_cl
     return dic
 
-def cloudy2pyneb(file_ = 'pyneb2cloudy.txt'):
+def cloudy2pyneb(file_ = 'pyneb2cloudy.txt', with_ = True):
     """
     define a dictionary to translate cloudy labels into pyneb atom.lines
+    e.g.: 'NE_3__3869A' : 'Ne3_3869A'
+    If with_ = False,
+    e.g.:  'N  2  6584A' : 'N2_6583A'
     """
     f = open(execution_path(file_), 'r')
     lines = f.readlines()
@@ -377,9 +380,14 @@ def cloudy2pyneb(file_ = 'pyneb2cloudy.txt'):
     for line in lines:
         if line[0] != '#':
             line_py = sextract(line, 0, ' ')
-            line_cl = line[14:25].upper().replace(' ','_').replace('.','')
-            if line_cl != '_____ABSENT':
-                dic[line_cl] = line_py.split('_')
+            if with_:
+                line_cl = line[14:25].upper().replace(' ','_').replace('.','')
+                if line_cl != '_____ABSENT':
+                    dic[line_cl] = line_py.split('_')
+            else:
+                line_cl = line[14:25]
+                if line_cl != '     ABSENT':
+                    dic[line_cl] = line_py
     return dic
 
 def convert2RGB(im_R, im_G, im_B):
