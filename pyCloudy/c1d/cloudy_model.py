@@ -400,8 +400,13 @@ class CloudyModel(object):
         key = 'gtemp'
         if int(self.cloudy_version_major) == 7:
             sk_header = 0
-        else:
+            sk_header2 = 1
+        elif int(self.cloudy_version_major) < 16:
             sk_header = 1
+            sk_header2 = 1
+        else :
+            sk_header = 0
+            sk_header2 = 0
         self._res[key] = self.read_outputs(key, skip_header=sk_header)
         if self._res[key] is not None:
             self.gtemp_labels = list(self._res[key].dtype.names[1:])
@@ -413,7 +418,7 @@ class CloudyModel(object):
                 self.gtemp_full[i] = gtemp[label][1::]
                 self.gsize[i] = gtemp[label][0]
         key = 'gabund'
-        self._res[key] = self.read_outputs(key, skip_header=1, usecols=np.arange(self.n_gtemp + 1))
+        self._res[key] = self.read_outputs(key, skip_header=sk_header2, usecols=np.arange(self.n_gtemp + 1))
         if self._res[key] is not None:
             self.gabund_labels = self._res[key].dtype.names[1:]
             gabund = self._res[key]
@@ -424,7 +429,7 @@ class CloudyModel(object):
                 self.gabund_full[i] = gabund[label][1::]
                 self.gasize[i] = gabund[label][0]
         key = 'gdgrat'
-        self._res[key] = self.read_outputs(key, skip_header=1, usecols=np.arange(self.n_gtemp + 1))
+        self._res[key] = self.read_outputs(key, skip_header=sk_header2, usecols=np.arange(self.n_gtemp + 1))
         if self._res[key] is not None:
             self.gdgrat_labels = self._res[key].dtype.names[1:]
             gdgrat = self._res[key]
@@ -1247,7 +1252,7 @@ class CloudyModel(object):
     def get_cont_x(self, unit='Ryd'):
         """
         param:
-            unit : one of ['Ryd','eV','Ang','mu','cm-1','Hz']
+            unit : one of ['Ryd','eV','Ang','mu','cm-1','Hz', 'kHz', 'MHz', 'GHz']
         return:
             continuum X: wavelength, energys, wv number, or frequency
         """
@@ -1270,6 +1275,10 @@ class CloudyModel(object):
             to_return = hnu * pc.CST.RYD
         elif unit == 'Hz':
             to_return = hnu * pc.CST.RYD * pc.CST.CLIGHT
+        elif unit == 'kHz':
+            to_return = hnu * pc.CST.RYD * pc.CST.CLIGHT / 1e3
+        elif unit == 'MHz':
+            to_return = hnu * pc.CST.RYD * pc.CST.CLIGHT / 1e6
         elif unit == 'GHz':
             to_return = hnu * pc.CST.RYD * pc.CST.CLIGHT / 1e9
         else:
@@ -1298,7 +1307,7 @@ class CloudyModel(object):
         elif cont == 'ntrans':
             cont1 = self._res['cont']['net_trans'].copy()
         elif cont == 'reflec':
-            cont1 = self._res['cont']['reflec'].copy()
+            cont1 = self._res['cont']['reflc'].copy()
         elif cont == 'total':
             cont1 = self._res['cont']['total'].copy()
         else:
@@ -1891,7 +1900,11 @@ def load_models(model_name = None, mod_list = None, n_sample = None, verbose = F
             model_name = outfile[0:-4]
         else:
             model_name = outfile
-        cm = CloudyModel(model_name, **kwargs)
+        try:
+            cm = CloudyModel(model_name, **kwargs)
+        except:
+            if verbose:
+                print('{0} model NOT read'.format(outfile[0:-4]))            
         if not cm.aborted:
             m.append(cm)
         if verbose:
