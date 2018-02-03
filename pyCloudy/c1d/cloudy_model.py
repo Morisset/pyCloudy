@@ -402,6 +402,9 @@ class CloudyModel(object):
             sk_header = 0
             sk_header2 = 1
         elif int(self.cloudy_version_major) < 16:
+            """
+            In versions previous c17, the grain files have 2 lines for the header!
+            """
             sk_header = 1
             sk_header2 = 1
         else :
@@ -412,7 +415,7 @@ class CloudyModel(object):
             self.gtemp_labels = list(self._res[key].dtype.names[1:])
             gtemp = self._res[key]
             self.n_gtemp = np.size(self.gtemp_labels)
-            self.gtemp_full = np.zeros((self.n_gtemp, np.size(gtemp) - 1))
+            self.gtemp_full = np.zeros((self.n_gtemp, np.size(gtemp) - sk_header2))
             self.gsize = np.zeros((self.n_gtemp))
             for i, label in enumerate(self.gtemp_labels):
                 self.gtemp_full[i] = gtemp[label][sk_header2::]
@@ -423,7 +426,7 @@ class CloudyModel(object):
             self.gabund_labels = self._res[key].dtype.names[1:]
             gabund = self._res[key]
             self.n_gabund = np.size(self.gabund_labels)
-            self.gabund_full = np.zeros((self.n_gabund, np.size(gabund) - 1))
+            self.gabund_full = np.zeros((self.n_gabund, np.size(gabund) - sk_header2))
             self.gasize = np.zeros((self.n_gabund))
             for i, label in enumerate(self.gabund_labels):
                 self.gabund_full[i] = gabund[label][sk_header2::]
@@ -434,7 +437,7 @@ class CloudyModel(object):
             self.gdgrat_labels = self._res[key].dtype.names[1:]
             gdgrat = self._res[key]
             self.n_gdgrat = np.size(self.gdgrat_labels)
-            self.gdgrat_full = np.zeros((self.n_gdgrat, np.size(gdgrat) - 1))
+            self.gdgrat_full = np.zeros((self.n_gdgrat, np.size(gdgrat) - sk_header2))
             self.gdsize = np.zeros((self.n_gdgrat))
             for i, label in enumerate(self.gdgrat_labels):
                 self.gdgrat_full[i] = gdgrat[label][sk_header2::]
