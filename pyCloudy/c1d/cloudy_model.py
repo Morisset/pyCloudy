@@ -415,7 +415,7 @@ class CloudyModel(object):
             self.gtemp_full = np.zeros((self.n_gtemp, np.size(gtemp) - 1))
             self.gsize = np.zeros((self.n_gtemp))
             for i, label in enumerate(self.gtemp_labels):
-                self.gtemp_full[i] = gtemp[label][1::]
+                self.gtemp_full[i] = gtemp[label][sk_header2::]
                 self.gsize[i] = gtemp[label][0]
         key = 'gabund'
         self._res[key] = self.read_outputs(key, skip_header=sk_header2, usecols=np.arange(self.n_gtemp + 1))
@@ -426,7 +426,7 @@ class CloudyModel(object):
             self.gabund_full = np.zeros((self.n_gabund, np.size(gabund) - 1))
             self.gasize = np.zeros((self.n_gabund))
             for i, label in enumerate(self.gabund_labels):
-                self.gabund_full[i] = gabund[label][1::]
+                self.gabund_full[i] = gabund[label][sk_header2::]
                 self.gasize[i] = gabund[label][0]
         key = 'gdgrat'
         self._res[key] = self.read_outputs(key, skip_header=sk_header2, usecols=np.arange(self.n_gtemp + 1))
@@ -437,7 +437,7 @@ class CloudyModel(object):
             self.gdgrat_full = np.zeros((self.n_gdgrat, np.size(gdgrat) - 1))
             self.gdsize = np.zeros((self.n_gdgrat))
             for i, label in enumerate(self.gdgrat_labels):
-                self.gdgrat_full[i] = gdgrat[label][1::]
+                self.gdgrat_full[i] = gdgrat[label][sk_header2::]
                 self.gdsize[i] = gdgrat[label][0]
         
     def _read_stout(self, emis_is_log):
