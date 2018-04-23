@@ -544,9 +544,9 @@ class CloudyModel(object):
                     dist_set = True
                 if not dist_set:
                     self.log_.warn('Unable to determine distance', calling = self.calling)
-            elif 'C3D' in line:
+            elif '#C3D' in line:
                 self.C3D_comments.append(line)
-            elif 'C **' in line:
+            elif '# **' in line:
                 self.comments.append(line)
             elif line[0:3] == ' C-':
                 self.cautions.append(line)
@@ -1587,6 +1587,8 @@ class CloudyModel(object):
             return self.get_emis_vol('H__1__4861A') / (self.r_out_cut**2 * np.pi * 206265.**2)
         elif 'H__1_486136A' in self.emis_labels:
             return self.get_emis_vol('H__1_486136A') / (self.r_out_cut**2 * np.pi * 206265.**2)
+        elif 'H__1_486133A' in self.emis_labels:
+            return self.get_emis_vol('H__1_486133A') / (self.r_out_cut**2 * np.pi * 206265.**2)
         else:
             self.log_.warn('Hbeta emissivity not in emis file', calling = self.calling + '.get_Hb_SB')
     
@@ -1653,6 +1655,8 @@ class CloudyModel(object):
             return self.get_EW('H__1__4861A', 4861, 4560, 5160)
         elif 'H__1_486136A' in self.emis_labels:
             return self.get_EW('H__1_486136A', 4861, 4560, 5160)
+        elif 'H__1_486133A' in self.emis_labels:
+            return self.get_EW('H__1_486133A', 4861, 4560, 5160)
 
     ## Ha_EW = -\f$\lambda_\alpha$ x I$_\alpha^{line}$ / $\lambda.F_\alpha^{cont}\f$
     def get_Ha_EW(self):
@@ -1666,6 +1670,8 @@ class CloudyModel(object):
             return self.get_EW('H__1__6563A', 6563., 6260, 6860)
         elif 'H__1_656285A'in self.emis_labels:
             return self.get_EW('H__1_656285A', 6563., 6260, 6860)
+        elif 'H__1_656281A'in self.emis_labels:
+            return self.get_EW('H__1_656281A', 6563., 6260, 6860)
 
     ## is_valid_ion(elem, ion) return True if elem, ion is available in get_ionic.
     def is_valid_ion(self, elem, ion):        
@@ -2251,7 +2257,7 @@ class CloudyInput(object):
         
     def set_comment(self, comment = None):
         """
-        Add special comment that will be added in the input file in the form of: C ** comment
+        Add special comment that will be added in the input file in the form of: # ** comment
          Parameter:
             - comment: if None, reset the list, otherwise, append its value to the list
         
@@ -2263,11 +2269,11 @@ class CloudyInput(object):
             for com in comment:
                 self.set_comment(com)
         else:        
-            self._comments.append('C ** {0}'.format(comment))    
+            self._comments.append('# ** {0}'.format(comment))    
     
     def set_C3D_comment(self, comment = None):
         """
-        Add special comment that will be added in the input file in the form of: C3D comment
+        Add special comment that will be added in the input file in the form of: #C3D comment
          Parameter:
             - comment: if None, reset the list, otherwise, append its value to the list
         
@@ -2279,7 +2285,7 @@ class CloudyInput(object):
             for com in comment:
                 self.set_C3D_comment(com)
         else:        
-            self._C3D.append('C3D {0}'.format(comment))
+            self._C3D.append('#C3D {0}'.format(comment))
             
     def set_distance(self, dist = None, unit='kpc', linear = True):
         """
