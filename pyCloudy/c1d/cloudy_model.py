@@ -2199,9 +2199,9 @@ class CloudyInput(object):
                 del self._input['phi'] 
             return None
         if theta is not None:
-            self._input['theta'] = 'c C3D theta = {0:.2f}'.format(theta)
+            self._input['theta'] = '#C3D theta = {0:.2f}'.format(theta)
         if phi is not None:
-            self._input['phi'] = 'c C3D phi = {0:.2f}'.format(phi)
+            self._input['phi'] = '#C3D phi = {0:.2f}'.format(phi)
 
     ## define the abundances
     def set_abund(self, predef = None, elem = None, value = None, nograins = True, 
