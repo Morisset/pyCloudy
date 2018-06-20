@@ -91,6 +91,7 @@ class CloudyModel(object):
     def __init__(self, model_name, verbose=None, 
                  read_all_ext = True, read_rad=True, read_phy=True, read_emis = True, read_grains = False, 
                  read_cont = True, read_heatcool = False, read_lin = False, read_opd = False, 
+                 read_pressure=False, read_abunds = False,
                  list_elem = LIST_ELEM, distance = None, line_is_log = False, 
                  emis_is_log = True, 
                  ionic_str_key = 'ele_'):
@@ -141,6 +142,10 @@ class CloudyModel(object):
                 self._init_grains()
             if read_heatcool:
                 self._init_heatcool()
+            if read_pressure:
+                self._init_pressure()
+            if read_abunds:
+                self._init_abunds()
     ##            
     # @var distance
     # distance to the object (kpc)
@@ -194,7 +199,9 @@ class CloudyModel(object):
         self.gdgrat_labels = None        
         self.plan_par = None
         self.Hbeta_full = None
-    
+        self.abunds_full = None
+        self.pressure_full = None
+        
     def _init_rad(self):
         key = 'rad'
         self._res[key] = self.read_outputs(key)
@@ -396,6 +403,56 @@ class CloudyModel(object):
             self.opd_absorp = self._res[key]['absorp']
             self.opd_scat = self._res[key]['scat']
             
+    def _init_abunds(self):
+        key = 'abunds'
+        self._res[key] = self.read_outputs(key)
+        self.abunds_full = self._res[key]  
+        names_translator = {'abund_H':'H',
+                            'HELI':'He',
+                            'LITH':'Li',
+                            'BERY':'Be',
+                            'BORO':'B',
+                            'CARB':'C',
+                            'NITR':'N',
+                            'OXYG':'O',
+                            'FLUO':'F',
+                            'NEON':'Ne',
+                            'SODI':'Na',
+                            'MAGN':'Mg',
+                            'ALUM':'Al',
+                            'SILI':'Si',
+                            'PHOS':'P',
+                            'SULP':'S',
+                            'CHLO':'Cl',
+                            'ARGO':'Ar',
+                            'POTA':'K',
+                            'CALC':'Ca',
+                            'SCAN':'Sc',
+                            'TITA':'Ti',
+                            'VANA':'V',
+                            'CHRO':'Cr',
+                            'MANG':'Mn',
+                            'IRON':'Fe',
+                            'COBA':'Co',
+                            'NICK':'Ni',
+                            'COPP':'Cu',
+                            'ZINC':'Zn'}
+        
+        ab_names = self.abunds_full.dtype.names
+        new_names = [names_translator[name] for name in ab_names]
+        self.abunds_full.dtype.names = new_names
+        for elem in self.abunds_full.dtype.names:
+            self.abunds_full[elem] -= np.log10(self.nH_full)
+    
+    def _init_pressure(self):
+        """
+        Pressure in dynes/cm2.
+        If P/k (in K.cm-3) is needed, divide by pc.CST.BOLTZMANN
+        """
+        key = 'pres'
+        self._res[key] = self.read_outputs(key)
+        self.pressure_full = self._res[key]['Pcurrent']
+        
     def _init_grains(self):
         key = 'gtemp'
         if int(self.cloudy_version_major) == 7:
@@ -1747,15 +1804,21 @@ class CloudyModel(object):
             spec = pyneb_atom.spec
         else:
             spec = pyneb_atom.spec - 1
-        
+        if self.abunds_full is None:
+            abunds = self.abund
+        else:
+            abunds = self.abunds_full
+            
+            
         if wave is not None:
             new_emis_full[-1, :] = pyneb_atom.getEmissivity(self.te_full, self.ne_full, wave = wave, product = False) * \
                                    self.ionic_full[pyneb_atom.elem][spec] * self.ne_full * \
-                                   self.nH_full * 10**self.abund[pyneb_atom.elem]
+                                   self.nH_full * 10**abunds[pyneb_atom.elem]
         else:
             new_emis_full[-1, :] = pyneb_atom.getEmissivity(self.te_full, self.ne_full, label = label, product = False) * \
                                    self.ionic_full[pyneb_atom.elem][spec] * self.ne_full * \
-                                   self.nH_full * 10**self.abund[pyneb_atom.elem]
+                                   self.nH_full * 10**abunds[pyneb_atom.elem]
+                                   
         new_emis_labels = np.zeros(len(self.emis_labels)+1, dtype=self.emis_labels.dtype)
         new_emis_labels[:-1] = self.emis_labels
         new_emis_labels[-1] = new_label
@@ -1772,10 +1835,10 @@ class CloudyModel(object):
         """
         plot the spectrum of the model.
         parameters:
-            - xunit ['eV']
-            - cont ['ntrans']
-            - yunit ['es']
-            - ax
+            - xunit ['eV']. See get_cont_y for details
+            - cont ['ntrans']. See get_cont_y for details
+            - yunit ['es']. See get_cont_y for details
+            - ax: axis matplotlib object
             - xlog [True]
             - ylog [True]
             - **kargv passed to the plot.
