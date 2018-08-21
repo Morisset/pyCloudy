@@ -976,15 +976,15 @@ class C3D(object):
         if axis == 'x' or axis == 0:
             sum_axis = 0
             vel = self.cub_coord.vel_x
-            res = np.zeros((self.size_spectrum,self.cub_coord.dim_y,self.cub_coord.dim_z))
+            res = np.zeros((self.size_spectrum,self.cub_coord.dim_y,self.cub_coord.dim_z)).squeeze()
         elif axis == 'y' or axis == 1:
             sum_axis = 1
             vel = self.cub_coord.vel_y
-            res = np.zeros((self.size_spectrum,self.cub_coord.dim_x,self.cub_coord.dim_z))
+            res = np.zeros((self.size_spectrum,self.cub_coord.dim_x,self.cub_coord.dim_z)).squeeze()
         elif axis == 'z' or axis == 2:
             sum_axis = 2
             vel = self.cub_coord.vel_z
-            res = np.zeros((self.size_spectrum,self.cub_coord.dim_x,self.cub_coord.dim_y))
+            res = np.zeros((self.size_spectrum,self.cub_coord.dim_x,self.cub_coord.dim_y)).squeeze()
         for i in np.arange(self.size_spectrum):
             delta_v = vel + self.vel_tab[i]
             try:
