@@ -550,6 +550,8 @@ class CloudyModel(object):
                 self.out['GrainChem'] = next(file_)
             elif 'Dust to gas ratio' in line:
                 self.out['D/G'] = line
+            elif "* grains" in line:
+                self.out['grains'] = line
             elif 'iterate' in line:
                 self.out['iterate'] = line
             elif 'Hi-Con' in line:
