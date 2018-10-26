@@ -2088,18 +2088,22 @@ class CloudyInput(object):
             lumi = '{0} = {1:.3f}'.format(lumi_unit, lumi_value)
             self._SEDs.append((shape, lumi))
         
-    def set_cste_density(self, dens = None, ff = None):
+    def set_cste_density(self, dens = None, ff = None, others = None):
         """
         Set the density of the model to a constant value
         Parameters:
             - dens:    the density (in log(cm-3))
             - ff:    filling factor (unused if None, default value)
+            - others: any string to be added to hden command
         """
         if dens is None:
             self._density = None
             self._filling_factor = None
             return None
-        self._density = 'hden = {0:.3f}'.format(dens)
+        if others is None:
+            self._density = 'hden = {0:.3f}'.format(dens)
+        else:
+            self._density = 'hden = {0:.3f}, {1}'.format(dens, others)
         if ff is not None:
             if type(ff) == type(()) or type(ff) == type([]):
                 self._filling_factor = 'filling factor = {0[0]:f} {0[1]:f}'.format(ff)
