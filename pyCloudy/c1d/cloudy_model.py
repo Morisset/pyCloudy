@@ -2205,7 +2205,7 @@ class CloudyInput(object):
             else:
                 self._stop.append(stop_criter)
     
-    def read_emis_file(self, emis_file, N_char=12):
+    def read_emis_file(self, emis_file, N_char=14):
         """
         Define the name of the file containing the labels for the list of emissivities to output
             in the .emis file
