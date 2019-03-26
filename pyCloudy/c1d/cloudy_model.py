@@ -801,6 +801,12 @@ class CloudyModel(object):
         """ array of Te.ne.nH (on r_range)"""
         return self._get_over_range(self.tenenH_full)
 
+    ## Abundances
+    @property
+    def abunds(self):
+        """ array of abundances (on r_range)"""
+        return self._get_over_range(self.abunds_full)
+
     ## filling factor [float array]
     @property
     def ff(self):
