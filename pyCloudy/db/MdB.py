@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import numpy as np
 from getpass import getpass
@@ -113,8 +114,12 @@ class MdB(object):
         if self.connected:
             self.log_.warn('Already connected', calling = self.calling)
             return None
-        try:
-            self._dB = self.SQLdb.connect(host = self.host, user = self.user_name, passwd = self.user_passwd, 
+        try:            
+            if self.unix_socket is None or sys.version_info[0] >= 3:
+                self._dB = self.SQLdb.connect(host = self.host, user = self.user_name, passwd = self.user_passwd, 
+                                        db = self.base_name, port = self.port)
+            else:
+                self._dB = self.SQLdb.connect(host = self.host, user = self.user_name, passwd = self.user_passwd, 
                                         db = self.base_name, port = self.port, unix_socket = self.unix_socket)
             self.connected = True
             self.log_.message('Connected to {0}'.format(self.host), calling = self.calling)

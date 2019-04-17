@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import time
 import threading
@@ -639,7 +640,6 @@ class runCloudy(object):
         for line in self.lines:
             ide = line['id']
             lambda_ = line['lambda']
-            unit = line['label'][-1]
             if lambda_ > 1000:
                 lambda_str = '{0:5.0f}'.format(lambda_)
             elif lambda_ > 100:
@@ -648,7 +648,12 @@ class runCloudy(object):
                 lambda_str = '{0:5.2f}'.format(lambda_)
             else:
                 lambda_str = '{0:5.3f}'.format(lambda_)
-            emis_tab.append('{0} {1}{2}'.format(ide, lambda_str, unit))
+            if sys.version_info[0] >= 3:
+                unit = line['label'].decode()[-1]
+                emis_tab.append('{0} {1}{2}'.format(ide.decode(), lambda_str, unit))
+            else:
+                unit = line['label'][-1]
+                emis_tab.append('{0} {1}{2}'.format(ide, lambda_str, unit))
         return emis_tab
     
     def init_CloudyInput(self):
