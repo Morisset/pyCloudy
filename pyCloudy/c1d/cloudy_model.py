@@ -1817,8 +1817,9 @@ class CloudyModel(object):
         else:
             abunds = self.abunds_full
             
-            
+        self.log_.message('Doing atom {} {} {}'.format(pyneb_atom, wave, label))
         if wave is not None:
+            
             new_emis_full[-1, :] = pyneb_atom.getEmissivity(self.te_full, self.ne_full, wave = wave, product = False) * \
                                    self.ionic_full[pyneb_atom.elem][spec] * self.ne_full * \
                                    self.nH_full * 10**abunds[pyneb_atom.elem]
