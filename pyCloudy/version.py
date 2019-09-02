@@ -1,4 +1,4 @@
 """
 This is the version of pyCloudy package
 """
-__version__ = '0.9.8b5'
+__version__ = '0.9.8b6'
