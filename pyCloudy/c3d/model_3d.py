@@ -954,7 +954,10 @@ class C3D(object):
                     ax.xaxis.set_ticklabels([])
                     ax.yaxis.set_ticklabels([])
                     if transp:
-                        ax.axesPatch.set_alpha(0.0)
+                        try:
+                            ax.axesPatch.set_alpha(0.0)
+                        except:
+                            ax.patch.set_alpha(0.0)
     
     def _calc_profile(self, ref, axis):
         """
