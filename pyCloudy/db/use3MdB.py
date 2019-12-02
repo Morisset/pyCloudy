@@ -382,6 +382,8 @@ class writeTab(object):
         self._dic = {}
         self.selectedN = None
         self.do_update_status = do_update_status
+        self.O2rec = pn.RecAtom('O',2)
+        self.N2rec = pn.RecAtom('N',2)
          
     def insert_in_dic(self, key, value):
         
@@ -501,6 +503,16 @@ class writeTab(object):
     def lines2dic(self):
         
         if self.CloudyModel.n_zones > 1:
+            # Adding some recombination lines from PyNeb
+            for label in ('4638.86', '4641.81', '4649.13', '4650.84', '4661.63', 
+                          '4673.73', '4676.23', '4696.35', '4069.88', '4072.15', 
+                          '4075.86', '4078.84', '4085.11', '4092.93'):
+                new_label = 'O_2R_{}A_PN'.format(''.join(label.split('.')))
+                self.CloudyModel.add_emis_from_pyneb(new_label, self.O2rec, label)
+            for label in ('5666.63', '5676.02', '5679.56', '5686.21', '5710.77'):
+                new_label = 'N_2R_{}A_PN'.format(''.join(label.split('.')))
+                self.CloudyModel.add_emis_from_pyneb(new_label, self.N2rec, label)
+        
             for clabel in self.CloudyModel.emis_labels:
                 self.insert_in_dic(clabel, self.CloudyModel.get_emis_vol(clabel))
                 self.insert_in_dic(clabel+'_rad', self.CloudyModel.get_emis_rad(clabel))
@@ -639,21 +651,22 @@ class runCloudy(object):
         emis_tab = []
         for line in self.lines:
             ide = line['id']
-            lambda_ = line['lambda']
-            if lambda_ > 1000:
-                lambda_str = '{0:5.0f}'.format(lambda_)
-            elif lambda_ > 100:
-                lambda_str = '{0:5.1f}'.format(lambda_)
-            elif lambda_ > 10:
-                lambda_str = '{0:5.2f}'.format(lambda_)
-            else:
-                lambda_str = '{0:5.3f}'.format(lambda_)
-            if sys.version_info[0] >= 3:
-                unit = line['label'].decode()[-1]
-                emis_tab.append('{0} {1}{2}'.format(ide.decode(), lambda_str, unit))
-            else:
-                unit = line['label'][-1]
-                emis_tab.append('{0} {1}{2}'.format(ide, lambda_str, unit))
+            if ide[-2:] != 'PN':
+                lambda_ = line['lambda']
+                if lambda_ > 1000:
+                    lambda_str = '{0:5.0f}'.format(lambda_)
+                elif lambda_ > 100:
+                    lambda_str = '{0:5.1f}'.format(lambda_)
+                elif lambda_ > 10:
+                    lambda_str = '{0:5.2f}'.format(lambda_)
+                else:
+                    lambda_str = '{0:5.3f}'.format(lambda_)
+                if sys.version_info[0] >= 3:
+                    unit = line['label'].decode()[-1]
+                    emis_tab.append('{0} {1}{2}'.format(ide.decode(), lambda_str, unit))
+                else:
+                    unit = line['label'][-1]
+                    emis_tab.append('{0} {1}{2}'.format(ide, lambda_str, unit))
         return emis_tab
     
     def init_CloudyInput(self):
