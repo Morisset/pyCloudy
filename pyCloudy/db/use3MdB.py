@@ -299,6 +299,8 @@ class writePending(object):
     def set_C_version(self, version=None):
         if version in pc.config.cloudy_dict:
             self.insert_in_dic('C_version', version)
+        else:
+            self.log_.error('Unknown Cloudy version {}'.format(version))
 
     def insert_model(self, verbose_only=False, status=None):
         
@@ -362,7 +364,10 @@ def insert_SED(MdB, seds_table, ref, sed_name, atm_cmd, atm_file, atm1=None, atm
 class writeTab(object):
     
     def __init__(self, MdB=None, OVN_dic=None, models_dir = './', do_update_status=True):
-        
+        """
+        This object is in charge of filling the tab database table with the 
+        results of the model.
+        """
         self.log_ = pc.log_
         if MdB is None:
             MdB = pc.MdB(OVN_dic=OVN_dic)
@@ -376,15 +381,16 @@ class writeTab(object):
         self.OVN_dic = OVN_dic
         self.table = OVN_dic['master_table']
         self.pending_table = OVN_dic['pending_table']
+        self.lines_table = OVN_dic['lines_table']
         self.models_dir = models_dir
         self.fields = self.MdB.get_fields(from_ = self.table)
         self.pending_fields = self.MdB.get_fields(from_ = self.pending_table)
         self._dic = {}
         self.selectedN = None
         self.do_update_status = do_update_status
-        self.O2rec = pn.RecAtom('O',2)
-        self.N2rec = pn.RecAtom('N',2)
-         
+        self.RecDic = {'O_2R': pn.RecAtom('O', 2),
+                       'N_2R': pn.RecAtom('N', 2)}
+        
     def insert_in_dic(self, key, value):
         
         if value is not None and np.isreal(value):
@@ -398,7 +404,7 @@ class writeTab(object):
             if key in self.fields:
                 self._dic[key] = value
             else:
-                self.log_.error('Not a valid field {0}'.format(key))
+                self.log_.warn('Not a valid field {0}'.format(key), calling='insert_in_dic')
     
     def update_status(self, status):
         
@@ -467,6 +473,17 @@ class writeTab(object):
         self.insert_in_dic('logPhi1', np.log10(self.CloudyModel.Phi[1]))
         self.insert_in_dic('logPhi2', np.log10(self.CloudyModel.Phi[2]))
         self.insert_in_dic('logPhi3', np.log10(self.CloudyModel.Phi[3]))
+        for E in ('11.26', '35.12', '40.73', '47.45', '77.41', '113.90', 
+                  '138.12', '151.06', '233.60', '262.10', '361.00'):
+            Eev = float(E)
+            logQE = np.log10(self.CloudyModel.get_interp_cont(x_value=Eev,
+                                                                         x_unit='eV',
+                                                                         unit='Q'))
+            logPhiE = logQE - np.log10(4 * np.pi * self.CloudyModel.radius[0]**2)
+            
+            self.insert_in_dic('logQ{}'.format(E), logQE)
+            self.insert_in_dic('logPhi{}'.format(E), logPhiE)
+            
         self.insert_in_dic('Cloudy_version', self.CloudyModel.cloudy_version)
         if self.CloudyModel.n_zones > 1:
             self.insert_in_dic('DepthFrac', self.CloudyModel.depth[-1] / self.CloudyModel.depth_full[-1])
@@ -499,24 +516,44 @@ class writeTab(object):
             self.insert_in_dic('Hb_SB', self.CloudyModel.get_Hb_SB())
             self.insert_in_dic('Hb_EW', self.CloudyModel.get_Hb_EW())
             self.insert_in_dic('Ha_EW', self.CloudyModel.get_Ha_EW())
-                 
+            try:
+                Radio = self.CloudyModel.get_interp_cont(unit='WmHz', x_unit='GHz', x_value=2.5)
+                self.insert_in_dic('Radio_2.5GHz', Radio)
+            except:
+                self.insert_in_dic('Radio_2.5GHz', -40)
+            try:
+                Radio = self.CloudyModel.get_interp_cont(unit='WmHz', x_unit='GHz', x_value=4.9)
+                self.insert_in_dic('Radio_4.9GHz', Radio)
+            except:
+                self.insert_in_dic('Radio_4.9GHz', -40)
+            try:
+                Radio = self.CloudyModel.get_interp_cont(unit='WmHz', x_unit='GHz', x_value=12.)
+                self.insert_in_dic('Radio_12GHz', Radio)
+            except:
+                self.insert_in_dic('Radio_12GHz', -40)
+            try:
+                Radio = self.CloudyModel.get_interp_cont(unit='WmHz', x_unit='GHz', x_value=20.)
+                self.insert_in_dic('Radio_20GHz', Radio)
+            except:
+                self.insert_in_dic('Radio_20GHz', -40)
+                
     def lines2dic(self):
         
         if self.CloudyModel.n_zones > 1:
             # Adding some recombination lines from PyNeb
-            for label in ('4638.86', '4641.81', '4649.13', '4650.84', '4661.63', 
-                          '4673.73', '4676.23', '4696.35', '4069.88', '4072.15', 
-                          '4075.86', '4078.84', '4085.11', '4092.93'):
-                new_label = 'O_2R_{}A_PN'.format(''.join(label.split('.')))
-                self.CloudyModel.add_emis_from_pyneb(new_label, self.O2rec, label)
-            for label in ('5666.63', '5676.02', '5679.56', '5686.21', '5710.77'):
-                new_label = 'N_2R_{}A_PN'.format(''.join(label.split('.')))
-                self.CloudyModel.add_emis_from_pyneb(new_label, self.N2rec, label)
-        
+            self.lines, N_lines = self.MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
+                                                where_='used = 1', limit_=None, format_='numpy', 
+                                                dtype_=[('id', 'U20'), ('lambda', '<f8'), ('label', 'U15'), ('name', 'U40')])
+            for line in self.lines:
+                label = line['label']
+                if label[-2:] == 'PN' and label not in self.CloudyModel.emis_labels:
+                    atom = self.RecDic[label[0:4]]
+                    self.CloudyModel.add_emis_from_pyneb(label, atom, line['name'].split()[2])
+                    
             for clabel in self.CloudyModel.emis_labels:
                 self.insert_in_dic(clabel, self.CloudyModel.get_emis_vol(clabel))
                 self.insert_in_dic(clabel+'_rad', self.CloudyModel.get_emis_rad(clabel))
-                  
+
     def insert_model(self, add2dic=None):
         if not self.MdB.connected:
             self.log_.error('Not connected')
@@ -601,7 +638,11 @@ class writeTab(object):
             for clabel in self.CloudyModel.emis_labels:
                 try:
                     fields_str += '`T_{0}`, '.format(clabel)
-                    values_tem_str += '{0}, '.format(self.CloudyModel.get_T0_emis(clabel))
+                    t_emis = self.CloudyModel.get_T0_emis(clabel)
+                    if np.isfinite(t_emis):
+                        values_tem_str += '{0}, '.format(t_emis)
+                    else:
+                        values_tem_str += '0.0,'
                 except:
                     pass
             fields_str = fields_str[:-2]
@@ -641,7 +682,8 @@ class runCloudy(object):
         self.models_dir = models_dir
         self.do_update_status = do_update_status        
         self.lines, N_lines = MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
-                                           where_='used = 1', limit_=None, format_='numpy')
+                                           where_='used = 1', limit_=None, format_='numpy', 
+                                           dtype_=[('id', 'U20'), ('lambda', '<f8'), ('label', 'U15'), ('name', 'U40')])
        
         if register:
             self.get_ID()
@@ -651,22 +693,21 @@ class runCloudy(object):
         emis_tab = []
         for line in self.lines:
             ide = line['id']
-            if ide[-2:] != 'PN':
+            label = line['label']
+            if label[-2:] != 'PN':
                 lambda_ = line['lambda']
                 if lambda_ > 1000:
-                    lambda_str = '{0:5.0f}'.format(lambda_)
-                elif lambda_ > 100:
-                    lambda_str = '{0:5.1f}'.format(lambda_)
-                elif lambda_ > 10:
                     lambda_str = '{0:5.2f}'.format(lambda_)
-                else:
+                elif lambda_ > 100:
                     lambda_str = '{0:5.3f}'.format(lambda_)
-                if sys.version_info[0] >= 3:
-                    unit = line['label'].decode()[-1]
-                    emis_tab.append('{0} {1}{2}'.format(ide.decode(), lambda_str, unit))
+                elif lambda_ > 10:
+                    lambda_str = '{0:5.4f}'.format(lambda_)
                 else:
-                    unit = line['label'][-1]
-                    emis_tab.append('{0} {1}{2}'.format(ide, lambda_str, unit))
+                    lambda_str = '{0:5.5f}'.format(lambda_)
+                unit = line['label'][-1]
+                if unit == 'C':
+                    unit = 'M'
+                emis_tab.append('{0} {1}{2}'.format(ide, lambda_str, unit))
         return emis_tab
     
     def init_CloudyInput(self):
@@ -684,7 +725,12 @@ class runCloudy(object):
             return None
         
         host = os.getenv('HOST')
+        if host is None:
+            host = os.getenv('HOSTNAME')
+        if host is None:
+            host = 'localhost'
         user = os.getenv('USER')
+        print(table, self.proc_name, user, host)
         command = 'INSERT INTO {0} (`proc_name`, `datetime`, `user`, `host`) VALUES ("{1:s}", now(), "{2:s}", "{3:s}");'.format(table, self.proc_name, user, host)
         self.MdB.exec_dB(command)
         res, N = self.MdB.select_dB(select_='last_insert_id()', from_=table)
@@ -930,7 +976,7 @@ def print_input(N, MdB= None, OVN_dic=None, dir='./', parameters=None, read_tab=
 
 class runCloudyByThread(threading.Thread):
 
-    def __init__(self, OVN_dic, models_dir, norun=False, noinput=False):
+    def __init__(self, OVN_dic, models_dir, norun=False, noinput=False, clean=True):
         
         self.log_ = pc.log_
         threading.Thread.__init__(self)
@@ -943,6 +989,7 @@ class runCloudyByThread(threading.Thread):
         self.setDaemon(True)
         self.OVN_dic = OVN_dic
         self.calling = 'runCloudyByThread'
+        self.clean = clean
     
     def run(self):
         
@@ -993,7 +1040,8 @@ class runCloudyByThread(threading.Thread):
                                 wT.CloudyModel.Hbeta_cut = Hbeta_cut * wT.CloudyModel.Hbeta_full[-1]
                                 wT.insert_model()
                                 master_N.append(wT.last_N)
-                    wT.clean_files()
+                    if self.clean:
+                        wT.clean_files()
                     self.log_.message('model {0} finished, inserted into {1}.'.format(self.selectedN, master_N), 
                                  calling=self.calling)
             else:
@@ -1220,15 +1268,19 @@ class ObsfromMdB(object):
 
 class manage3MdB(object):
     
-    def __init__(self, OVN_dic, models_dir='/DATA/MdB', Nprocs=pn.config.Nprocs):
+    def __init__(self, OVN_dic, models_dir='/DATA/MdB', Nprocs=pn.config.Nprocs,
+                 clean=True):
         self.OVN_dic = OVN_dic
         self.models_dir = models_dir
         self.Nprocs = Nprocs
+        self.clean = clean
                 
-    def start(self, norun=False, noinput=False):
+    def start(self, norun=False, noinput=False, clean=True):
         self.all_threads = []
         for i in range(self.Nprocs):
-            self.all_threads.append(runCloudyByThread(self.OVN_dic, self.models_dir, norun=norun, noinput=noinput))
+            self.all_threads.append(runCloudyByThread(self.OVN_dic, self.models_dir, 
+                                                      norun=norun, noinput=noinput,
+                                                      clean=self.clean))
         for t in self.all_threads:
             t.start()
             

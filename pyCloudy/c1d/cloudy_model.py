@@ -12,9 +12,10 @@ if pc.config.INSTALLED['PyNeb']:
     import pyneb
 if pc.config.INSTALLED['scipy']:
     from scipy.integrate import cumtrapz
+    from scipy.interpolate import interp1d
 if pc.config.INSTALLED['plt']:
     import matplotlib.pyplot as plt
-    
+
 ##
 # @bug There is a problem for plan parallel models (yes Will, you are right!) (when depth << radius) 
 # it can be that all the values in radius are the same, which gives pb to m_cut etc
@@ -355,7 +356,15 @@ class CloudyModel(object):
             for i, label in enumerate(self.emis_labels):
                 self.emis_full[i] = trans_emis(emis[label])
             if 'H__1__4861A' in self.emis_labels:
-                self.Hbeta_full = (self.get_emis('H__1__4861A') * self.dvff).cumsum()
+                self.Hbeta_label = 'H__1__4861A'
+            elif 'H__1_486133A' in self.emis_labels:
+                self.Hbeta_label = 'H__1_486133A'
+            elif 'H__1_486136A' in self.emis_labels:
+                self.Hbeta_label = 'H__1_486136A'
+            else:
+                self.Hbeta_label = None
+            if self.Hbeta_label is not None:
+                self.Hbeta_full = (self.get_emis(self.Hbeta_label) * self.dvff).cumsum()
                 self.__Hbeta_cut = self.Hbeta_full[-1]
 
     def _init_ionic(self, elem, str_key = 'ele_'):
@@ -1468,8 +1477,9 @@ class CloudyModel(object):
 
     def get_integ_spec(self, cont, lam_low, lam_high, unit='es'):
         """
-        Return the integral of the spectrum (in unit, see below) between lam_low and lam_high (in AA)
+        Return the integral of the spectrum (in unit, see below) between lam_low and lam_high
         unit : one of ['es', 'phs', 'esc', 'Wm', 'phsc']
+        unit for lam_low and lam_high: Angstrom, except if unit in ('phs', 'phsc'): micron
         example: get_integ_spec('diffout', 5000, 6000)
         """
         if unit == 'es':
@@ -1492,6 +1502,18 @@ class CloudyModel(object):
         integ = mytrapz(self.get_cont_y(cont=cont, unit=unity), self.get_cont_x(unitx), lam_low, lam_high)        
         return integ
             
+    def get_interp_cont(self, cont='incid', unit='es', dist_norm='at_earth',
+                        x_value=4686.0, x_unit='Ang'):
+        """
+        Return the value of the continuum at a given wavelength/energy value
+        """
+        
+        cont_x = self.get_cont_x(unit=x_unit)
+        cont_y = self.get_cont_y(cont=cont, unit=unit, dist_norm=dist_norm)
+        interp_cont = interp1d(cont_x, cont_y)
+        return interp_cont(x_value)
+        
+    
     ## get_G0 = integral(f_lambda . dlambda) Between lam_min and lam_max (Ang), normalized by norm, in unit of W.m-2 or erg.cm-3
     def get_G0(self, lam_min = 913, lam_max = 1e8, dist_norm = 'r_out', norm = 1.6e-6, unit = 'Wm'):
         """
@@ -1618,7 +1640,7 @@ class CloudyModel(object):
     def Hbeta(self):
         """Return the intensity of Hbeta"""
         try:
-            return self.get_emis_vol('H__1__4861A')
+            return self.get_emis_vol(self.Hbeta_label)
         except:
             self.log_.warn('H beta not available', calling = self.calling)
             return None
@@ -1648,12 +1670,8 @@ class CloudyModel(object):
         Hbeta surface brightness:
         Returns Ibeta / (Rout**2 * pi * 206265.**2)
         """
-        if 'H__1__4861A' in self.emis_labels:
-            return self.get_emis_vol('H__1__4861A') / (self.r_out_cut**2 * np.pi * 206265.**2)
-        elif 'H__1_486136A' in self.emis_labels:
-            return self.get_emis_vol('H__1_486136A') / (self.r_out_cut**2 * np.pi * 206265.**2)
-        elif 'H__1_486133A' in self.emis_labels:
-            return self.get_emis_vol('H__1_486133A') / (self.r_out_cut**2 * np.pi * 206265.**2)
+        if self.Hbeta_label is not None:
+            return self.get_emis_vol(self.Hbeta_label) / (self.r_out_cut**2 * np.pi * 206265.**2)
         else:
             self.log_.warn('Hbeta emissivity not in emis file', calling = self.calling + '.get_Hb_SB')
     
@@ -1716,12 +1734,7 @@ class CloudyModel(object):
         where continuum(4860) is estimated by looking for the minimum of the net transmited continuum between
         4560 and 4860 on one side, and 4860 and 5160 on the other side, and meaning them.
         """
-        if 'H__1__4861A' in self.emis_labels:
-            return self.get_EW('H__1__4861A', 4861, 4560, 5160)
-        elif 'H__1_486136A' in self.emis_labels:
-            return self.get_EW('H__1_486136A', 4861, 4560, 5160)
-        elif 'H__1_486133A' in self.emis_labels:
-            return self.get_EW('H__1_486133A', 4861, 4560, 5160)
+        return self.get_EW(self.Hbeta_label, 4861, 4560, 5160)
 
     ## Ha_EW = -\f$\lambda_\alpha$ x I$_\alpha^{line}$ / $\lambda.F_\alpha^{cont}\f$
     def get_Ha_EW(self):
@@ -1827,17 +1840,14 @@ class CloudyModel(object):
             new_emis_full[-1, :] = pyneb_atom.getEmissivity(self.te_full, self.ne_full, label = label, product = False) * \
                                    self.ionic_full[pyneb_atom.elem][spec] * self.ne_full * \
                                    self.nH_full * 10**abunds[pyneb_atom.elem]
-                                   
-        new_emis_labels = np.zeros(len(self.emis_labels)+1, dtype=self.emis_labels.dtype)
-        new_emis_labels[:-1] = self.emis_labels
-        new_emis_labels[-1] = new_label
+                                           
+        self.emis_full = new_emis_full        
+        self.emis_labels = np.append(self.emis_labels, new_label)
         
-        self.emis_full = new_emis_full
-        self.emis_labels = new_emis_labels
         if self.cloudy_version_major > 16:
-            self.emis_labels_17 = new_emis_labels
+            self.emis_labels_17 = self.emis_labels 
         else:
-            self.emis_labels_13 = new_emis_labels
+            self.emis_labels_13 = self.emis_labels 
     
     def plot_spectrum(self, xunit='eV', cont='ntrans', yunit='es', ax=None, 
                       xlog=True, ylog=True, **kargv):

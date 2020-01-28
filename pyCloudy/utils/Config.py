@@ -18,7 +18,8 @@ class _Config(object):
         
         self.cloudy_dict = {'10.00': '/usr/local/Cloudy/c10.00/cloudy.exe',
                             '13.03': '/usr/local/Cloudy/c13.03/source/cloudy.exe',
-                            '17.00': '/usr/local/Cloudy/c17.00/source/cloudy.exe'}
+                            '17.00': '/usr/local/Cloudy/c17.00/source/cloudy.exe',
+                            '17.01': '/usr/local/Cloudy/c17.01/source/cloudy.exe'}
             
         self.INSTALLED ={}
         try:
