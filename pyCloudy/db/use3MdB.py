@@ -572,7 +572,7 @@ class writeTab(object):
                 self.insert_in_dic(key, add2dic[key])
         
         fields_str = '`datetime`, `host`, '
-        values_str = 'now(), {}, '.format(self.host)
+        values_str = "now(), '{}', ".format(self.host)
         
         for key in self._dic:
             if self._dic[key] is not None:
