@@ -390,6 +390,11 @@ class writeTab(object):
         self.do_update_status = do_update_status
         self.RecDic = {'O_2R': pn.RecAtom('O', 2),
                        'N_2R': pn.RecAtom('N', 2)}
+        self.host = os.getenv('HOST')
+        if self.host is None:
+            self.host = os.getenv('HOSTNAME')
+        if self.host is None:
+            self.host = 'localhost'
         
     def insert_in_dic(self, key, value):
         
@@ -566,8 +571,8 @@ class writeTab(object):
             for key in add2dic:
                 self.insert_in_dic(key, add2dic[key])
         
-        fields_str = '`datetime`, '
-        values_str = 'now(), '
+        fields_str = '`datetime`, `host`, '
+        values_str = 'now(), {}, '.format(self.host)
         
         for key in self._dic:
             if self._dic[key] is not None:

@@ -681,6 +681,7 @@ fields2 ="""`DepthFrac` double NOT NULL DEFAULT 1,
   `interpol` int(11) NOT NULL DEFAULT '0',
   `datetime` datetime NOT NULL DEFAULT 0,
   `N_pending` bigint(20) NOT NULL DEFAULT 0,
+  `host` varchar(180) NOT NULL DEFAULT '',
   `N1` bigint(20) NOT NULL DEFAULT -1,
   `N2` bigint(20) NOT NULL DEFAULT -1,
   `W1` float NOT NULL DEFAULT 1,
@@ -903,7 +904,7 @@ def update_lines(OVN_dic=OVN_dic, MdB=None):
             print('Line to be removed: {0}'.format(line))
         
 
-def init_all(delete_before=False, on_master=True):
+def init_all(delete_before=False):
     # desn't work if delete_before not set (or delete table from mysql before using it)
     # must define OVN_dic
     """
@@ -917,7 +918,6 @@ def init_all(delete_before=False, on_master=True):
     init_teion(delete_before=delete_before)
     init_abion(delete_before=delete_before)
     init_temis(delete_before=delete_before)
-    # Only on master:
-    if on_master:
-        init_procIDs(delete_before=delete_before)
-        init_SEDs(delete_before=delete_before)
+    init_SEDs(delete_before=delete_before)
+    init_procIDs(delete_before=delete_before)
+        
