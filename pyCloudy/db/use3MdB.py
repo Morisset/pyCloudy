@@ -478,49 +478,49 @@ class writeTab(object):
         self.insert_in_dic('logPhi1', np.log10(self.CloudyModel.Phi[1]))
         self.insert_in_dic('logPhi2', np.log10(self.CloudyModel.Phi[2]))
         self.insert_in_dic('logPhi3', np.log10(self.CloudyModel.Phi[3]))
-        for E in ('11.26', '35.12', '40.73', '47.45', '77.41', '113.90', 
-                  '138.12', '151.06', '233.60', '262.10', '361.00'):
-            Eev = float(E)
-            logQE = np.log10(self.CloudyModel.get_interp_cont(x_value=Eev,
-                                                                         x_unit='eV',
-                                                                         unit='Q'))
-            logPhiE = logQE - np.log10(4 * np.pi * self.CloudyModel.radius[0]**2)
-            
-            self.insert_in_dic('logQ{}'.format(E), logQE)
-            self.insert_in_dic('logPhi{}'.format(E), logPhiE)
             
         self.insert_in_dic('Cloudy_version', self.CloudyModel.cloudy_version)
+        if 'Cloudy ends' in self.CloudyModel.out:
+            self.insert_in_dic('CloudyEnds', self.CloudyModel.out['Cloudy ends'])
+        if '###First' in self.CloudyModel.out:
+            self.insert_in_dic('FirstZone', self.CloudyModel.out['###First'])
+        if '###Last' in self.CloudyModel.out:
+            self.insert_in_dic('LastZone', self.CloudyModel.out['###Last'])
+        if 'stop' in self.CloudyModel.out:
+            self.insert_in_dic('CalculStop', self.CloudyModel.out['stop'])
+        self.insert_in_dic('t2_H1', self.CloudyModel.get_t2_ion_vol_ne('H',1))
+        self.insert_in_dic('t2_O1', self.CloudyModel.get_t2_ion_vol_ne('O',1))
+        self.insert_in_dic('t2_O2', self.CloudyModel.get_t2_ion_vol_ne('O',2))
+        self.insert_in_dic('t2_O3', self.CloudyModel.get_t2_ion_vol_ne('O',3))
+        self.insert_in_dic('ne_H1', self.CloudyModel.get_ne_ion_vol_ne('H',1))
+        self.insert_in_dic('ne_O1', self.CloudyModel.get_ne_ion_vol_ne('O',1))
+        self.insert_in_dic('ne_O2', self.CloudyModel.get_ne_ion_vol_ne('O',2))
+        self.insert_in_dic('ne_O3', self.CloudyModel.get_ne_ion_vol_ne('O',3))
+        self.insert_in_dic('H_mass', self.CloudyModel.H_mass)
+        self.insert_in_dic('H1_mass', self.CloudyModel.Hp_mass)
+        self.insert_in_dic('nH_mean', self.CloudyModel.nH_mean)
+        self.insert_in_dic('Hb_SB', self.CloudyModel.get_Hb_SB())
+        self.insert_in_dic('Hb_EW', self.CloudyModel.get_Hb_EW())
+        self.insert_in_dic('Ha_EW', self.CloudyModel.get_Ha_EW())
         if self.CloudyModel.n_zones > 1:
+            for E in ('11.26', '35.12', '40.73', '47.45', '77.41', '113.90', 
+                      '138.12', '151.06', '233.60', '262.10', '361.00'):
+                Eev = float(E)
+                logQE = np.log10(self.CloudyModel.get_interp_cont(x_value=Eev,
+                                                                             x_unit='eV',
+                                                                             unit='Q'))
+                logPhiE = logQE - np.log10(4 * np.pi * self.CloudyModel.radius[0]**2)
+            
+                self.insert_in_dic('logQ{}'.format(E), logQE)
+                self.insert_in_dic('logPhi{}'.format(E), logPhiE)
             self.insert_in_dic('DepthFrac', self.CloudyModel.depth[-1] / self.CloudyModel.depth_full[-1])
             self.insert_in_dic('MassFrac', self.CloudyModel.H_mass / self.CloudyModel.H_mass_full[-1])
             self.insert_in_dic('HbFrac', self.CloudyModel.Hbeta / self.CloudyModel.Hbeta_full[-1])
-            if 'Cloudy ends' in self.CloudyModel.out:
-                self.insert_in_dic('CloudyEnds', self.CloudyModel.out['Cloudy ends'])
-            if '###First' in self.CloudyModel.out:
-                self.insert_in_dic('FirstZone', self.CloudyModel.out['###First'])
-            if '###Last' in self.CloudyModel.out:
-                self.insert_in_dic('LastZone', self.CloudyModel.out['###Last'])
-            if 'stop' in self.CloudyModel.out:
-                self.insert_in_dic('CalculStop', self.CloudyModel.out['stop'])
             self.insert_in_dic('logU_in', self.CloudyModel.log_U[0])
             self.insert_in_dic('logU_out', self.CloudyModel.log_U[-1])
             self.insert_in_dic('logU_mean', self.CloudyModel.log_U_mean_ne)
-            self.insert_in_dic('t2_H1', self.CloudyModel.get_t2_ion_vol_ne('H',1))
-            self.insert_in_dic('t2_O1', self.CloudyModel.get_t2_ion_vol_ne('O',1))
-            self.insert_in_dic('t2_O2', self.CloudyModel.get_t2_ion_vol_ne('O',2))
-            self.insert_in_dic('t2_O3', self.CloudyModel.get_t2_ion_vol_ne('O',3))
-            self.insert_in_dic('ne_H1', self.CloudyModel.get_ne_ion_vol_ne('H',1))
-            self.insert_in_dic('ne_O1', self.CloudyModel.get_ne_ion_vol_ne('O',1))
-            self.insert_in_dic('ne_O2', self.CloudyModel.get_ne_ion_vol_ne('O',2))
-            self.insert_in_dic('ne_O3', self.CloudyModel.get_ne_ion_vol_ne('O',3))
-            self.insert_in_dic('H_mass', self.CloudyModel.H_mass)
-            self.insert_in_dic('H1_mass', self.CloudyModel.Hp_mass)
-            self.insert_in_dic('nH_mean', self.CloudyModel.nH_mean)
             self.insert_in_dic('nH_in', self.CloudyModel.nH[0])
             self.insert_in_dic('nH_out', self.CloudyModel.nH[-1])
-            self.insert_in_dic('Hb_SB', self.CloudyModel.get_Hb_SB())
-            self.insert_in_dic('Hb_EW', self.CloudyModel.get_Hb_EW())
-            self.insert_in_dic('Ha_EW', self.CloudyModel.get_Ha_EW())
             try:
                 Radio = self.CloudyModel.get_interp_cont(unit='WmHz', x_unit='GHz', x_value=2.5)
                 self.insert_in_dic('Radio_2.5GHz', Radio)
@@ -541,6 +541,22 @@ class writeTab(object):
                 self.insert_in_dic('Radio_20GHz', Radio)
             except:
                 self.insert_in_dic('Radio_20GHz', -40)
+        else:
+            for E in ('11.26', '35.12', '40.73', '47.45', '77.41', '113.90', 
+                      '138.12', '151.06', '233.60', '262.10', '361.00'):
+                Eev = float(E)
+                logQE = np.log10(self.CloudyModel.get_interp_cont(x_value=Eev,
+                                                                             x_unit='eV',
+                                                                             unit='Q'))
+                logPhiE = logQE - np.log10(4 * np.pi * self.CloudyModel.radius**2)
+            
+                self.insert_in_dic('logQ{}'.format(E), logQE)
+                self.insert_in_dic('logPhi{}'.format(E), logPhiE)
+            self.insert_in_dic('logU_in', self.CloudyModel.log_U)
+            self.insert_in_dic('logU_out', self.CloudyModel.log_U)
+            self.insert_in_dic('logU_mean', self.CloudyModel.log_U_mean_ne)
+            self.insert_in_dic('nH_in', self.CloudyModel.nH)
+            self.insert_in_dic('nH_out', self.CloudyModel.nH)
                 
     def lines2dic(self):
         
