@@ -444,7 +444,10 @@ class writeTab(object):
                                               read_cont=True, list_elem = LIST_ALL_ELEM)
             if not self.CloudyModel.aborted:
                 self.update_status('Model read')
-                status = True
+                if 'wrong' in self.CloudyModel.out:
+                    status = False
+                else:
+                    status = True
             else:
                 self.update_status('Model not read')
                 status = False
@@ -453,8 +456,6 @@ class writeTab(object):
             status = False
             self.log_.warn('Model {0} not read in {1}/{2}/{3}'.format(name, self.models_dir, self.pending['dir'], name))
         self.insert_in_dic('file', name)
-        if 'wrong' in self.CloudyModel.out:
-            status = False
         return status
         
     def pending2dic(self):
