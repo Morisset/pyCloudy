@@ -453,6 +453,8 @@ class writeTab(object):
             status = False
             self.log_.warn('Model {0} not read in {1}/{2}/{3}'.format(name, self.models_dir, self.pending['dir'], name))
         self.insert_in_dic('file', name)
+        if 'wrong' in self.CloudyModel.out:
+            status = False
         return status
         
     def pending2dic(self):
@@ -1322,7 +1324,7 @@ def print_all_refs(MdB = None, OVN_dic=None):
     else:
         OVN_dic = MdB.OVN_dic
     if not isinstance(MdB, pc.MdB):
-        self.log_.error('The first argument must be a MdB object')    
+        pc.log_.error('The first argument must be a MdB object')    
     res, N_ref = MdB.select_dB(select_ = 'distinct(ref), count(*)', from_ = OVN_dic['master_table'], 
                                group_ = 'ref', limit_ = None)
     for row in res:
@@ -1339,7 +1341,7 @@ def print_all_lines(MdB = None, OVN_dic=None, limit_=None):
     else:
         OVN_dic = MdB.OVN_dic
     if not isinstance(MdB, pc.MdB):
-        self.log_.error('The first argument must be a MdB object')    
+        pc.log_.error('The first argument must be a MdB object')    
     lines, N_lines = MdB.select_dB(select_ = '*', from_ = OVN_dic['lines_table'], limit_ = limit_)
     for line in lines:
         print(('Nl = {0[Nl]:3} id = {0[id]:4} label = {0[label]:5} wavelength = {0[lambda]:6} full name = {0[name]}'.format(line)))
@@ -1354,7 +1356,7 @@ def print_status_stats(MdB = None, OVN_dic=None, ref_=None):
     else:
         OVN_dic = MdB.OVN_dic
     if not isinstance(MdB, pc.MdB):
-        self.log_.error('The first argument must be a MdB object')
+        pc.log_.error('The first argument must be a MdB object')
     if ref_ is not None:
         where_ = 'ref = "{0}"'.format(ref_)
     else:
@@ -1374,7 +1376,7 @@ def print_mean_running_time(MdB = None, OVN_dic=None, ref_=None):
     else:
         OVN_dic = MdB.OVN_dic
     if not isinstance(MdB, pc.MdB):
-        self.log_.error('The first argument must be a MdB object')
+        pc.log_.error('The first argument must be a MdB object')
     if ref_ is not None:
         where_ = 'ref = "{0}"'.format(ref_)
     else:
@@ -1395,7 +1397,7 @@ def print_elapsed_time(MdB = None, OVN_dic=None, ref_=None):
     else:
         OVN_dic = MdB.OVN_dic
     if not isinstance(MdB, pc.MdB):
-        self.log_.error('The first argument must be a MdB object')
+        pc.log_.error('The first argument must be a MdB object')
     if ref_ is not None:
         where_ = 'ref = "{0}"'.format(ref_)
     else:
@@ -1410,7 +1412,7 @@ def print_ETA(MdB= None, OVN_dic=None, ref_=None):
     else:
         OVN_dic = MdB.OVN_dic
     if not isinstance(MdB, pc.MdB):
-        self.log_.error('The first argument must be a MdB object')
+        pc.log_.error('The first argument must be a MdB object')
     if ref_ is not None:
         where_ = 'ref = "{0}"'.format(ref_)
     else:
@@ -1434,7 +1436,7 @@ def print_efficiency(MdB= None, OVN_dic=None, ref_=None):
     else:
         OVN_dic = MdB.OVN_dic
     if not isinstance(MdB, pc.MdB):
-        self.log_.error('The first argument must be a MdB object')
+        pc.log_.error('The first argument must be a MdB object')
     if ref_ is not None:
         where_ = 'ref = "{0}"'.format(ref_)
     else:
@@ -1459,7 +1461,7 @@ def print_infos(MdB= None, OVN_dic=None, ref_=None, where_=None, Nprocs=32):
     else:
         OVN_dic = MdB.OVN_dic
     if not isinstance(MdB, pc.MdB):
-        self.log_.error('The first argument must be a MdB object')
+        pc.log_.error('The first argument must be a MdB object')
     if ref_ is not None:
         this_where_ = 'ref = "{0}"'.format(ref_)
     else:

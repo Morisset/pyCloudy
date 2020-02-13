@@ -552,6 +552,8 @@ class CloudyModel(object):
                 self.out['stop'] = line
             elif 'Cloudy ends' in line:
                 self.out['Cloudy ends'] = line
+            elif 'something went wrong' in line:
+                self.out['wrong'] = line
             elif 'Gas Phase Chemical Composition' in line:
                 for i in range(4):
                     self.out['Chem' + str(i + 1)] = next(file_)
