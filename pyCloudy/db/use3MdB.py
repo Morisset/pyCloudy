@@ -573,7 +573,7 @@ class writeTab(object):
                 label = line['label']
                 if label[-2:] == 'PN' and label not in self.CloudyModel.emis_labels:
                     atom = self.RecDic[label[0:4]]
-                    self.CloudyModel.add_emis_from_pyneb(label, atom, line['name'].split()[2])
+                    self.CloudyModel.add_emis_from_pyneb(label, atom, line['name'].split()[2][:-1])
                     
             for clabel in self.CloudyModel.emis_labels:
                 self.insert_in_dic(clabel, self.CloudyModel.get_emis_vol(clabel))
