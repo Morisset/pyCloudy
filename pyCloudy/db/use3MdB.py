@@ -522,6 +522,7 @@ class writeTab(object):
             self.insert_in_dic('logU_in', self.CloudyModel.log_U[0])
             self.insert_in_dic('logU_out', self.CloudyModel.log_U[-1])
             self.insert_in_dic('logU_mean', self.CloudyModel.log_U_mean_ne)
+            self.insert_in_dic('THp', self.CloudyModel.get_T0_ion_vol_ne(elem='H', ion=1))
             self.insert_in_dic('nH_in', self.CloudyModel.nH[0])
             self.insert_in_dic('nH_out', self.CloudyModel.nH[-1])
             try:
