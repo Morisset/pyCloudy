@@ -1464,30 +1464,51 @@ def print_infos(MdB= None, OVN_dic=None, ref_=None, where_=None, Nprocs=32):
         OVN_dic = MdB.OVN_dic
     if not isinstance(MdB, pc.MdB):
         pc.log_.error('The first argument must be a MdB object')
-    if ref_ is not None:
-        this_where_ = 'ref = "{0}"'.format(ref_)
+        
+    if ref_ is None:
+        where_ref = ''
     else:
-        this_where_ = ''
-    if where_ is not None:
-        this_where_ += ' AND {}'.format(where_)
+        where_ref = 'ref = "{0}"'.format(ref_)
+    
+    if where_ is None:
+        where_where = ''
+    else:
+        where_where = where_
+    this_where = ' AND '.join([i for i in (where_ref,where_where,'status=0') if i != ''])
+    if this_where == '':
+        this_where = None
+        
     res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
-                               where_=this_where_ + ' AND status=0', limit_=None, commit=True)
+                               where_=this_where, 
+                               limit_=None, commit=True)
     N_pending = res[0]['count(*)']
+    this_where = ' AND '.join([i for i in (where_ref,where_where,'status=50') if i != ''])
+    if this_where == '':
+        this_where = None
     res, N_res = MdB.select_dB(select_='count(*)',from_=OVN_dic['pending_table'],
-                               where_=this_where_ + ' AND status=50', limit_=None, commit=True)
+                               where_=this_where, 
+                               limit_=None, commit=True)
     N_run = res[0]['count(*)']
     if N_run == 0 and N_pending == 0:
         print('No entry')
         return
+    this_where = ' AND '.join([i for i in (where_ref,where_where) if i != ''])
+    if this_where == '':
+        this_where = None
+    
     res_et, N_res = MdB.select_dB(select_='time_to_sec(timediff(max(datetime),min(datetime))) as ET',
-                               from_=OVN_dic['master_table'], where_=this_where_, limit_=None)
+                               from_=OVN_dic['master_table'], 
+                               where_=this_where, 
+                               limit_=None)
     ET = res_et[0]['ET']
     
     eta = datetime.datetime.today() + datetime.timedelta(seconds=ET/float(N_run)*N_pending)
     res, N_res = MdB.select_dB(select_='avg(cast(substring_index(CloudyEnds,"ExecTime(s)", -1) as decimal)) as MRT, '\
                                'min(cast(substring_index(CloudyEnds,"ExecTime(s)", -1) as decimal)) as MN, '\
                                'max(cast(substring_index(CloudyEnds,"ExecTime(s)", -1) as decimal)) as MX',
-                              from_=OVN_dic['master_table'], where_=this_where_, limit_=None)
+                              from_=OVN_dic['master_table'], 
+                              where_=this_where, 
+                              limit_=None)
     MRT = float(res[0]['MRT'])
     MN = float(res[0]['MN'])
     MX = float(res[0]['MX'])
