@@ -638,7 +638,7 @@ class CloudyModel(object):
             self.Q[1] = float(pc.sextract(self.out['SED2'], 'Q(1.8-4.0):', 'Q(4.0-20):'))
             self.Q[2] = float(pc.sextract(self.out['SED2'], 'Q(4.0-20):', 'Q(20--):'))
             self.Q[3] = float(pc.sextract(self.out['SED2'], 'Q(20--):', 'Ion pht'))
-            self.Q = pow(10., self.Q)
+            self.Q = 10.**self.Q
             self.plan_par = False
         except:
             pass
@@ -648,7 +648,7 @@ class CloudyModel(object):
             self.Phi[1] = float(pc.sextract(self.out['SED2'], 'phi(1.8-4.0):', 'phi(4.0-20):'))
             self.Phi[2] = float(pc.sextract(self.out['SED2'], 'phi(4.0-20):', 'phi(20--):'))
             self.Phi[3] = float(pc.sextract(self.out['SED2'], 'phi(20--):', 'Ion pht'))
-            self.Phi = pow(10., self.Phi)
+            self.Phi = 10.**self.Phi
             self.plan_par = True
         except:
             pass
