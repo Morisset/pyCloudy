@@ -1374,6 +1374,7 @@ class CloudyModel(object):
                            'ec3'for erg/s/cm2/C C : lightspeed,
                            'es' for erg/s,
                            'esA' for erg/s/AA,
+                           'esHz' for erg/s/Hz,
                            'esAc' for erg/s/AA/cm2,
                            'ec3A' for erg/s/AA/cm2/C C : lighspeed
                            'esHzc' for erg/s/Hz/cm2,
