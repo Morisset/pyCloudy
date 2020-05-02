@@ -1370,7 +1370,22 @@ class CloudyModel(object):
         """
         param:
             cont : one of ['incid','trans','diffout','ntrans','reflec', 'total']
-            unit : one of ['esc', 'ec3','es','esA','esAc','esHzc','Jy','Q', 'Wcmu', 'WmHz', 'WmA', 'phs', 'phsmu', 'phsc', 'phsmuc']
+            unit : one of ['esc' for erg/s/cm2, 
+                           'ec3'for erg/s/cm2/C C : lightspeed,
+                           'es' for erg/s,
+                           'esA' for erg/s/AA,
+                           'esAc' for erg/s/AA/cm2,
+                           'ec3A' for erg/s/AA/cm2/C C : lighspeed
+                           'esHzc' for erg/s/Hz/cm2,
+                           'Jy' for Jansky,
+                           'Q' for number of photons above the corresponding energy, 
+                           'Wcmu' for Watt/micron/cm2, 
+                           'WmHz' for Watt/Herz/m2, 
+                           'WmA' for Watt/Anstrom/m2, 
+                           'phs' for photons/s, 
+                           'phsmu' for photons/s/micron, 
+                           'phsc' for photons/s/cm2, 
+                           'phsmuc' for photons/s/micron/cm2]
             dist_norm : one of ['at_earth', 'r_out', a float for a distance in cm]
         return:
             continuum flux or intensity
