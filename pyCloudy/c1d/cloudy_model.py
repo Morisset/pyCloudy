@@ -1440,10 +1440,10 @@ class CloudyModel(object):
             """ erg.s-1.cm-2 """
             to_return = cont1 * dist_fact
         elif unit == 'ec3':
-            """ erg.cm-3 """
+            """ erg.s-1.cm-2.c-1 """
             to_return = cont1 * dist_fact / pc.CST.CLIGHT
         elif unit == 'ec3A':
-            """ erg.cm-3.A-1 """
+            """ erg.s-1.cm-2.A-1.c-1 """
             to_return = cont1 / self.get_cont_x(unit='Ang') * dist_fact / pc.CST.CLIGHT
         elif unit == 'esAc':
             """ erg.s-1.cm-2.A-1 """
