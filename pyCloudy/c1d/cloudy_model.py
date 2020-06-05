@@ -587,6 +587,8 @@ class CloudyModel(object):
                 self.out['Hbeta'] = line
             elif 'H  1      4861.36A' in line:
                 self.out['Hbeta'] = line
+            elif 'H  1      4861.33A' in line:
+                self.out['Hbeta'] = line
             elif 'luminosity' in line:
                 self.out['luminosity'] = line
             elif 'turbulence' in line:
