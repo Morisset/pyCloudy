@@ -1954,7 +1954,7 @@ class CloudyModel(object):
         except:
             pass
         try:
-            print(' <N+++/O> = {0:.2f}, <N++/O> = {1:.2f}, <N+/O> = {2:.2f}'.format(self.get_ab_ion_vol_ne('N',3), 
+            print(' <N+++/N> = {0:.2f}, <N++/N> = {1:.2f}, <N+/N> = {2:.2f}'.format(self.get_ab_ion_vol_ne('N',3), 
                                                                      self.get_ab_ion_vol_ne('N',2), 
                                                                      self.get_ab_ion_vol_ne('N',1)))
         except:
