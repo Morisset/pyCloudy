@@ -104,6 +104,9 @@ class CubCoord(object):
         self.__y = None
         self.__z = None
         self.__r = None
+        self.__vel_x = None
+        self.__vel_y = None
+        self.__vel_z = None
         self.__theta = None
         self.__phi = None
 
@@ -199,6 +202,29 @@ class CubCoord(object):
             self.__delta_z = 1.
         return self.__delta_z
     
+    @property
+    def vel_x(self):
+        if self.__vel_x is None:
+            self.__vel_x = (self._rot_matrix @ self.velocities0)[0].reshape(self.dim_x, self.dim_y, self.dim_z)
+        return self.__vel_x
+       
+    @property
+    def vel_y(self):
+        if self.__vel_y is None:
+            self.__vel_y = (self._rot_matrix @ self.velocities0)[1].reshape(self.dim_x, self.dim_y, self.dim_z)
+        return self.__vel_y
+       
+    @property
+    def vel_z(self):
+        if self.__vel_z is None:
+            self.__vel_z = (self._rot_matrix @ self.velocities0)[2].reshape(self.dim_x, self.dim_y, self.dim_z)
+        return self.__vel_z
+       
+    
+    @property
+    def velocities0(self):
+        return np.vstack((self.vel_x0.flatten(), self.vel_y0.flatten(), self.vel_z0.flatten()))
+        
     ## cell_size = delta_x * delta_y * delta_z
     @property
     def cell_size(self):
@@ -242,8 +268,8 @@ class CubCoord(object):
             self.vel_defined = False
             return None
 
-        self.vel_x, self.vel_y, self.vel_z = vel_dict[velocity_law](params)
-        self.vel = np.sqrt(self.vel_x**2 + self.vel_y**2 + self.vel_z**2)
+        self.vel_x0, self.vel_y0, self.vel_z0 = vel_dict[velocity_law](params)
+        self.vel0 = np.sqrt(self.vel_x0**2 + self.vel_y0**2 + self.vel_z0**2)
         self.vel_defined = True
             
 ## @include copyright.txt
