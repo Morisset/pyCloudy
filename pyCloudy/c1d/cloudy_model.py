@@ -669,11 +669,11 @@ class CloudyModel(object):
             self.gas_mass_per_H = 0.
             for ab_str in LIST_ALL_ELEM:
                 if len(ab_str) == 1:
-                    sub1 = ab_str + ' : '
+                    sub1 = ab_str + ' :'
                 else:
-                    sub1 = ab_str + ': '
+                    sub1 = ab_str + ':'
                 try:             
-                    self.abund[ab_str] = float(pc.sextract(Chem, sub1, 7))
+                    self.abund[ab_str] = float(pc.sextract(Chem, sub1, 8))
                 except:
                     self.log_.message(ab_str + ' abundance not defined', calling = self.calling)
                 if (ab_str in ATOMIC_MASS) and (ab_str in self.abund):
