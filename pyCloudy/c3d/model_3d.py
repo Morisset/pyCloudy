@@ -205,25 +205,30 @@ class CubCoord(object):
     @property
     def vel_x(self):
         if self.__vel_x is None:
-            self.__vel_x = (self._rot_matrix @ self.velocities0)[0].reshape(self.dim_x, self.dim_y, self.dim_z)
+            self.__vel_x = (self._rot_matrix @ self._velocities0)[0].reshape(self.dim_x, self.dim_y, self.dim_z)
         return self.__vel_x
        
     @property
     def vel_y(self):
         if self.__vel_y is None:
-            self.__vel_y = (self._rot_matrix @ self.velocities0)[1].reshape(self.dim_x, self.dim_y, self.dim_z)
+            self.__vel_y = (self._rot_matrix @ self._velocities0)[1].reshape(self.dim_x, self.dim_y, self.dim_z)
         return self.__vel_y
        
     @property
     def vel_z(self):
         if self.__vel_z is None:
-            self.__vel_z = (self._rot_matrix @ self.velocities0)[2].reshape(self.dim_x, self.dim_y, self.dim_z)
+            self.__vel_z = (self._rot_matrix @ self._velocities0)[2].reshape(self.dim_x, self.dim_y, self.dim_z)
         return self.__vel_z
        
+    @property
+    def vel(self):
+        if self.__vel is None:
+            self.__vel = np.sqrt(self.vel_x**2 + self.vel_y**2 + self.vel_z**2)
+        return self.__vel
     
     @property
-    def velocities0(self):
-        return np.vstack((self.vel_x0.flatten(), self.vel_y0.flatten(), self.vel_z0.flatten()))
+    def _velocities0(self):
+        return np.vstack((self._vel_x0.flatten(), self._vel_y0.flatten(), self._vel_z0.flatten()))
         
     ## cell_size = delta_x * delta_y * delta_z
     @property
@@ -268,8 +273,8 @@ class CubCoord(object):
             self.vel_defined = False
             return None
 
-        self.vel_x0, self.vel_y0, self.vel_z0 = vel_dict[velocity_law](params)
-        self.vel0 = np.sqrt(self.vel_x0**2 + self.vel_y0**2 + self.vel_z0**2)
+        self._vel_x0, self._vel_y0, self._vel_z0 = vel_dict[velocity_law](params)
+        self._vel0 = np.sqrt(self._vel_x0**2 + self._vel_y0**2 + self._vel_z0**2)
         self.vel_defined = True
             
 ## @include copyright.txt
