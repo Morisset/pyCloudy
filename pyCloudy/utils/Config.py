@@ -114,6 +114,12 @@ class _Config(object):
             self.INSTALLED['numexpr'] = True
         except:
             self.INSTALLED['numexpr'] = False
+            
+        try:
+            from pathlib import Path
+            self.INSTALLED['Path'] = True
+        except:
+            self.INSTALLED['Path'] = False
         
         self.SAVE_LIST = [['radius', '.rad'],
                           ['continuum', '.cont'],
