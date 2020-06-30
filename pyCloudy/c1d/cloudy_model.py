@@ -15,10 +15,8 @@ if pc.config.INSTALLED['scipy']:
     from scipy.interpolate import interp1d
 if pc.config.INSTALLED['plt']:
     import matplotlib.pyplot as plt
-try:
+if pc.config.INSTALLED['Path']:
     from pathlib import Path
-except:
-    pass
 
 ##
 # @bug There is a problem for plan parallel models (yes Will, you are right!) (when depth << radius) 
@@ -2598,6 +2596,9 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
         - cloudy_version: one of the keys of pc.config.cloudy_dict, pointing to the location of the executable,
             e.g. '10.00' or '13.03'. If set to None (default), then pc.config.cloudy.exe is used
     """
+    
+    if not pc.config.INSTALLED['Path']:
+        pc.log_.error('pathlib not installed, can not run Cloudy. Try "pip install pathlib".', calling = 'run_cloudy')
     if dir_ is None:
         dir_ = Path(model_name).parent
     if dir_ == '':
