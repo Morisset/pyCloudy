@@ -15,6 +15,10 @@ if pc.config.INSTALLED['scipy']:
     from scipy.interpolate import interp1d
 if pc.config.INSTALLED['plt']:
     import matplotlib.pyplot as plt
+try:
+    from pathlib import Path
+except:
+    pass
 
 ##
 # @bug There is a problem for plan parallel models (yes Will, you are right!) (when depth << radius) 
@@ -2595,9 +2599,9 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
             e.g. '10.00' or '13.03'. If set to None (default), then pc.config.cloudy.exe is used
     """
     if dir_ is None:
-        dir_ = '/'.join(model_name.split('/')[0:-1])
+        dir_ = Path(model_name).parent
     if dir_ == '':
-        dir_ = './'
+        dir_ = Path('.')
     cloudy_exe = pc.config.cloudy_exe
     if cloudy_version is not None:
         if cloudy_version in pc.config.cloudy_dict:
@@ -2605,7 +2609,7 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
     if use_make:
         to_run = 'cd {0} ; make -j {1:d}'.format(dir_, n_proc)
         if model_name is not None:
-            to_run += ' name="{0}"'.format(model_name.split('/')[-1])
+            to_run += ' name="{0}"'.format(Path(model_name).name)
         stdin = None
         stdout = subprocess.PIPE
     else:
@@ -2613,8 +2617,8 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
             pc.log_.error('Model name must be set', calling = 'run_cloudy')
         else:
             to_run = 'cd {0} ; {1} {2}'.format(dir_, precom, cloudy_exe)
-            stdin = open('{0}/{1}.in'.format(dir_, model_name.split('/')[-1]), 'r')
-            stdout = open('{0}/{1}.out'.format(dir_, model_name.split('/')[-1]), 'w')   
+            stdin = open('{}.in'.format(dir_ / Path(model_name).name), 'r')
+            stdout = open('{}.out'.format(dir_ / Path(model_name).name), 'w')   
     pc.log_.message('running: {0}'.format(to_run), calling = 'run_cloudy')
     proc = subprocess.Popen(to_run, shell=True, stdout=stdout, stdin = stdin)
     proc.communicate()
