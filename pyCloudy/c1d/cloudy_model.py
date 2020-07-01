@@ -2615,9 +2615,9 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
             pc.log_.error('Unknown Cloudy version {} in the pc.config.cloudy_dict dictionnary.'.format(cloudy_version))
     else:
         cloudy_exe = pc.config.cloudy_exe
-    pc.log_.debug('dir_ = {}'.format(dir_, calling='run_cloudy'))
-    pc.log_.debug('model_name = {}'.format(model_name, calling='run_cloudy'))
-    pc.log_.debug('use_make = {}'.format(use_make, calling='run_cloudy'))
+    pc.log_.debug('dir_ = {}'.format(dir_), calling='run_cloudy')
+    pc.log_.debug('model_name = {}'.format(model_name), calling='run_cloudy')
+    pc.log_.debug('use_make = {}'.format(use_make), calling='run_cloudy')
     if use_make:
         to_run = 'cd {0} ; make -j {1:d}'.format(dir_, n_proc)
         if model_name is not None:
