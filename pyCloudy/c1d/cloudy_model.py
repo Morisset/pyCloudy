@@ -2551,17 +2551,23 @@ class CloudyInput(object):
             dir_:    if None, extract the string before the last / in the model_name. 
                 Otherwise, use the value
         """
+        if not pc.config.INSTALLED['Path']:
+            pc.log_.error('pathlib not installed, can not run Cloudy. Try "pip install pathlib".', calling = 'print_make_file')
         if dir_ is None:
-            dir_ = '/'.join(self.model_name.split('/')[0:-1])
+            dir_ = Path(self.model_name).parent
         print_make_file(dir_ = dir_)
         
 def print_make_file(dir_ = None):
     """
     Create a Makefile in the dir_ directory, using pc.config.cloudy_exe as executable for cloudy
     """
-    makefile = open('{0}/Makefile'.format(dir_), 'w')
-    txt_exe = 'CLOUDY = {0}\n'.format(pc.config.cloudy_exe)
-    txt = """
+    if not pc.config.INSTALLED['Path']:
+        pc.log_.error('pathlib not installed, can not run Cloudy. Try "pip install pathlib".', calling = 'print_make_file')
+    if dir_ is None:
+        dir_ = Path('.')
+    with open(dir_ / 'Makefile', 'w') as makefile:
+        makefile.write('CLOUDY = {0}\n'.format(pc.config.cloudy_exe))
+        makefile.write("""
 SRC = $(wildcard ${name}*.in)
 OBJ = $(SRC:.in=.out)
 
@@ -2575,10 +2581,8 @@ all: $(OBJ)
 %.out: %.in
 \t-$(CLOUDY) < $< > $@
 # Notice the previous line has TAB in first column
-"""
-    makefile.write(txt_exe)
-    makefile.write(txt)
-    makefile.close()
+""")
+    pc.log_.message('make_file_printed with cloudy.exe = {0}'.format(pc.config.cloudy_exe), calling = 'print_make_file')
 
 ## Function used to run Cloudy on input files.                
 def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, precom="", cloudy_version=None):
@@ -2601,12 +2605,19 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
         pc.log_.error('pathlib not installed, can not run Cloudy. Try "pip install pathlib".', calling = 'run_cloudy')
     if dir_ is None:
         dir_ = Path(model_name).parent
-    if dir_ == '':
-        dir_ = Path('.')
-    cloudy_exe = pc.config.cloudy_exe
+    else:
+        dir_ = Path(dir_)
+    
     if cloudy_version is not None:
         if cloudy_version in pc.config.cloudy_dict:
             cloudy_exe = pc.config.cloudy_dict[cloudy_version]
+        else:
+            pc.log_.error('Unknown Cloudy version {} in the pc.config.cloudy_dict dictionnary.'.format(cloudy_version))
+    else:
+        cloudy_exe = pc.config.cloudy_exe
+    pc.log_.debug('dir_ = {}'.format(dir_, calling='run_cloudy'))
+    pc.log_.debug('model_name = {}'.format(model_name, calling='run_cloudy'))
+    pc.log_.debug('use_make = {}'.format(use_make, calling='run_cloudy'))
     if use_make:
         to_run = 'cd {0} ; make -j {1:d}'.format(dir_, n_proc)
         if model_name is not None:
