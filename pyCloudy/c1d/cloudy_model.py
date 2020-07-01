@@ -2621,16 +2621,19 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
     pc.log_.debug('model_name = {}'.format(model_name), calling='run_cloudy')
     pc.log_.debug('use_make = {}'.format(use_make), calling='run_cloudy')
     if use_make:
-        to_run = 'cd {0} ; make -j {1:d}'.format(dir_, n_proc)
+        to_run = 'make -j {:d}'.format(n_proc)
         if model_name is not None:
             to_run += ' name="{0}"'.format(Path(model_name).name)
     else:
         if model_name is None:
             pc.log_.error('Model name must be set', calling = 'run_cloudy')
         else:
-            to_run = 'cd {0} ; {1} {2} -p {3}'.format(dir_, precom, cloudy_exe, Path(model_name).name)
+            to_run = '{} {} -p {}'.format(precom, cloudy_exe, Path(model_name).name)
     pc.log_.message('running: {0}'.format(to_run), calling = 'run_cloudy')
+    wd = Path.cwd()
+    os.chdir(dir_)
     proc = subprocess.Popen(to_run, shell=True)
     proc.communicate()
+    os.chdir(wd)
     pc.log_.message('ending: {0}'.format(to_run), calling = 'run_cloudy')
 
