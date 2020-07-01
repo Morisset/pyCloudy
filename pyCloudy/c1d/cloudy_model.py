@@ -2565,6 +2565,8 @@ def print_make_file(dir_ = None):
         pc.log_.error('pathlib not installed, can not run Cloudy. Try "pip install pathlib".', calling = 'print_make_file')
     if dir_ is None:
         dir_ = Path('.')
+    else:
+        dir_ = Path(dir_)
     with open('{}'.format(dir_ / 'Makefile'), 'w') as makefile:
         makefile.write('CLOUDY = {0}\n'.format(pc.config.cloudy_exe))
         makefile.write("""
