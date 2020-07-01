@@ -2581,7 +2581,7 @@ OBJ = $(SRC:.in=.out)
 all: $(OBJ)
 
 %.out: %.in
-\t-$(CLOUDY) -p  $(SRC:.in=)
+\t-$(CLOUDY) -p  $(basename $< )
 # Notice the previous line has TAB in first column
 """)
     pc.log_.message('make_file_printed with cloudy.exe = {0}'.format(pc.config.cloudy_exe), calling = 'print_make_file')
