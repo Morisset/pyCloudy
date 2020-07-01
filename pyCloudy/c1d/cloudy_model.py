@@ -2581,7 +2581,7 @@ OBJ = $(SRC:.in=.out)
 all: $(OBJ)
 
 %.out: %.in
-\t-$(CLOUDY) < $< > $@
+\t-$(CLOUDY) -p  $(SRC:.in=)
 # Notice the previous line has TAB in first column
 """)
     pc.log_.message('make_file_printed with cloudy.exe = {0}'.format(pc.config.cloudy_exe), calling = 'print_make_file')
@@ -2624,20 +2624,13 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
         to_run = 'cd {0} ; make -j {1:d}'.format(dir_, n_proc)
         if model_name is not None:
             to_run += ' name="{0}"'.format(Path(model_name).name)
-        stdin = None
-        stdout = subprocess.PIPE
     else:
         if model_name is None:
             pc.log_.error('Model name must be set', calling = 'run_cloudy')
         else:
-            to_run = 'cd {0} ; {1} {2}'.format(dir_, precom, cloudy_exe)
-            stdin = open('{}.in'.format(dir_ / Path(model_name).name), 'r')
-            stdout = open('{}.out'.format(dir_ / Path(model_name).name), 'w')   
+            to_run = 'cd {0} ; {1} {2} -p {3}'.format(dir_, precom, cloudy_exe, Path(model_name).name)
     pc.log_.message('running: {0}'.format(to_run), calling = 'run_cloudy')
-    proc = subprocess.Popen(to_run, shell=True, stdout=stdout, stdin = stdin)
+    proc = subprocess.Popen(to_run, shell=True)
     proc.communicate()
-    if not use_make:
-        stdin.close()
-        stdout.close()
     pc.log_.message('ending: {0}'.format(to_run), calling = 'run_cloudy')
 
