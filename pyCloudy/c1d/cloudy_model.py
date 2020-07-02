@@ -2632,8 +2632,12 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
     pc.log_.message('running: {0}'.format(to_run), calling = 'run_cloudy')
     wd = Path.cwd()
     os.chdir(dir_)
-    proc = subprocess.Popen(to_run, shell=True)
+    pc.log_.debug('directory changed to: {0}'.format(dir_), calling = 'run_cloudy')
+    stdin = None
+    stdout = subprocess.PIPE
+    proc = subprocess.Popen(to_run, shell=True, stdout=stdout, stdin = stdin)
     proc.communicate()
     os.chdir(wd)
+    pc.log_.debug('directory changed to: {0}'.format(wd), calling = 'run_cloudy')
     pc.log_.message('ending: {0}'.format(to_run), calling = 'run_cloudy')
 
