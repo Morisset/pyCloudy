@@ -2630,9 +2630,7 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
         else:
             to_run = '{} {} -p {}'.format(precom, cloudy_exe, Path(model_name).name)
     pc.log_.message('running: {0}'.format(to_run), calling = 'run_cloudy')
-    stdin = None
-    stdout = subprocess.PIPE
-    proc = subprocess.Popen(to_run, shell=True, stdout=stdout, stdin = stdin, cwd=str(dir_))
+    proc = subprocess.Popen(to_run, shell=True, stdout=subprocess.PIPE, stdin=None, cwd=str(dir_))
     proc.communicate()
     pc.log_.message('ending: {0}'.format(to_run), calling = 'run_cloudy')
 
