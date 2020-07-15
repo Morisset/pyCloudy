@@ -29,13 +29,6 @@ OVN_dic = {'host' : 'nefeles',
        'seds_table': '`seds_17`' 
        }
 
-"""
-TODO for any distribution od c17.01:
-    increase NPUNLM in save_line.cpp from 200 to 400
-    add 4 radio continuum definitions
-    add Pequignot for 4363 recombination (prt_lines.cpp)
-"""
-
 dir_ = './models/'
 #%%
 def get_emis_tab():
