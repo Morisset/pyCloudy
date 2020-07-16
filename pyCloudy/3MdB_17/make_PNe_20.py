@@ -113,16 +113,13 @@ def make_inputs_MdB(SED = 'BB', dens_law = 'C', dust=True, ab_O = -2.76):
     MdB = pc.MdB(OVN_dic)
     pc.log_.level = 3
     wP = use3MdB.writePending(MdB, OVN_dic)
-    wP.set_ref("PNe_2020")
+    wP.set_ref("PNe_2020_2")
     wP.set_user('Gloria')
-    wP.set_C_version('17.01')
+    wP.set_C_version('17.02')
     wP.set_iterate(1)
     wP.set_file(name)
     wP.set_priority(10)
-    wP.set_cloudy_others(('no molecules',
-                'no level2 lines',
-                'no fine opacities',
-                'COSMIC RAY BACKGROUND'))
+    wP.set_cloudy_others(('COSMIC RAY BACKGROUND',))
     wP.set_N_Mass_cut(4)
     wP.set_dir('PNe_2020/')
 

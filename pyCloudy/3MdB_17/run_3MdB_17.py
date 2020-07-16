@@ -5,7 +5,9 @@ import pandas as pd
 import pymysql
 import os
 import matplotlib.pyplot as plt
+import pyneb as pn
 #%%
+
 OVN_dic = {'host' : 'nefeles',
        'user_name' : 'OVN_admin',
        'user_passwd' : 'getenv',
@@ -22,6 +24,7 @@ OVN_dic = {'host' : 'nefeles',
        }
 pc.log_.level=2
 pc.MdB.MdBlog_.level = -1
+pn.log_.level = -1
 M = use3MdB.manage3MdB(OVN_dic,
                        models_dir='/DATA/',
                        Nprocs=7, clean=True)

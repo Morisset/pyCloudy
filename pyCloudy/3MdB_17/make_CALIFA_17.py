@@ -71,18 +71,15 @@ def make_CALIFA_dB():
     c = pc.CST.CLIGHT
     MdB = pc.MdB(OVN_dic)
     wP = use3MdB.writePending(MdB, OVN_dic)
-    wP.set_ref("CALIFA")
+    wP.set_ref("CALIFA_2")
     wP.set_user("Christophe")
     wP.set_file('CALIFA')
     wP.set_dir('CALIFA')
     wP.set_priority(4)
-    wP.set_cloudy_others(('no molecules',
-                'no level2 lines',
-                'no fine opacities',
-                'COSMIC RAY BACKGROUND'))
+    wP.set_cloudy_others(('COSMIC RAY BACKGROUND',))
     wP.set_iterate(1)
     wP.set_N_Hb_cut(4)
-    wP.set_C_version('17.01')
+    wP.set_C_version('17.02')
     wP.set_geometry('Sphere')
     wP.set_stop(('temperature 200', 'pfrac 0.05'))
     all_tabs =  [(lU_mean, met, dNO, age, fr, NH) 

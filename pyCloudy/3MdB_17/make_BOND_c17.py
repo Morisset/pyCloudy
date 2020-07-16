@@ -24,15 +24,11 @@ MdB = pc.MdB(OVN_dic)
 
 models_dir = 'BOND/'
                   
-name = 'BOND'  
+name = 'BOND_2'  
 
 alpha_B = 2.6e-13
 
-options = ('no molecules',
-           'no level2 lines',
-           'no fine opacities',
-           'COSMIC RAY BACKGROUND',
-           )
+options = ('COSMIC RAY BACKGROUND',)
 
 NH = 1e2
 ff = 1.0
@@ -75,7 +71,7 @@ def make_inputs(all_tabs):
     wP = use3MdB.writePending(MdB, OVN_dic)
     wP.set_ref(name)
     wP.set_user('Natalia')
-    wP.set_C_version('17.01')
+    wP.set_C_version('17.02')
     wP.set_iterate(1)
     wP.set_file(name)
     wP.set_dir(models_dir)
