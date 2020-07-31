@@ -22,11 +22,11 @@ OVN_dic = {'host' : 'nefeles',
        'procIDs_table' : '`procIDs`',
        'seds_table': '`seds_17`' 
        }
-pc.log_.level=2
+pc.log_.level = -1
 pc.MdB.MdBlog_.level = -1
 pn.log_.level = -1
 M = use3MdB.manage3MdB(OVN_dic,
                        models_dir='/DATA/',
-                       Nprocs=7, clean=True)
+                       Nprocs=7, clean=True,OK_with_wrong=True)
 M.start()
 

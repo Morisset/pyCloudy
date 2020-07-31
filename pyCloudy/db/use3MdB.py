@@ -363,7 +363,8 @@ def insert_SED(MdB, seds_table, ref, sed_name, atm_cmd, atm_file, atm1=None, atm
         
 class writeTab(object):
     
-    def __init__(self, MdB=None, OVN_dic=None, models_dir = './', do_update_status=True):
+    def __init__(self, MdB=None, OVN_dic=None, models_dir = './', do_update_status=True, 
+                 OK_with_wrong=False):
         """
         This object is in charge of filling the tab database table with the 
         results of the model.
@@ -395,6 +396,7 @@ class writeTab(object):
             self.host = os.getenv('HOSTNAME')
         if self.host is None:
             self.host = 'localhost'
+        self.OK_with_wrong = OK_with_wrong
         
     def insert_in_dic(self, key, value):
         
@@ -444,7 +446,8 @@ class writeTab(object):
                                               read_cont=True, list_elem = LIST_ALL_ELEM)
             if not self.CloudyModel.aborted:
                 self.update_status('Model read')
-                if 'wrong' in self.CloudyModel.out:
+                self.log_.debug('Model read', calling='read_model')
+                if 'wrong' in self.CloudyModel.out and not self.OK_with_wrong:
                     status = False
                 else:
                     status = True
@@ -467,7 +470,7 @@ class writeTab(object):
                 self.insert_in_dic(field, self.pending[field])
         
     def model2dic(self):
-        
+        self.log_.debug('Entering', calling='model2dic')
         self.insert_in_dic('N_zones', self.CloudyModel.n_zones)
         self.insert_in_dic('rout', np.log10(self.CloudyModel.r_out_cut))
         self.insert_in_dic('thickness', self.CloudyModel.thickness)
@@ -481,6 +484,7 @@ class writeTab(object):
         self.insert_in_dic('logPhi1', np.log10(self.CloudyModel.Phi[1]))
         self.insert_in_dic('logPhi2', np.log10(self.CloudyModel.Phi[2]))
         self.insert_in_dic('logPhi3', np.log10(self.CloudyModel.Phi[3]))
+        self.log_.debug('pass 1', calling='model2dic')
             
         self.insert_in_dic('Cloudy_version', self.CloudyModel.cloudy_version)
         if 'Cloudy ends' in self.CloudyModel.out:
@@ -491,6 +495,7 @@ class writeTab(object):
             self.insert_in_dic('LastZone', self.CloudyModel.out['###Last'])
         if 'stop' in self.CloudyModel.out:
             self.insert_in_dic('CalculStop', self.CloudyModel.out['stop'])
+        self.log_.debug('pass 2', calling='model2dic')
         self.insert_in_dic('t2_H1', self.CloudyModel.get_t2_ion_vol_ne('H',1))
         self.insert_in_dic('t2_O1', self.CloudyModel.get_t2_ion_vol_ne('O',1))
         self.insert_in_dic('t2_O2', self.CloudyModel.get_t2_ion_vol_ne('O',2))
@@ -505,6 +510,7 @@ class writeTab(object):
         self.insert_in_dic('Hb_SB', self.CloudyModel.get_Hb_SB())
         self.insert_in_dic('Hb_EW', self.CloudyModel.get_Hb_EW())
         self.insert_in_dic('Ha_EW', self.CloudyModel.get_Ha_EW())
+        self.log_.debug('pass 3', calling='model2dic')
         if self.CloudyModel.n_zones > 1:
             for E in ('11.26', '35.12', '40.73', '47.45', '77.41', '113.90', 
                       '138.12', '151.06', '233.60', '262.10', '361.00'):
@@ -518,6 +524,7 @@ class writeTab(object):
                     logPhiE = -100.
                 self.insert_in_dic('logQ{}'.format(E), logQE)
                 self.insert_in_dic('logPhi{}'.format(E), logPhiE)
+            self.log_.debug('pass 4', calling='model2dic')
             self.insert_in_dic('DepthFrac', self.CloudyModel.depth[-1] / self.CloudyModel.depth_full[-1])
             self.insert_in_dic('MassFrac', self.CloudyModel.H_mass / self.CloudyModel.H_mass_full[-1])
             self.insert_in_dic('HbFrac', self.CloudyModel.Hbeta / self.CloudyModel.Hbeta_full[-1])
@@ -527,6 +534,7 @@ class writeTab(object):
             self.insert_in_dic('THp', self.CloudyModel.get_T0_ion_vol_ne(elem='H', ion=1))
             self.insert_in_dic('nH_in', self.CloudyModel.nH[0])
             self.insert_in_dic('nH_out', self.CloudyModel.nH[-1])
+            self.log_.debug('pass 5', calling='model2dic')
             try:
                 Radio = self.CloudyModel.get_interp_cont(unit='WmHz', x_unit='GHz', x_value=2.5)
                 self.insert_in_dic('Radio_2.5GHz', Radio)
@@ -547,7 +555,9 @@ class writeTab(object):
                 self.insert_in_dic('Radio_20GHz', Radio)
             except:
                 self.insert_in_dic('Radio_20GHz', -40)
+            self.log_.debug('pass 6', calling='model2dic')
         else:
+            self.log_.debug('pass 4b', calling='model2dic')
             for E in ('11.26', '35.12', '40.73', '47.45', '77.41', '113.90', 
                       '138.12', '151.06', '233.60', '262.10', '361.00'):
                 Eev = float(E)
@@ -560,11 +570,13 @@ class writeTab(object):
                     logPhiE = -100.            
                 self.insert_in_dic('logQ{}'.format(E), logQE)
                 self.insert_in_dic('logPhi{}'.format(E), logPhiE)
+            self.log_.debug('pass 5b', calling='model2dic')
             self.insert_in_dic('logU_in', self.CloudyModel.log_U)
             self.insert_in_dic('logU_out', self.CloudyModel.log_U)
             self.insert_in_dic('logU_mean', self.CloudyModel.log_U_mean_ne)
             self.insert_in_dic('nH_in', self.CloudyModel.nH)
             self.insert_in_dic('nH_out', self.CloudyModel.nH)
+            self.log_.debug('pass 6b', calling='model2dic')
                 
     def lines2dic(self):
         
@@ -588,9 +600,13 @@ class writeTab(object):
             self.log_.error('Not connected')
             return None
 
+        self.log_.debug('Entering', calling='insert_model')
         self.pending2dic()
+        self.log_.debug('Pending OK', calling='insert_model')
         self.model2dic()
+        self.log_.debug('Model OK', calling='insert_model')
         self.lines2dic()
+        self.log_.debug('Lines OK', calling='insert_model')
         if add2dic is not None:
             for key in add2dic:
                 self.insert_in_dic(key, add2dic[key])
@@ -608,11 +624,16 @@ class writeTab(object):
                         values_str += "{0}, ".format(self._dic[key])
                 else:
                     self.log_.warn('Unknown field {0} in table {1}'.format(key, self.table))
+        self.log_.debug('values str OK', calling='insert_model')
         fields_str = fields_str[:-2]
         values_str = values_str[:-2]
+        self.log_.debug('definning comand', calling='insert_model')
         command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.table, fields_str, values_str)
+        self.log_.debug('Command defined: {}'.format(command), calling='insert_model')
         self.MdB.exec_dB(command)
+        self.log_.debug('exec_dB OK', calling='insert_model')
         res, N = self.MdB.select_dB(select_='last_insert_id()', from_=self.table)
+        self.log_.debug('last inserted OK', calling='insert_model')
         self.last_N = res[0]['last_insert_id()']
         self.log_.message('Model sent to {0} with N={1}'.format(self.table, self.last_N))
         self.update_status('Model inserted') #14
@@ -1005,7 +1026,7 @@ def print_input(N, MdB= None, OVN_dic=None, dir='./', parameters=None, read_tab=
 
 class runCloudyByThread(threading.Thread):
 
-    def __init__(self, OVN_dic, models_dir, norun=False, noinput=False, clean=True):
+    def __init__(self, OVN_dic, models_dir, norun=False, noinput=False, clean=True, OK_with_wrong=False):
         
         self.log_ = pc.log_
         threading.Thread.__init__(self)
@@ -1019,6 +1040,7 @@ class runCloudyByThread(threading.Thread):
         self.OVN_dic = OVN_dic
         self.calling = 'runCloudyByThread'
         self.clean = clean
+        self.OK_with_wrong = OK_with_wrong
     
     def run(self):
         
@@ -1044,7 +1066,8 @@ class runCloudyByThread(threading.Thread):
                     rC.update_status('Cloudy failed')
                     read_it = False
                 if read_it:
-                    wT = writeTab(self.MdB, OVN_dic = self.OVN_dic, models_dir = self.models_dir)
+                    wT = writeTab(self.MdB, OVN_dic = self.OVN_dic, models_dir = self.models_dir,
+                                  OK_with_wrong=self.OK_with_wrong)
                     wT.read_pending(self.selectedN)
                     insert_it = wT.read_model()
                 else:
@@ -1298,18 +1321,20 @@ class ObsfromMdB(object):
 class manage3MdB(object):
     
     def __init__(self, OVN_dic, models_dir='/DATA/MdB', Nprocs=pn.config.Nprocs,
-                 clean=True):
+                 clean=True, OK_with_wrong=False):
         self.OVN_dic = OVN_dic
         self.models_dir = models_dir
         self.Nprocs = Nprocs
         self.clean = clean
+        self.OK_with_wrong = OK_with_wrong
                 
     def start(self, norun=False, noinput=False, clean=True):
         self.all_threads = []
         for i in range(self.Nprocs):
             self.all_threads.append(runCloudyByThread(self.OVN_dic, self.models_dir, 
                                                       norun=norun, noinput=noinput,
-                                                      clean=self.clean))
+                                                      clean=self.clean,
+                                                      OK_with_wrong=self.OK_with_wrong))
         for t in self.all_threads:
             t.start()
             
