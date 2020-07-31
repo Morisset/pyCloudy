@@ -513,7 +513,9 @@ class writeTab(object):
                                                                              x_unit='eV',
                                                                              unit='Q'))
                 logPhiE = logQE - np.log10(4 * np.pi * self.CloudyModel.radius[0]**2)
-            
+                if not np.isfinite(logQE):
+                    logQE = -100.
+                    logPhiE = -100.
                 self.insert_in_dic('logQ{}'.format(E), logQE)
                 self.insert_in_dic('logPhi{}'.format(E), logPhiE)
             self.insert_in_dic('DepthFrac', self.CloudyModel.depth[-1] / self.CloudyModel.depth_full[-1])
@@ -553,7 +555,9 @@ class writeTab(object):
                                                                              x_unit='eV',
                                                                              unit='Q'))
                 logPhiE = logQE - np.log10(4 * np.pi * self.CloudyModel.radius**2)
-            
+                if not np.isfinite(logQE):
+                    logQE = -100.
+                    logPhiE = -100.            
                 self.insert_in_dic('logQ{}'.format(E), logQE)
                 self.insert_in_dic('logPhi{}'.format(E), logPhiE)
             self.insert_in_dic('logU_in', self.CloudyModel.log_U)
