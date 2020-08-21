@@ -36,7 +36,7 @@ ff = 1.0
 tab_lU_mean = np.asarray([-1., -1.5, -2, -2.5, -3, -3.5, -4.0])
 tab_O = np.linspace(6.6, 9.4, 15) - 12
 tab_NO = np.asarray([-2, -1.5, -1, -0.5, 0.])
-tab_NO = np.asarray([-1.75, -1.25, -0.75, -0.25])
+tab_NO = np.asarray([-2.0, -1.75, -1.5, -1.25, -1.0, -0.75,-0.5, -0.25, 0.])
 tab_age = np.asarray([1., 2, 3, 4, 5, 6]) * 1e6
 tab_fr = [.03, 3.00]
 
