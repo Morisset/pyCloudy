@@ -30,10 +30,9 @@ OVN_dic = {'host' : 'nefeles',
        }
 
 """
-TODO for any distribution od c17.01:
+TODO for any distribution od c17.02:
     increase NPUNLM in save_line.cpp from 200 to 400
     add 4 radio continuum definitions
-    add Pequignot for 4363 recombination (prt_lines.cpp)
 """
 
 dir_ = './models/'
@@ -161,3 +160,5 @@ def test_BPT():
     co.close()
     f, ax = plt.subplots()
     ax.scatter(res['n2'], res['o3'], c=res['O'], edgecolor='')   
+#%%
+# use3MdB.print_infos(OVN_dic=OVN_dic, ref_='BOND_2', Nprocs=60)

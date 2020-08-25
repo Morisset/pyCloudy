@@ -33,9 +33,8 @@ options = ('COSMIC RAY BACKGROUND',)
 NH = 1e2
 ff = 1.0
 
-tab_lU_mean = np.asarray([-1., -1.5, -2, -2.5, -3, -3.5, -4.0])
+tab_lU_mean = np.asarray([-1., -1.25, -1.5, -1.75, -2, -2.25, -2.5, -2.75, -3, -3.25, -3.5, -3.75, -4.0])
 tab_O = np.linspace(6.6, 9.4, 15) - 12
-tab_NO = np.asarray([-2, -1.5, -1, -0.5, 0.])
 tab_NO = np.asarray([-2.0, -1.75, -1.5, -1.25, -1.0, -0.75,-0.5, -0.25, 0.])
 tab_age = np.asarray([1., 2, 3, 4, 5, 6]) * 1e6
 tab_fr = [.03, 3.00]
@@ -171,5 +170,5 @@ Out[5]: array([1000000., 2000000., 3000000., 4000000., 5000000., 6000000.])
 
 make_inputs(all_tabs)
 
-Version = 3
+Version = 4
 
