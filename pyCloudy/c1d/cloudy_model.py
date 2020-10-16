@@ -1832,7 +1832,7 @@ class CloudyModel(object):
     def add_emis_from_pyneb(self, new_label, pyneb_atom, label=None, wave=None):
         
         """
-        Add a new line emissivity using PyNeb.
+        Add a new line emissivity (erg.s-1.cm-3) using PyNeb.
         new_label: name of the new emission line
         pyneb_atom: a Atom or RecAtom PyNeb object
         label or wave: identifier of the transition in the PyNeb object
