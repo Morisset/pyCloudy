@@ -19,7 +19,7 @@ if pc.config.INSTALLED['Path']:
     from pathlib import Path
 
 ##
-# @bug There is a problem for plan parallel models (yes Will, you are right!) (when depth << radius) 
+# @bug There is a problem for plan parallel models (yes Will, you are right!) (when depth << radius)
 # it can be that all the values in radius are the same, which gives pb to m_cut etc
 # Need to identify this situation and to deal with it without "try", but safetly.
 
@@ -61,7 +61,7 @@ class CloudyModel(object):
     usage:  m1 = CloudyModel('MODEL')
     plot(m1.radius,m1.get_emis('Fe_3__5271A'))
     plot m1.depth,m1.te
-    
+
     y = 'e("TOTL__4363A")/e("O__3__5007A")'
     e = lambda line: m1.get_emis(line)
     plot m1.te,eval(y)
@@ -78,25 +78,25 @@ class CloudyModel(object):
     self.n_lines : number of emission lines in the .lin file
     self.line_labels : lines names, ndarray(n_lines,dtype='S20')
     self.get_line : line intensities
-    
+
     some lines can appear more than one time in the list of lines, they then have a _N at the end of the label.
     the following deal with this:
     self.slines : array of uniq values for lines (single lines)
-    self.n_slines : number of 
-    self.rlines : array of reduced labels : for duplicate lines, removing the trailing _N 
-    
+    self.n_slines : number of
+    self.rlines : array of reduced labels : for duplicate lines, removing the trailing _N
+
     dev comments:
-    
+
     GPL Chris.Morisset@Gmail.com
     """
 
     ## Cloudy model object
-    def __init__(self, model_name, verbose=None, 
-                 read_all_ext = True, read_rad=True, read_phy=True, read_emis = True, read_grains = False, 
-                 read_cont = True, read_heatcool = False, read_lin = False, read_opd = False, 
+    def __init__(self, model_name, verbose=None,
+                 read_all_ext = True, read_rad=True, read_phy=True, read_emis = True, read_grains = False,
+                 read_cont = True, read_heatcool = False, read_lin = False, read_opd = False,
                  read_pressure=False, read_abunds = False,
-                 list_elem = LIST_ELEM, distance = None, line_is_log = False, 
-                 emis_is_log = True, 
+                 list_elem = LIST_ELEM, distance = None, line_is_log = False,
+                 emis_is_log = True,
                  ionic_str_key = 'ele_'):
         """
         param:
@@ -116,7 +116,7 @@ class CloudyModel(object):
         if verbose is not None:
             self.log_.level = verbose
         self.model_name = model_name
-        self.info = '<Cloudy model from {0}>'.format(self.model_name) 
+        self.info = '<Cloudy model from {0}>'.format(self.model_name)
         self.calling = 'CloudyModel {0.model_name}'.format(self)
         self.log_.message('Creating CloudyModel for {0.model_name}'.format(self), calling = self.calling)
         self.model_name_s = model_name.split('/')[-1]
@@ -149,14 +149,14 @@ class CloudyModel(object):
                 self._init_pressure()
             if read_abunds:
                 self._init_abunds()
-    ##            
+    ##
     # @var distance
     # distance to the object (kpc)
     # @var model_name
     # name of the model [str]
     # @var log_
     # logging tool [my_logging object]
-    
+
     def _init_all2zero(self):
         self._res = {}
         self.n_ions = {}
@@ -191,7 +191,7 @@ class CloudyModel(object):
         self.n_gtemp = 0
         self.gtemp_full = None
         self.gsize = None
-        self.gtemp_labels = None            
+        self.gtemp_labels = None
         self.n_gabund = 0
         self.gabund_full = None
         self.gasize = None
@@ -199,12 +199,12 @@ class CloudyModel(object):
         self.n_gdgrat = 0
         self.gdgrat_full = None
         self.gdsize = None
-        self.gdgrat_labels = None        
+        self.gdgrat_labels = None
         self.plan_par = None
         self.Hbeta_full = None
         self.abunds_full = None
         self.pressure_full = None
-        
+
     def _init_rad(self):
         key = 'rad'
         self._res[key] = self.read_outputs(key)
@@ -216,9 +216,9 @@ class CloudyModel(object):
             self.depth_full = self._res[key]['depth']
             if self.n_zones_full > 1:
                 self.thickness_full = self.depth_full[-1]
-            else: 
+            else:
                 self.thickness_full = self.depth_full
-            self.radius_full = self._res[key]['radius'] 
+            self.radius_full = self._res[key]['radius']
             self.dr_full = self._res[key]['dr']
             self.dv_full = 4. * np.pi * self.radius_full ** 2 * self.dr_full
             if self.n_zones_full > 1:
@@ -226,22 +226,22 @@ class CloudyModel(object):
                 self.r_out = self.radius_full[-1] + self.dr_full[0]/2
             else:
                 self.r_in = self.radius_full - self.dr_full/2
-                self.r_out = self.radius_full + self.dr_full/2   
+                self.r_out = self.radius_full + self.dr_full/2
             self.r_in_cut = self.r_in
             self.r_out_cut = self.r_out
             if self.Phi0 == 0.:
                 self.Phi = self.Q / (4 * np.pi * self.r_in**2)
                 self.Phi0 = self.Phi.sum()
 
-            
 
-    ## 
-    # @var r_in 
+
+    ##
+    # @var r_in
     # Initial radius [float] (cm)
-    # @var r_out 
+    # @var r_out
     # Final radius [float] (cm)
     # @var n_zones_full
-    # total number of zones, r_range unused [int] 
+    # total number of zones, r_range unused [int]
     # @var zones_full
     # arrays of zones, r_range unused [int array]
     # @var depth_full
@@ -254,7 +254,7 @@ class CloudyModel(object):
     # array of thickness element of each zone, r_range unused [float array] (cm)
     # @var thickness_full
     # total thickness of the nebula, r_range not used [float] (cm)
-            
+
     def _init_phy(self):
         key = 'phy'
         self._res[key] = self.read_outputs(key)
@@ -282,7 +282,7 @@ class CloudyModel(object):
     # array of te.ne.nH, r_range unused [float] (K.cm^-6)
     # @var ff_full
     # array of filling factor, r_range unused [float]
-             
+
     def _init_lin(self):
         key = 'lin'
         self._res[key] = self.read_outputs(key, case_sensitive='upper')
@@ -311,7 +311,7 @@ class CloudyModel(object):
                     try:
                         self.line_labels_17.append(convert_c13_c17(label))
                     except:
-                        self.line_labels_17.append('')            
+                        self.line_labels_17.append('')
                 self.line_labels_17 = np.array(self.line_labels_17, dtype=str)
             self.n_lines = np.size(self.line_labels)
             self.log_.message('Number of lines: {0.n_lines:d}'.format(self), calling = self.calling)
@@ -329,9 +329,9 @@ class CloudyModel(object):
                 trans_emis = lambda x: pow(10., x)
             else:
                 trans_emis = lambda x: x
-            emis = self._res[key]            
+            emis = self._res[key]
             self.emis_labels = np.asarray(emis.dtype.names[1::])
-            
+
             if self.cloudy_version_major > 13:
                 # We are with c17+ and will create emis_labels_13
                 self.emis_labels_17 = self.emis_labels
@@ -350,7 +350,7 @@ class CloudyModel(object):
                     try:
                         self.emis_labels_17.append(convert_c13_c17(label))
                     except:
-                        self.emis_labels_17.append('')            
+                        self.emis_labels_17.append('')
                 self.emis_labels_17 = np.array(self.emis_labels_17, dtype=str)
             self.n_emis = np.size(self.emis_labels)
             self.log_.message('Number of emissivities: {0.n_emis:d}'.format(self), calling = self.calling)
@@ -389,12 +389,12 @@ class CloudyModel(object):
 
     def _init_heatcool(self):
         key = 'heat'
-        self._res[key] = self.read_outputs(key, names = 'depth, temp, heat, cool', 
+        self._res[key] = self.read_outputs(key, names = 'depth, temp, heat, cool',
                                            usecols = (0, 1, 2, 3), comments = '#')
         if self._res[key] is not None:
             self.heat_full = self._res[key]['heat']
             self.cool_full = self._res[key]['cool']
-           
+
     def _init_cont(self):
         key = 'cont'
         self._res[key] = self.read_outputs(key, usecols=(0, 1, 2, 3, 4, 5, 6))
@@ -413,11 +413,11 @@ class CloudyModel(object):
             self.opd_total = self._res[key]['total']
             self.opd_absorp = self._res[key]['absorp']
             self.opd_scat = self._res[key]['scat']
-            
+
     def _init_abunds(self):
         key = 'abunds'
         self._res[key] = self.read_outputs(key)
-        self.abunds_full = self._res[key]  
+        self.abunds_full = self._res[key]
         names_translator = {'abund_H':'H',
                             'HELI':'He',
                             'LITH':'Li',
@@ -448,13 +448,13 @@ class CloudyModel(object):
                             'NICK':'Ni',
                             'COPP':'Cu',
                             'ZINC':'Zn'}
-        
+
         ab_names = self.abunds_full.dtype.names
         new_names = [names_translator[name] for name in ab_names]
         self.abunds_full.dtype.names = new_names
         for elem in self.abunds_full.dtype.names:
             self.abunds_full[elem] -= np.log10(self.nH_full)
-    
+
     def _init_pressure(self):
         """
         Pressure in dynes/cm2.
@@ -463,7 +463,7 @@ class CloudyModel(object):
         key = 'pres'
         self._res[key] = self.read_outputs(key)
         self.pressure_full = self._res[key]['Pcurrent']
-        
+
     def _init_grains(self):
         key = 'gtemp'
         if int(self.cloudy_version_major) == 7:
@@ -510,7 +510,7 @@ class CloudyModel(object):
             for i, label in enumerate(self.gdgrat_labels):
                 self.gdgrat_full[i] = gdgrat[label][sk_header2::]
                 self.gdsize[i] = gdgrat[label][0]
-        
+
     def _read_stout(self, emis_is_log):
         self.out = {}
         file_name = self.model_name + '.out'
@@ -545,7 +545,7 @@ class CloudyModel(object):
                     else:
                         self.emis_is_log = emis_is_log
                 except:
-                    self.emis_is_log = emis_is_log        
+                    self.emis_is_log = emis_is_log
             elif line[0:8] == ' ####  1':
                 self.out['###First'] = line
             elif line[0:4] == ' ###':
@@ -657,7 +657,7 @@ class CloudyModel(object):
         except:
             pass
         self.Phi0 = self.Phi.sum()
-        
+
         self.abund = {}
         try:
             Chem = self.out['Chem1'][0:-1]
@@ -674,7 +674,7 @@ class CloudyModel(object):
                     sub1 = ab_str + ' :'
                 else:
                     sub1 = ab_str + ':'
-                try:             
+                try:
                     self.abund[ab_str] = float(pc.sextract(Chem, sub1, 8))
                 except:
                     self.log_.message(ab_str + ' abundance not defined', calling = self.calling)
@@ -689,7 +689,7 @@ class CloudyModel(object):
         else:
             self.aborted = False
         return True
-    
+
     def read_outputs(self, extension, delimiter='\t', comments=';', names=True, **kwargs):
         file_ = self.model_name + '.' + extension
         if os.path.exists(file_):
@@ -698,7 +698,7 @@ class CloudyModel(object):
                 self.log_.message(file_ + ' read', calling=self.calling)
             except ValueError:
                 if self.cloudy_version_major == '08':
-                    self.log_.error(file_ + ' NOT read. You may need to remove \t depth in line 132 and to move "strcat( chHeader, "\t" )" from line 139 to 135 in source/punch_line.cpp', 
+                    self.log_.error(file_ + ' NOT read. You may need to remove \t depth in line 132 and to move "strcat( chHeader, "\t" )" from line 139 to 135 in source/punch_line.cpp',
                                     calling = self.calling)
                 else:
                     self.log_.error(file_ + ' NOT read.', calling=self.calling)
@@ -706,7 +706,7 @@ class CloudyModel(object):
             except IndexError:
                 self.log_.warn(file_ + ' empty.', calling=self.calling)
                 res = None
-            except: 
+            except:
                 self.log_.error(file_ + ' NOT read.', calling=self.calling)
                 res = None
         else:
@@ -715,7 +715,7 @@ class CloudyModel(object):
         return res
 
     def _get_over_range(self, var):
-        
+
         if self.n_zones > 1:
             return var[self.r_range]
         else:
@@ -723,7 +723,7 @@ class CloudyModel(object):
                 return var.ravel()[0]
             else:
                 return var
-    
+
     ## array of zones [int array]
     @property
     def zones(self):
@@ -731,7 +731,7 @@ class CloudyModel(object):
             return None
         else:
             return self.zones_full[self.r_range]
-    
+
     ## number of zones [int]
     @property
     def n_zones(self):
@@ -750,7 +750,7 @@ class CloudyModel(object):
     @property
     def thickness(self):
         """ array of thickness (on r_range)"""
-        
+
         if self.n_zones > 1:
             return self.depth[-1]-self.depth[0]
         else:
@@ -839,7 +839,7 @@ class CloudyModel(object):
     def heat(self):
         """ array of heating (on r_range)"""
         return self._get_over_range(self.heat_full)
-    
+
     def _quiet_div(self, a, b):
         if a is None or b is None:
             to_return = None
@@ -849,7 +849,7 @@ class CloudyModel(object):
             np.seterr(all=None)
         return to_return
 
-    ##rad_integ(a) = \f$\int a.ff.dr\f$ 
+    ##rad_integ(a) = \f$\int a.ff.dr\f$
     def rad_integ(self, a):
         """ integral of a on the radius"""
         if a is None or self.dr is None:
@@ -857,7 +857,7 @@ class CloudyModel(object):
         else:
             #return np.trapz(a, self.radius)
             return (a * self.drff).sum()
-    
+
     ##vol_integ(a) = \f$\int a.ff.dV\f$
     def vol_integ(self, a):
         """ integral of a on the volume"""
@@ -871,11 +871,11 @@ class CloudyModel(object):
     def vol_mean(self, a, b = 1.):
         """ Return the mean value of a weighted by b on the volume"""
         return self._quiet_div(self.vol_integ(a * b), self.vol_integ(b))
-    
-    ##rad_mean(a, b) = \f$\frac{\int a.b.dr}{\int b.dr}\f$    
+
+    ##rad_mean(a, b) = \f$\frac{\int a.b.dr}{\int b.dr}\f$
     def rad_mean(self, a, b = 1.):
         """ Return the mean value of a weighted by b on the radius"""
-        return self._quiet_div(self.rad_integ(a * b), self.rad_integ(b))    
+        return self._quiet_div(self.rad_integ(a * b), self.rad_integ(b))
 
     ## log(U) in each zone [float array], with U(r) = \f$ Phi_0 * (r_0/r)^2/ (n_H.c)\f$
     @property
@@ -887,7 +887,7 @@ class CloudyModel(object):
             self.log_.warn('No U computed', calling = self.calling)
             log_U = None
         return log_U
-        
+
     ## log_U_mean = \f$\frac{\int U.dV}{\int dV}\f$ [float]
     @property
     def log_U_mean(self):
@@ -895,7 +895,7 @@ class CloudyModel(object):
         if self.log_U is not None:
             return np.log10(self.vol_mean(10**self.log_U))
         else:
-            return None      
+            return None
 
     ## log_U_mean_ne = \f$\frac{\int U.ne.nH.dV}{\int ne.nH.dV}\f$ [float]
     @property
@@ -904,42 +904,42 @@ class CloudyModel(object):
         if self.log_U is not None:
             return np.log10(self.vol_mean(10**self.log_U, self.nenH))
         else:
-            return None      
-    
+            return None
+
     def get_ionic(self, elem, ion):
-        """ 
+        """
         param
             elem [str] element
             ion [str or int] ionic state of ion
-        return: 
-            ionic fraction of (elem, ion). 
+        return:
+            ionic fraction of (elem, ion).
         """
         if self.is_valid_ion(elem, ion):
             return self.ionic_full[elem][ion][self.r_range]
         else:
             return None
-        
+
     @property
     def gtemp(self):
         if self.gtemp_full is not None:
             return self.gtemp_full[:,self.r_range]
         else:
             return None
-        
+
     @property
     def gabund(self):
         if self.gabund_full is not None:
             return self.gabund_full[:,self.r_range]
         else:
             return None
-        
+
     @property
     def gdgrat(self):
         if self.gdgrat_full is not None:
             return self.gdgrat_full[:,self.r_range]
         else:
             return None
-    
+
     @property
     def gmass(self):
         if self.gabund_full is not None:
@@ -952,15 +952,15 @@ class CloudyModel(object):
                 return np.array(res)
         else:
             return None
-        
-    
+
+
     ## get_T0_ion_vol(X, i) = \f$ \frac{\int T_e.n_H.ff.X^i/X.dV}{\int n_H.ff.X^i/X.dV}\f$
     def get_T0_ion_vol(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             Electron temperature integrated on the volume weighted by ionic abundance
         """
         if self.is_valid_ion(elem, ion):
@@ -970,14 +970,14 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-        
+
     ## get_T0_ion_rad(X, i) = \f$ \frac{\int T_e.n_H.ff.X^i/X.dr}{\int n_H.ff.X^i/X.dr}\f$
     def get_T0_ion_rad(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             Electron temperature integrated on the radius weighted by ionic abundance
         """
         if self.is_valid_ion(elem, ion):
@@ -987,14 +987,14 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-        
+
     ## get_ab_ion_vol(X, i) = \f$ \frac{\int X^i/X.n_H.ff.dr}{\int n_H.ff.dr}\f$
     def get_ab_ion_vol(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             Ionic fraction integrated on the volume weighted by hydrogen density
         """
         if self.is_valid_ion(elem, ion):
@@ -1004,14 +1004,14 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-        
+
     ## get_ab_ion_rad(X, i) = \f$\frac{\int X^i/X.n_H.ff.dr}{\int n_H.ff.dr}\f$
     def get_ab_ion_rad(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             Ionic fraction integrated on the radius weighted by nH
         """
         if self.is_valid_ion(elem, ion):
@@ -1021,14 +1021,14 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-        
+
     ## get_ne_ion_vol_ne(X, i) = \f$\frac{\int ne.ne.nH.ff.Xi/X.dV}{\int ne.nH.ff.Xi/X.dV}\f$
     def get_ne_ion_vol_ne(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             electron density integrated on the volume weighted by ne.nH.Xi/X
         """
         if self.is_valid_ion(elem, ion):
@@ -1038,14 +1038,14 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-        
+
     ## get_T0_ion_vol_ne(X, i) = \f$\frac{\int Te.ne.nH.ff.Xi/X.dV}{\int ne.nH.ff.X^i/X.dV}\f$
     def get_T0_ion_vol_ne(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             electron temperature integrated on the volume weighted by ne.nH.Xi/X
         """
         if self.is_valid_ion(elem, ion):
@@ -1055,14 +1055,14 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-        
+
     ## get_T0_ion_rad_ne(X, i) = \f$\frac{\int Te.ne.nH.ff.Xi/X.dr}{\int ne.nH.ff.Xi/X.dr}\f$
     def get_T0_ion_rad_ne(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             electron temperature integrated on the radius weighted by ne.nH.Xi/X
         """
         if self.is_valid_ion(elem, ion):
@@ -1072,14 +1072,14 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-        
+
     ## get_ne_ion_rad_ne(X, i) = \f$\frac{\int ne.ne.nH.ff.Xi/X.dr}{\int ne.nH.ff.Xi/X.dr}\f$
     def get_ne_ion_rad_ne(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             electron density integrated on the radius weighted by ne.nH.Xi/X
         """
         if self.is_valid_ion(elem, ion):
@@ -1089,14 +1089,14 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-        
+
     ## get_ab_ion_vol_ne(X, i) = \f$\frac{\int Xi/X.n_e.n_H.ff.dV}{\int ne.nH.ff.dV}\f$
     def get_ab_ion_vol_ne(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             ionic fraction integrated on the volume weighted by ne.nH
         """
         if self.is_valid_ion(elem, ion):
@@ -1106,14 +1106,14 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-        
+
     ## get_ab_ion_rad_ne(X, i) = \f$\frac{\int Xi/X.n_e.n_H.ff.dr}{\int ne.nH.ff.dr}\f$
     def get_ab_ion_rad_ne(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             ionic fraction integrated on the radius weighted by ne.nH
         """
         if self.is_valid_ion(elem, ion):
@@ -1123,14 +1123,14 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-        
+
     ## get_t2_ion_vol_ne(X, i) = \f$\frac{\int (T_e-T_{X^i})^2.n_e.n_H.ff.X^i/X.dV}{T_{X^i}^2.\int ne.nH.ff.X^i/X.dV}\f$
     def get_t2_ion_vol_ne(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             t2 integrated on the volume weighted by ne.nH.X^i/X
         """
         if self.is_valid_ion(elem, ion):
@@ -1141,14 +1141,14 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-        
+
     ## get_t2_ion_vol_ne(X, i) = \f$\frac{\int (T_e-T_{X^i})^2.n_e.n_H.ff.X^i/X.dr}{T_{X^i}^2.\int ne.nH.ff.X^i/X.dr}\f$
     def get_t2_ion_rad_ne(self, elem=None, ion=None):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             t2 integrated on the radius weighted by ne.nH.X^i/X
         """
         if self.is_valid_ion(elem, ion):
@@ -1159,12 +1159,12 @@ class CloudyModel(object):
             err = "Ion {0} {1:d} not available".format(elem, ion)
             self.log_.warn(err, calling = self.calling)
             return None
-    
+
     def _i_line(self, ref):
         if type(ref) is str or type(ref) is np.str_:
-            if ref in self.line_labels_13:                
+            if ref in self.line_labels_13:
                 to_return = np.argwhere(self.line_labels_13 == ref)[0][0]
-            elif ref in self.line_labels_17:                
+            elif ref in self.line_labels_17:
                 to_return = np.argwhere(self.line_labels_17 == ref)[0][0]
             else:
                 self.log_.warn(ref + ' is not a correct line reference - 1', calling = self.calling)
@@ -1179,7 +1179,7 @@ class CloudyModel(object):
             self.log_.warn(str(type(ref)) + ' is not a correct line type - 3', calling = self.calling)
             to_return = None
         return to_return
-    
+
     def _i_emis(self, ref):
         """
         param:
@@ -1188,7 +1188,7 @@ class CloudyModel(object):
             the indice of the line in the emis liste
         """
         if type(ref) is str or type(ref) is np.str_:
-            if ref in self.emis_labels_13:                
+            if ref in self.emis_labels_13:
                 to_return = np.argwhere(self.emis_labels_13 == ref)[0][0]
             elif ref in self.emis_labels_17:
                 to_return = np.argwhere(self.emis_labels_17 == ref)[0][0]
@@ -1214,9 +1214,9 @@ class CloudyModel(object):
             the label of the line
         """
         if type(ref) is str or type(ref) is np.str_:
-            if ref in self.emis_labels_13:                
+            if ref in self.emis_labels_13:
                 to_return = ref
-            elif ref in self.emis_labels_17:                
+            elif ref in self.emis_labels_17:
                 to_return = ref
             else:
                 self.log_.warn(ref + ' is not a correct line reference - 1', calling = self.calling)
@@ -1231,7 +1231,7 @@ class CloudyModel(object):
             self.log_.warn(str(type(ref)) + ' is not a correct line type - 3', calling = self.calling)
             to_return = None
         return to_return
-        
+
 
     def get_line(self, ref):
         """
@@ -1242,7 +1242,7 @@ class CloudyModel(object):
             return self.lines[self._i_line(ref)]
         else:
             return None
-                        
+
     ## return the emissivities(radius)  of the given line [array float] (erg/cm^3/s)
     def get_emis(self, ref):
         """
@@ -1254,7 +1254,7 @@ class CloudyModel(object):
             return self.emis_full[self._i_emis(ref)][self.r_range]
         else:
             return None
-            
+
     ## get_emis_vol(ref, [at_earth]) = \f$ \int \epsilon(ref).dV [/ 4.\pi.(distance)^2]\f$
     def get_emis_vol(self, ref, at_earth=False):
         """
@@ -1278,8 +1278,8 @@ class CloudyModel(object):
         return self.rad_integ(self.get_emis(ref))
 
     ## get_T0_emis(ref) = \f$\frac{\int T_e.\epsilon(ref).dV}{\int \epsilon(ref).dV}\f$
-    def get_T0_emis(self, ref):        
-        """ 
+    def get_T0_emis(self, ref):
+        """
         integral of the electron temperature on the volume, weighted by emissivity of a given line
         param:
             ref [int or str] line reference
@@ -1287,10 +1287,10 @@ class CloudyModel(object):
             [float]
         """
         return self.vol_mean(self.te, self.get_emis(ref))
-    
+
     ## get_T0_emis_rad(ref) = \f$\frac{\int T_e.\epsilon(ref).dr}{\int \epsilon(ref).dr}\f$
-    def get_T0_emis_rad(self, ref):        
-        """ 
+    def get_T0_emis_rad(self, ref):
+        """
         integral of the electron temperature on the radius, weighted by emissivity of a given line
         param:
             ref [int or str] line reference
@@ -1298,10 +1298,10 @@ class CloudyModel(object):
             [float]
         """
         return self.rad_mean(self.te, self.get_emis(ref))
-    
+
     ## get_ne_emis(ref) = \f$\frac{\int n_e.\epsilon(ref).dV}{\int \epsilon(ref).dV}\f$
-    def get_ne_emis(self, ref):        
-        """ 
+    def get_ne_emis(self, ref):
+        """
         integral of the electron density on the volume, weighted by emissivity of a given line
         param:
             ref [int or str] line reference
@@ -1309,26 +1309,26 @@ class CloudyModel(object):
             [float]
         """
         return self.vol_mean(self.ne, self.get_emis(ref))
-    
+
     #nH_mean = \f$\frac{\int n_H.dV}{\int dV}\f$
     @property
     def nH_mean(self):
-        """ 
+        """
         mean of the Hydrogen density over the volume
         return:
             [float]
         """
         return self.vol_mean(self.nH, 1.)
-    
+
     ## get_t2_emis(ref) = \f$\frac{\int (T_e-T(ref))^2.\epsilon(ref).dV}{T(ref)^2\int \epsilon(ref).dV}\f$
-    def get_t2_emis(self, ref):      
+    def get_t2_emis(self, ref):
         """
         t2(emissivity) integrated on the volume, weigthed by the emissivity
         param:
             ref [int or str] line reference
         return:
             [float]
-        """  
+        """
         return self.vol_mean((self.te - self.get_T0_emis(ref)) ** 2., self.get_emis(ref)) / self.get_T0_emis(ref) ** 2
 
     ## Return the wavelength/energy/frequency array
@@ -1374,7 +1374,7 @@ class CloudyModel(object):
         """
         param:
             cont : one of ['incid','trans','diffout','ntrans','reflec', 'total']
-            unit : one of ['esc' for erg/s/cm2, 
+            unit : one of ['esc' for erg/s/cm2,
                            'ec3'for erg/s/cm2/C C : lightspeed,
                            'es' for erg/s,
                            'esA' for erg/s/AA,
@@ -1383,13 +1383,13 @@ class CloudyModel(object):
                            'ec3A' for erg/s/AA/cm2/C C : lighspeed
                            'esHzc' for erg/s/Hz/cm2,
                            'Jy' for Jansky,
-                           'Q' for number of photons above the corresponding energy, 
-                           'Wcmu' for Watt/micron/cm2, 
-                           'WmHz' for Watt/Herz/m2, 
-                           'WmA' for Watt/Anstrom/m2, 
-                           'phs' for photons/s, 
-                           'phsmu' for photons/s/micron, 
-                           'phsc' for photons/s/cm2, 
+                           'Q' for number of photons above the corresponding energy,
+                           'Wcmu' for Watt/micron/cm2,
+                           'WmHz' for Watt/Herz/m2,
+                           'WmA' for Watt/Anstrom/m2,
+                           'phs' for photons/s,
+                           'phsmu' for photons/s/micron,
+                           'phsc' for photons/s/cm2,
                            'phsmuc' for photons/s/micron/cm2]
             dist_norm : one of ['at_earth', 'r_out', a float for a distance in cm]
         return:
@@ -1412,7 +1412,7 @@ class CloudyModel(object):
         else:
             self.log_.warn("cont must be one of: ['incid','trans','diffout','ntrans','reflec', 'total']", calling = self.calling)
             cont1 = None
-        
+
         inner_surface = 4. * np.pi * self.r_in ** 2.
         if int(self.cloudy_version_major) >= 17:
             cont1 /= inner_surface
@@ -1427,12 +1427,12 @@ class CloudyModel(object):
                     try:
                         dist_fact = (self.r_in / dist_norm) ** 2.
                     except:
-                        self.log_.error('{0} is not a valid dist parameter.'.format(dist_norm), calling = 'CloudyModel.get_cont_y')                        
+                        self.log_.error('{0} is not a valid dist parameter.'.format(dist_norm), calling = 'CloudyModel.get_cont_y')
             else:
                 self.log_.error('No distance set to compute cont_y', calling = self.calling)
-     
+
         if unit == 'es':
-            """ erg.s-1 """            
+            """ erg.s-1 """
             to_return = cont1 * inner_surface
         elif unit == 'esA':
             """erg.s-1.A-1"""
@@ -1482,19 +1482,19 @@ class CloudyModel(object):
             to_return = cont1 / (self.get_cont_x(unit='Ryd') * pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * inner_surface
         elif unit == 'phsmu':
             """photons.s-1.micron-1"""
-            to_return = cont1 / (self.get_cont_x(unit='mu') * self.get_cont_x(unit='Ryd') * 
+            to_return = cont1 / (self.get_cont_x(unit='mu') * self.get_cont_x(unit='Ryd') *
                                  pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * inner_surface
         elif unit == 'phsc':
             """photons.s-1.cm-2"""
             to_return = cont1 / (self.get_cont_x(unit='Ryd') * pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * dist_fact
         elif unit == 'phsmuc':
             """photons.s-1.cm-2.micron"""
-            to_return = cont1 / (self.get_cont_x(unit='mu') * self.get_cont_x(unit='Ryd') * 
+            to_return = cont1 / (self.get_cont_x(unit='mu') * self.get_cont_x(unit='Ryd') *
                                  pc.CST.ECHARGE * 1e7 * pc.CST.RYD_EV) * dist_fact
         else:
             self.log_.warn("unit must be one of: ['esc', 'ec3','es','esA','esAc','esHzc','WmHz','Wcmu','Jy','Q']",
                             calling = self.calling)
-            to_return = None        
+            to_return = None
         return to_return
 
     def get_integ_spec(self, cont, lam_low, lam_high, unit='es'):
@@ -1521,21 +1521,21 @@ class CloudyModel(object):
             unity = 'phsmuc'
         else:
             self.log_.error("unit must be one of: ['es', 'phs', 'esc', 'Wm', 'phsc']", calling = self.calling)
-        integ = mytrapz(self.get_cont_y(cont=cont, unit=unity), self.get_cont_x(unitx), lam_low, lam_high)        
+        integ = mytrapz(self.get_cont_y(cont=cont, unit=unity), self.get_cont_x(unitx), lam_low, lam_high)
         return integ
-            
+
     def get_interp_cont(self, cont='incid', unit='es', dist_norm='at_earth',
                         x_value=4686.0, x_unit='Ang'):
         """
         Return the value of the continuum at a given wavelength/energy value
         """
-        
+
         cont_x = self.get_cont_x(unit=x_unit)
         cont_y = self.get_cont_y(cont=cont, unit=unit, dist_norm=dist_norm)
         interp_cont = interp1d(cont_x, cont_y)
         return interp_cont(x_value)
-        
-    
+
+
     ## get_G0 = integral(f_lambda . dlambda) Between lam_min and lam_max (Ang), normalized by norm, in unit of W.m-2 or erg.cm-3
     def get_G0(self, lam_min = 913, lam_max = 1e8, dist_norm = 'r_out', norm = 1.6e-6, unit = 'Wm'):
         """
@@ -1543,38 +1543,38 @@ class CloudyModel(object):
         """
         lam = self.get_cont_x(unit = 'Ang')
         lam_range = (lam > lam_min) & (lam < lam_max)
-        if unit == 'Wm':  
+        if unit == 'Wm':
             G0 = abs(np.trapz(y = self.get_cont_y('ntrans', 'WmA', dist_norm = dist_norm)[lam_range], x = lam[lam_range]))/norm
         elif unit == 'ec3':
             G0 = abs(np.trapz(y = self.get_cont_y('ntrans', 'ec3A', dist_norm = dist_norm)[lam_range], x = lam[lam_range]))/norm
         return G0
 
-    def _get_r_out_cut(self):    
+    def _get_r_out_cut(self):
         return self.__r_out_cut
-    
+
     def _set_r_out_cut(self, value):
         if self.n_zones_full > 1:
             if value >= self.r_in:
-                self.__r_out_cut = value         
+                self.__r_out_cut = value
             else:
                 self.log_.warn('r_out_cut ({0:e}) cannot be lower than r_min ({1:e})'.format(value, self.r_in), calling = self.calling)
                 self.__r_out_cut = self.radius_full[1]
         else:
             if value != self.r_out:
-                self.__r_out_cut = self.r_out     
+                self.__r_out_cut = self.r_out
                 self.log_.warn('r_out_cut ({0:e}) cannot be != than r_out ({1:e})'.format(value, self.r_in), calling = self.calling)
             else:
-                self.__r_out_cut = value   
-            
+                self.__r_out_cut = value
+
     _r_out_cut_doc = 'User defined outer radius of the nebula. For example: r_out_cut = m.radius[m.zones[m.ionic["H"][1] < 0.2][0]]'
-    ## User defined outer radius of the nebula [float] (cm). 
+    ## User defined outer radius of the nebula [float] (cm).
     # For example: r_out_cut = m.radius[m.zones[m.ionic['H'][1] < 0.2][0]].
     # It is used to define r_range and thus all the radial properties of the nebula
     r_out_cut = property(_get_r_out_cut, _set_r_out_cut, None, _r_out_cut_doc)
 
-    def _get_r_in_cut(self):    
+    def _get_r_in_cut(self):
         return self.__r_in_cut
-    
+
     def _set_r_in_cut(self, value):
         if self.n_zones_full > 1:
             if value >= self.r_in:
@@ -1583,7 +1583,7 @@ class CloudyModel(object):
                 self.log_.warn('r_in_cut ({0:e}) cannot be lower than r_min ({1:e})'.format(value, self.r_in), calling = self.calling)
                 self.__r_in_cut = self.r_in[0]
         else:
-            if value != self.r_in:  
+            if value != self.r_in:
                 self.log_.warn('r_in_cut ({0:e}) cannot be != than r_min ({1:e})'.format(value, self.r_in), calling = self.calling)
                 self.__r_in_cut = self.r_in
             else:
@@ -1605,19 +1605,19 @@ class CloudyModel(object):
 
     def _get_H_mass_cut(self):
         return self.__H_mass_cut
-    
+
     def _set_H_mass_cut(self, value):
         if value > self.H_mass_full[1]:
             self.r_out_cut = self.radius_full[self.H_mass_full <= value][-1]
             self.__H_mass_cut = self.H_mass
         else:
             self.log_.warn('H_mass_cut must be greater than minimal value', calling = self.calling)
-            
+
     H_mass_cut = property(_get_H_mass_cut, _set_H_mass_cut, None, None)
 
     def _get_Hbeta_cut(self):
         return self.__Hbeta_cut
-    
+
     def _set_Hbeta_cut(self, value):
         if value > self.Hbeta_full[1]:
             self.r_out_cut = self.radius_full[self.Hbeta_full <= value][-1]
@@ -1628,7 +1628,7 @@ class CloudyModel(object):
     Hbeta_cut = property(_get_Hbeta_cut, _set_Hbeta_cut, None, None)
 
     ## Hp_mass = \f$ \int m_H.n_{H^+}.ff.dV\f$ [solar mass]
-    @property        
+    @property
     def Hp_mass(self):
         """Return the H+ mass of the nebula in solar mass"""
         try:
@@ -1637,8 +1637,8 @@ class CloudyModel(object):
             self.log_.warn('H+ mass_tot not available', calling = self.calling)
             return None
 
-    ## H0_mass = \f$ \int m_H.n_{H^0}.ff.dV\f$ [solar mass]        
-    @property        
+    ## H0_mass = \f$ \int m_H.n_{H^0}.ff.dV\f$ [solar mass]
+    @property
     def H0_mass(self):
         """Return the H0 mass of the nebula in solar mass"""
         try:
@@ -1646,9 +1646,9 @@ class CloudyModel(object):
         except:
             self.log_.warn('H0 mass_tot not available', calling = self.calling)
             return None
-        
-    ## H0_mass = \f$ \int m_H.n_H.ff.dV\f$ [solar mass]                
-    @property        
+
+    ## H0_mass = \f$ \int m_H.n_H.ff.dV\f$ [solar mass]
+    @property
     def H_mass(self):
         """Return the H mass of the nebula in solar mass"""
         try:
@@ -1656,9 +1656,9 @@ class CloudyModel(object):
         except:
             self.log_.warn('H mass_tot not available', calling = self.calling)
             return None
-        
-    ## Hbeta = \f$ \int Hbeta.n_H.ff.dV\f$ [solar mass]                
-    @property        
+
+    ## Hbeta = \f$ \int Hbeta.n_H.ff.dV\f$ [solar mass]
+    @property
     def Hbeta(self):
         """Return the intensity of Hbeta"""
         try:
@@ -1666,19 +1666,19 @@ class CloudyModel(object):
         except:
             self.log_.warn('H beta not available', calling = self.calling)
             return None
-        
-    
+
+
     ## Mean Temperature \f$T0=\frac{\int T_e.n_e.n_H.ff.dV}{\int n_e.n_H.ff.dV}\f$
-    @property        
+    @property
     def T0(self):
         try:
             return self.vol_mean(self.te, self.nenH)
         except:
             self.log_.warn('T0 not available', calling = self.calling)
             return None
-        
+
     ## t2 a la Peimbert \f$t^2=\frac{\int (T_e-T0)^2.n_e.n_H.ff.dV}{T0^2 \int n_e.n_H.ff.dV}\f$
-    @property        
+    @property
     def t2(self):
         try:
             return self.vol_mean((self.te - self.T0) ** 2, self.nenH) / self.T0 ** 2
@@ -1696,7 +1696,7 @@ class CloudyModel(object):
             return self.get_emis_vol(self.Hbeta_label) / (self.r_out_cut**2 * np.pi * 206265.**2)
         else:
             self.log_.warn('Hbeta emissivity not in emis file', calling = self.calling + '.get_Hb_SB')
-    
+
     def get_EW(self, label, lam0, lam_inf, lam_sup):
         """
         Equivalent Width:
@@ -1774,26 +1774,26 @@ class CloudyModel(object):
             return self.get_EW('H__1_656281A', 6563., 6260, 6860)
 
     ## is_valid_ion(elem, ion) return True if elem, ion is available in get_ionic.
-    def is_valid_ion(self, elem, ion):        
+    def is_valid_ion(self, elem, ion):
         """
         param:
             elem [str] element
             ion [str or int] ionic state of ion
-        return:    
+        return:
             [boolean] True if elem,ion has value for get_ionic(elem, ion)
         """
         to_return = False
         if elem in list(self.ionic_names.keys()):
             if (ion >= 0) & (ion < self.n_ions[elem]):
                 to_return = True
-        return to_return  
-   
+        return to_return
+
     def emis_from_pyneb(self, emis_labels = None, atoms = None):
         """
         change the emissivities using PyNeb.
         emis_labels: list of line to be changed. If unset, all the lines will be changed. You may generate emis_labels
             this way (here to select only S lines): S_labels = [emis for emis in CloudyModel.emis_labels if emis[0:2] == 'S_']
-        atoms: dictionary of pyneb.Atom objects to be used. If unset, all the atoms will be build 
+        atoms: dictionary of pyneb.Atom objects to be used. If unset, all the atoms will be build
             using pyneb. This allows the user to mix atomic dataset by creating atoms outside CloudyModel. Keys
             of the dictionnary pointing to None instaed of an Atom will not change the corresponding emissivities.
         """
@@ -1828,9 +1828,9 @@ class CloudyModel(object):
                     pc.log_.warn('ion {0} not in PyNeb'.format(ion), calling = self.calling)
             else:
                 pc.log_.warn('line {0} not in Cloudy2PyNeb'.format(line), calling = self.calling)
-    
+
     def add_emis_from_pyneb(self, new_label, pyneb_atom, label=None, wave=None):
-        
+
         """
         Add a new line emissivity using PyNeb.
         new_label: name of the new emission line
@@ -1840,7 +1840,7 @@ class CloudyModel(object):
             M.add_emis_from_pyneb('O__2R_4639', O2, label='4638.86')
 
         """
-        
+
         new_emis_full = np.zeros((len(self.emis_labels)+1, self.n_zones_full))
         new_emis_full[:-1, :] = self.emis_full
         if type(pyneb_atom) is pyneb.RecAtom:
@@ -1851,10 +1851,10 @@ class CloudyModel(object):
             abunds = self.abund
         else:
             abunds = self.abunds_full
-            
+
         self.log_.message('Doing atom {} {} {}'.format(pyneb_atom, wave, label))
         if wave is not None:
-            
+
             new_emis_full[-1, :] = pyneb_atom.getEmissivity(self.te_full, self.ne_full, wave = wave, product = False) * \
                                    self.ionic_full[pyneb_atom.elem][spec] * self.ne_full * \
                                    self.nH_full * 10**abunds[pyneb_atom.elem]
@@ -1862,16 +1862,16 @@ class CloudyModel(object):
             new_emis_full[-1, :] = pyneb_atom.getEmissivity(self.te_full, self.ne_full, label = label, product = False) * \
                                    self.ionic_full[pyneb_atom.elem][spec] * self.ne_full * \
                                    self.nH_full * 10**abunds[pyneb_atom.elem]
-                                           
-        self.emis_full = new_emis_full        
+
+        self.emis_full = new_emis_full
         self.emis_labels = np.append(self.emis_labels, new_label)
-        
+
         if self.cloudy_version_major > 16:
-            self.emis_labels_17 = self.emis_labels 
+            self.emis_labels_17 = self.emis_labels
         else:
-            self.emis_labels_13 = self.emis_labels 
-    
-    def plot_spectrum(self, xunit='eV', cont='ntrans', yunit='es', ax=None, 
+            self.emis_labels_13 = self.emis_labels
+
+    def plot_spectrum(self, xunit='eV', cont='ntrans', yunit='es', ax=None,
                       xlog=True, ylog=True, **kargv):
         """
         plot the spectrum of the model.
@@ -1903,7 +1903,7 @@ class CloudyModel(object):
         ax.set_ylabel(yunit)
         if return_ax:
             return ax
-                        
+
     def print_lines(self, ref = None, norm = None, at_earth = False, use_emis = True):
         """
         Print line intensities
@@ -1912,13 +1912,13 @@ class CloudyModel(object):
             ref [int or str] reference of a line (if None, all lines are printed)
             norm [int or str] reference of a line to normalize the intensities
             use_emis [boolean] use integral of emissivity (default) or line intensities
-        """      
+        """
         if ref != None:
             if norm is not None:
                 e_norm = self.get_emis_vol(norm, at_earth = at_earth)
             else:
                 e_norm = 1.
-            print('{0} {1:e}'.format(ref, self.get_emis_vol(ref, at_earth = at_earth)/e_norm)) 
+            print('{0} {1:e}'.format(ref, self.get_emis_vol(ref, at_earth = at_earth)/e_norm))
         else:
             if use_emis:
                 for em in self.emis_labels:
@@ -1926,7 +1926,7 @@ class CloudyModel(object):
             else:
                 for label, intensity in zip(self.line_labels, self.lines):
                     print('{0} {1:e}'.format(label, intensity))
-                
+
     def print_stats(self):
         print(' Name of the model: {0}'.format(self.model_name))
         try:
@@ -1942,33 +1942,33 @@ class CloudyModel(object):
             print(' T0 = {0.T0:.0f}, t2 = {0.t2:.1e}, <nH> = {1:.2}'.format(self, self.get_nH()))
         except:
             pass
-        
+
         try:
-            print(' <H+/H> = {0:.2f}, <He++/He> = {1:.2f}, <He+/He> = {2:.2f}'.format(self.get_ab_ion_vol_ne('H',1), 
-                                                                         self.get_ab_ion_vol_ne('He',2), 
+            print(' <H+/H> = {0:.2f}, <He++/He> = {1:.2f}, <He+/He> = {2:.2f}'.format(self.get_ab_ion_vol_ne('H',1),
+                                                                         self.get_ab_ion_vol_ne('He',2),
                                                                          self.get_ab_ion_vol_ne('He',1)))
         except:
             pass
         try:
-            print(' <O+++/O> = {0:.2f}, <O++/O> = {1:.2f}, <O+/O> = {2:.2f}'.format(self.get_ab_ion_vol_ne('O',3), 
-                                                                     self.get_ab_ion_vol_ne('O',2), 
+            print(' <O+++/O> = {0:.2f}, <O++/O> = {1:.2f}, <O+/O> = {2:.2f}'.format(self.get_ab_ion_vol_ne('O',3),
+                                                                     self.get_ab_ion_vol_ne('O',2),
                                                                      self.get_ab_ion_vol_ne('O',1)))
         except:
             pass
         try:
-            print(' <N+++/N> = {0:.2f}, <N++/N> = {1:.2f}, <N+/N> = {2:.2f}'.format(self.get_ab_ion_vol_ne('N',3), 
-                                                                     self.get_ab_ion_vol_ne('N',2), 
+            print(' <N+++/N> = {0:.2f}, <N++/N> = {1:.2f}, <N+/N> = {2:.2f}'.format(self.get_ab_ion_vol_ne('N',3),
+                                                                     self.get_ab_ion_vol_ne('N',2),
                                                                      self.get_ab_ion_vol_ne('N',1)))
         except:
             pass
         try:
-            print(' T(O+++) = {0:.0f}, T(O++) = {1:.0f}, T(O+) = {2:.0f}'.format(self.get_T0_ion_vol_ne('O',3), 
-                                                                     self.get_T0_ion_vol_ne('O',2), 
+            print(' T(O+++) = {0:.0f}, T(O++) = {1:.0f}, T(O+) = {2:.0f}'.format(self.get_T0_ion_vol_ne('O',3),
+                                                                     self.get_T0_ion_vol_ne('O',2),
                                                                      self.get_T0_ion_vol_ne('O',1)))
         except:
             pass
         try:
-            print(' <ne> = {0:.0f},  <nH> = {1:.0f}, T0 = {2.T0:.0f}, t2={2.t2:.4f}'.format(self.vol_mean(self.ne), 
+            print(' <ne> = {0:.0f},  <nH> = {1:.0f}, T0 = {2.T0:.0f}, t2={2.t2:.4f}'.format(self.vol_mean(self.ne),
                                                                                             self.vol_mean(self.nH), self))
         except:
             pass
@@ -1976,18 +1976,18 @@ class CloudyModel(object):
             print(' <log U> = {0.log_U_mean:.2f}'.format(self))
         except:
             pass
-        
+
     def __repr__(self):
         return "{0.info}".format(self)
-    
+
     def __str__(self):
         return "{0.info}".format(self)
-    
+
 ## @include copyright.txt
 def load_models(model_name = None, mod_list = None, n_sample = None, verbose = False, **kwargs):
     """
     Return a list of CloudyModel correspondig to a generic name
-    
+
     Parameters:
         - model_name:    generic name. The method is looking for any "model_name*.out" file.
         - mod_list:    in case model_name=None, this is the list of model names (something.out or something)
@@ -1995,15 +1995,15 @@ def load_models(model_name = None, mod_list = None, n_sample = None, verbose = F
         - verbose:    print out the name of the models read
         - **kwargs:    arguments passed to CloudyModel
     """
-    
+
     if model_name is not None:
-        mod_list = glob.glob(model_name + '*.out') 
+        mod_list = glob.glob(model_name + '*.out')
     if mod_list is None or mod_list == []:
         pc.log_.error('No model found', calling = 'load models')
         return None
     if n_sample is not None:
         if n_sample > len(mod_list):
-            pc.log_.error('less models {0:d} than n_sample {1:d}'.format(len(mod_list), n_sample), 
+            pc.log_.error('less models {0:d} than n_sample {1:d}'.format(len(mod_list), n_sample),
                           calling = 'load models')
             return None
         mod_list = random.sample(mod_list, n_sample)
@@ -2017,13 +2017,13 @@ def load_models(model_name = None, mod_list = None, n_sample = None, verbose = F
             cm = CloudyModel(model_name, **kwargs)
         except:
             if verbose:
-                print('{0} model NOT read'.format(outfile[0:-4]))            
+                print('{0} model NOT read'.format(outfile[0:-4]))
         if not cm.aborted:
             m.append(cm)
         if verbose:
             print('{0} model read'.format(outfile[0:-4]))
     pc.log_.message('{0} models read'.format(np.size(mod_list)), calling = 'load_models')
-    return m 
+    return m
 
 ## @include copyright.txt
 
@@ -2041,7 +2041,7 @@ class CloudyInput(object):
         self.calling = 'CloudyInput'
         self.model_name = model_name
         self.init_all()
-    
+
     def init_all(self):
         self.set_save_str()
         self.set_other()
@@ -2063,7 +2063,7 @@ class CloudyInput(object):
         self.save_list = pc.config.SAVE_LIST
         self._save_list_grains = pc.config.SAVE_LIST_GRAINS
         self.cloudy_version = None
-        
+
     def set_save_str(self, save = 'save'):
         """
         This determine if "save" (default) or "punch" is used in the input file
@@ -2075,7 +2075,7 @@ class CloudyInput(object):
             self.save_str = 'save'
         else:
             self.save_str = save
-        
+
     def set_radius(self, r_in=None, r_out=None):
         """
         param:
@@ -2100,7 +2100,7 @@ class CloudyInput(object):
             - lumi_value:    the value of the luminosity
         """
         self.set_star(SED = 'Blackbody',  SED_params = Teff, lumi_unit = lumi_unit, lumi_value=lumi_value)
-        
+
     def set_star(self, SED = None, SED_params = None, lumi_unit=None, lumi_value=None):
         """
         Add a table to the SED.
@@ -2126,7 +2126,7 @@ class CloudyInput(object):
             shape = params_str.format(SED, SED_params)
             lumi = '{0} = {1:.3f}'.format(lumi_unit, lumi_value)
             self._SEDs.append((shape, lumi))
-        
+
     def set_cste_density(self, dens = None, ff = None, others = None):
         """
         Set the density of the model to a constant value
@@ -2150,7 +2150,7 @@ class CloudyInput(object):
                 self._filling_factor = 'filling factor = {0:f}'.format(ff)
         else:
             self._filling_factor = 'filling factor = 1.0'
-        
+
     def set_dlaw(self, dlaw_params, ff = None):
         """
         Define the user-define density law.
@@ -2172,7 +2172,7 @@ class CloudyInput(object):
     def set_fudge(self, fudge_params = None):
         """
         Define a user-defined fudge parameter.
-        
+
         Parameter:
             - fudge_params: may be: 1.4, '1.4, 5.6, 7e45' or (1, 2, 4.5)
         """
@@ -2185,14 +2185,14 @@ class CloudyInput(object):
 
     def set_sphere(self, sphere = True):
         """
-        Set the sphere parameter if True, unset it otherwise. 
+        Set the sphere parameter if True, unset it otherwise.
         """
         if sphere:
             self._input['sphere'] = 'sphere'
         else:
             if 'sphere' in self._input:
                 del self._input['sphere']
-            
+
     def set_iterate(self, n_iter = None, to_convergence = False):
         """
         Set the iterate parameter.
@@ -2200,7 +2200,7 @@ class CloudyInput(object):
             - n_iter: If None, set the iterate parameter to "iterate" in the Cloudy input file,
                 if ==0, unset the iterate (nothing will be printed), otherwise set iterate to the
                 value of n_iter.
-            - to_convergence [False]: If True, iterate to convergence is printed out. 
+            - to_convergence [False]: If True, iterate to convergence is printed out.
                 n_iter without effect then
         """
         if n_iter is None:
@@ -2227,7 +2227,7 @@ class CloudyInput(object):
                     self._grains.append(grain)
             else:
                 self._grains.append(grains)
-    
+
     def set_stop(self, stop_criter = None):
         """
         Append a stopping criterium to the list.
@@ -2238,12 +2238,12 @@ class CloudyInput(object):
         if stop_criter is None:
             self._stop = []
         else:
-            if type(stop_criter) == type(()) or type(stop_criter) == type([]): 
+            if type(stop_criter) == type(()) or type(stop_criter) == type([]):
                 for criter in stop_criter:
                     self._stop.append(criter)
             else:
                 self._stop.append(stop_criter)
-    
+
     def read_emis_file(self, emis_file, N_char=14):
         """
         Define the name of the file containing the labels for the list of emissivities to output
@@ -2255,11 +2255,11 @@ class CloudyInput(object):
                 self._emis_tab = [row[0:N_char] for row in f]
         except:
             pc.log_.warn('File {0} for emis lines not accesible'.format(emis_file))
-            
+
     def set_emis_tab(self, emis_tab_str = None):
         """
         Accept a list of line labels that will be used as:
-        
+
         save last lines emissivity ".emis"
             *** enumeration of the elements of the list ***
         end of lines
@@ -2268,7 +2268,7 @@ class CloudyInput(object):
         if emis_tab_str is None:
             self._emis_tab = []
         self._emis_tab = emis_tab_str
-            
+
     def import_file(self, file_ = None):
         """
         Import a file that will be append to the input file.
@@ -2281,11 +2281,11 @@ class CloudyInput(object):
                 self._imported = f.readlines()
         except:
             pc.log_.warn('File {0} for not accesible'.format(file_))
-            
+
     def set_line_file(self, line_file = None, absolute=False):
         """
         Set a file name containing a list of lines.
-        Is used in the input file as: 
+        Is used in the input file as:
         save last linelist ".lin" "***line_file***"
         """
         ##
@@ -2304,7 +2304,7 @@ class CloudyInput(object):
             if 'theta' in self._input:
                 del self._input['theta']
             if 'phi' in self._input:
-                del self._input['phi'] 
+                del self._input['phi']
             return None
         if theta is not None:
             self._input['theta'] = '#C3D theta = {0:.2f}'.format(theta)
@@ -2312,7 +2312,7 @@ class CloudyInput(object):
             self._input['phi'] = '#C3D phi = {0:.2f}'.format(phi)
 
     ## define the abundances
-    def set_abund(self, predef = None, elem = None, value = None, nograins = True, 
+    def set_abund(self, predef = None, elem = None, value = None, nograins = True,
                   ab_dict = None, metals=None, metalsgrains=None):
         """
         Defines the abundances.
@@ -2330,7 +2330,7 @@ class CloudyInput(object):
             self._metals = None
             self._metalsgrains = None
             return None
-        
+
         if ab_dict is not None:
             for sym in ab_dict:
                 if sym in SYM2ELEM:
@@ -2344,7 +2344,7 @@ class CloudyInput(object):
         self._metals = metals
         self._metalsgrains = metalsgrains
         self._nograins = nograins
-        
+
     def set_other(self, other_str = None):
         """
         Define any other command line to be added to the Cloudy input file
@@ -2358,17 +2358,17 @@ class CloudyInput(object):
         if type(other_str) is type(()) or type(other_str) is type([]):
             for o_str in other_str:
                 self.set_other(o_str)
-        else:        
+        else:
             if other_str != '':
                 self._other_cnt += 1
                 self._input['other_{0:d}'.format(self._other_cnt)] = other_str
-        
+
     def set_comment(self, comment = None):
         """
         Add special comment that will be added in the input file in the form of: # ** comment
          Parameter:
             - comment: if None, reset the list, otherwise, append its value to the list
-        
+
         """
         if comment is None:
             self._comments = []
@@ -2376,15 +2376,15 @@ class CloudyInput(object):
         if type(comment) is type(()) or type(comment) is type([]):
             for com in comment:
                 self.set_comment(com)
-        else:        
-            self._comments.append('# ** {0}'.format(comment))    
-    
+        else:
+            self._comments.append('# ** {0}'.format(comment))
+
     def set_C3D_comment(self, comment = None):
         """
         Add special comment that will be added in the input file in the form of: #C3D comment
          Parameter:
             - comment: if None, reset the list, otherwise, append its value to the list
-        
+
         """
         if comment is None:
             self._C3D = []
@@ -2392,9 +2392,9 @@ class CloudyInput(object):
         if type(comment) is type(()) or type(comment) is type([]):
             for com in comment:
                 self.set_C3D_comment(com)
-        else:        
+        else:
             self._C3D.append('#C3D {0}'.format(comment))
-            
+
     def set_distance(self, dist = None, unit='kpc', linear = True):
         """
         Set the distance to the object.
@@ -2419,7 +2419,7 @@ class CloudyInput(object):
         else:
             linear_str = ''
         self._distance = 'distance = {0} parsecs {1}'.format(dist_pc, linear_str)
-        
+
     def set_heat_cooling(self, cextra = None, hextra = None):
         if cextra is None:
             self._cextra = None
@@ -2429,7 +2429,7 @@ class CloudyInput(object):
             self._hextra = None
         else:
             self._hextra = hextra
-        
+
     def print_input(self, to_file = True, verbose = False):
         """
         This is the method to print the input file.
@@ -2438,9 +2438,9 @@ class CloudyInput(object):
             - verbose: Boolean. If True (not default), print to the standart output
         """
         if to_file:
-            file_name = self.model_name+'.in' 
+            file_name = self.model_name+'.in'
             f = open(file_name,'w')
-        
+
         def this_print(s, eol = True):
             if s is None:
                 self.log_.warn('"None" parameter not printed', calling = self.calling)
@@ -2451,14 +2451,14 @@ class CloudyInput(object):
                 if to_file:
                     if eol: to_print += '\n'
                     f.write(to_print)
-            
-        this_print('////////////////////////////////////')
+
+        this_print('#####################################')
         this_print('title {0}'.format(self.model_name.split('/')[-1]))
-        this_print('////////////////////////////////////')
+        this_print('#####################################')
         this_print('set punch prefix "{0}"'.format(self.model_name.split('/')[-1]))
         for SED in self._SEDs:
                 this_print(SED[0])
-                this_print(SED[1]) 
+                this_print(SED[1])
         if self._radius is not None:
             this_print(self._radius)
         this_print(self._density)
@@ -2522,20 +2522,20 @@ class CloudyInput(object):
             for emis in self._emis_tab:
                 this_print(emis)
             this_print('end of lines')
-                               
+
         if to_file:
             self.log_.message('Input writen in {0}'.format(file_name), calling = self.calling)
             f.close()
-            
+
     def run_cloudy(self, dir_ = None, n_proc = 1, use_make = False, model_name = None, precom=""):
         """
         Method to run cloudy.
         Parameters:
             - dir_:        Directory where the model input files are
             - n_proc:      number of CPUs to run (default=1)
-            - use_make:    if True (default), make is used. Otherwise Cloudy is run on one single model, 
+            - use_make:    if True (default), make is used. Otherwise Cloudy is run on one single model,
                 assuming that model_name.in exists
-            - model_name:  if None, the models of this object is run, 
+            - model_name:  if None, the models of this object is run,
                 if not None, used by: make name="model_name" or cloudy < model_name.in
             - precom: a string to put before Cloudy (e.g. "\nice 10")
         """
@@ -2543,12 +2543,12 @@ class CloudyInput(object):
             model_name = self.model_name
         run_cloudy(dir_ = dir_, n_proc = n_proc, use_make = use_make, model_name = model_name, precom=precom,
                    cloudy_version=self.cloudy_version)
-    
+
     def print_make_file(self, dir_ = None):
         """
-        Call pc.print_make_file. 
+        Call pc.print_make_file.
         Parameter:
-            dir_:    if None, extract the string before the last / in the model_name. 
+            dir_:    if None, extract the string before the last / in the model_name.
                 Otherwise, use the value
         """
         if not pc.config.INSTALLED['Path']:
@@ -2556,7 +2556,7 @@ class CloudyInput(object):
         if dir_ is None:
             dir_ = Path(self.model_name).parent
         print_make_file(dir_ = dir_)
-        
+
 def print_make_file(dir_ = None):
     """
     Create a Makefile in the dir_ directory, using pc.config.cloudy_exe as executable for cloudy
@@ -2586,15 +2586,15 @@ all: $(OBJ)
 """)
     pc.log_.message('make_file_printed with cloudy.exe = {0}'.format(pc.config.cloudy_exe), calling = 'print_make_file')
 
-## Function used to run Cloudy on input files.                
+## Function used to run Cloudy on input files.
 def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, precom="", cloudy_version=None):
     """
     Run a (set of ) cloudy model(s)
-    
+
     Parameters:
         - dir_:        Directory where the model input files are
         - n_proc:      number of CPUs to run (default=1)
-        - use_make:    if True (default), make is used. Otherwise Cloudy is run on one single model, 
+        - use_make:    if True (default), make is used. Otherwise Cloudy is run on one single model,
             assuming that model_name.in exists
         - model_name:  if not None, used by: make name="model_name" or cloudy < model_name.in
             if None and use_make, make will run any pending model
@@ -2602,14 +2602,14 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
         - cloudy_version: one of the keys of pc.config.cloudy_dict, pointing to the location of the executable,
             e.g. '10.00' or '13.03'. If set to None (default), then pc.config.cloudy.exe is used
     """
-    
+
     if not pc.config.INSTALLED['Path']:
         pc.log_.error('pathlib not installed, can not run Cloudy. Try "pip install pathlib".', calling = 'run_cloudy')
     if dir_ is None:
         dir_ = Path(model_name).parent
     else:
         dir_ = Path(dir_)
-    
+
     if cloudy_version is not None:
         if cloudy_version in pc.config.cloudy_dict:
             cloudy_exe = pc.config.cloudy_dict[cloudy_version]
@@ -2633,4 +2633,3 @@ def run_cloudy(dir_ = None, n_proc = 1, use_make = True, model_name = None, prec
     proc = subprocess.Popen(to_run, shell=True, stdout=subprocess.PIPE, stdin=None, cwd=str(dir_))
     proc.communicate()
     pc.log_.message('ending: {0}'.format(to_run), calling = 'run_cloudy')
-
