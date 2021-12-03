@@ -49,6 +49,7 @@ class CubCoord(object):
         else:
             self.shift_x, self.shift_y, self.shift_z = shift
             
+        self.center = center
         start = -1. if center else 0.
         if self.dim_x > 1:
             self.x_vec = np.linspace(start, 1, self.dim_x) * self.coeff_x + self.shift_x
@@ -78,6 +79,8 @@ class CubCoord(object):
         else:
             self.angles = angles
         self.vel_defined = False
+
+    #TODO: add a variable containg the radius of the projected plane
      
     def _update_rot_matrix(self):
         """
