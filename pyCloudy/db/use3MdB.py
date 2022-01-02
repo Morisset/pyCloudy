@@ -731,13 +731,13 @@ class runCloudy(object):
         self.proc_name = proc_name
         self.models_dir = models_dir
         self.do_update_status = do_update_status        
+        self.check_priority=check_priority
         self.lines, N_lines = MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
                                            where_='used = 1', limit_=None, format_='numpy', 
                                            dtype_=[('id', 'U20'), ('lambda', '<f8'), ('label', 'U15'), ('name', 'U40')])
        
         if register:
             self.get_ID()
-        self.check_priority=check_priority
         self.init_CloudyInput()
     
     def get_emis_table(self):
@@ -1030,7 +1030,8 @@ def print_input(N, MdB= None, OVN_dic=None, dir='./', parameters=None, read_tab=
 
 class runCloudyByThread(threading.Thread):
 
-    def __init__(self, OVN_dic, models_dir, norun=False, noinput=False, clean=True, OK_with_wrong=False):
+    def __init__(self, OVN_dic, models_dir, norun=False, noinput=False, clean=True, OK_with_wrong=False,
+                 check_priority=True):
         
         self.log_ = pc.log_
         threading.Thread.__init__(self)
@@ -1045,12 +1046,14 @@ class runCloudyByThread(threading.Thread):
         self.calling = 'runCloudyByThread'
         self.clean = clean
         self.OK_with_wrong = OK_with_wrong
+        self.check_priority = check_priority
     
     def run(self):
         
         self.MdB = pc.MdB(self.OVN_dic)
         tname = threading.currentThread().getName()
-        rC = runCloudy(self.MdB, OVN_dic = self.OVN_dic, models_dir = self.models_dir, proc_name=tname)
+        rC = runCloudy(self.MdB, OVN_dic = self.OVN_dic, models_dir = self.models_dir, proc_name=tname, 
+                       check_priority=self.check_priority)
         
         while not self.stopped():
             rC.init_CloudyInput()
@@ -1325,12 +1328,13 @@ class ObsfromMdB(object):
 class manage3MdB(object):
     
     def __init__(self, OVN_dic, models_dir='/DATA/MdB', Nprocs=pn.config.Nprocs,
-                 clean=True, OK_with_wrong=False):
+                 clean=True, OK_with_wrong=False, check_priority=True):
         self.OVN_dic = OVN_dic
         self.models_dir = models_dir
         self.Nprocs = Nprocs
         self.clean = clean
         self.OK_with_wrong = OK_with_wrong
+        self.check_priority = check_priority
                 
     def start(self, norun=False, noinput=False, clean=True):
         self.all_threads = []
@@ -1338,7 +1342,8 @@ class manage3MdB(object):
             self.all_threads.append(runCloudyByThread(self.OVN_dic, self.models_dir, 
                                                       norun=norun, noinput=noinput,
                                                       clean=self.clean,
-                                                      OK_with_wrong=self.OK_with_wrong))
+                                                      OK_with_wrong=self.OK_with_wrong, 
+                                                      check_priority=self.check_priority))
         for t in self.all_threads:
             t.start()
             
