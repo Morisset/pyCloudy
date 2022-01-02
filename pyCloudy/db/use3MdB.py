@@ -712,7 +712,7 @@ class writeTab(object):
 class runCloudy(object):
     
     def __init__(self, MdB = None, OVN_dic=None, proc_name = None, models_dir = './', 
-                 do_update_status=True, register=True):
+                 do_update_status=True, register=True, check_priority=True):
         
         self.log_ = pc.log_
         self.calling = 'runCloudy'
@@ -737,6 +737,7 @@ class runCloudy(object):
        
         if register:
             self.get_ID()
+        self.check_priority=check_priority
         self.init_CloudyInput()
     
     def get_emis_table(self):
@@ -795,15 +796,18 @@ class runCloudy(object):
         
         if self.procID is None:
             self.log_.error('Not connected')
-            
-        try:
-            res, N = self.MdB.select_dB(select_ = 'distinct(priority)', from_ = self.pending_table, 
-                                       where_ = 'status = 0', limit_=None, commit=True)
-        except:
-            self.log_.error('Error looking for status=0 models in {0} - 1'.format(self.pending_table), 
-                          calling='runCloudy.select_pending')
-            self.selectedN = None
-            return
+        
+        if self.check_priority:
+            try:
+                res, N = self.MdB.select_dB(select_ = 'distinct(priority)', from_ = self.pending_table, 
+                                           where_ = 'status = 0', limit_=None, commit=True)
+            except:
+                self.log_.error('Error looking for status=0 models in {0} - 1'.format(self.pending_table), 
+                              calling='runCloudy.select_pending')
+                self.selectedN = None
+                return
+        else:
+            N = 1
         if N == 1:
             try:
                 res, N = self.MdB.select_dB(select_ = 'N', from_ = self.pending_table, 
