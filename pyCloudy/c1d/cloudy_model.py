@@ -2260,7 +2260,7 @@ class CloudyInput(object):
             pc.log_.warn('File {0} for emis lines not accesible'.format(emis_file))
         self.emergent = emergent
 
-    def set_emis_tab(self, emis_tab_str = None, emergent=False):
+    def set_emis_tab(self, emis_tab_str = None, emergent=False, absolute=False):
         """
         Accept a list of line labels that will be used as:
 
@@ -2275,6 +2275,7 @@ class CloudyInput(object):
             self._emis_tab = []
         self._emis_tab = emis_tab_str
         self.emergent = emergent
+        self.absolute = absolute
 
     def import_file(self, file_ = None):
         """
@@ -2521,7 +2522,7 @@ class CloudyInput(object):
                 absolute = 'absolute'
             else:
                 absolute = ''
-            this_print('{0} last linelist {1} ".lin" "{2}" {23'.format(self.save_str, emergent_str, self._line_file, absolute))
+            this_print('{0} last linelist {1} ".lin" "{2}" {3}'.format(self.save_str, emergent_str, self._line_file, absolute))
         for ext in self.save_list:
             this_print('{0} last {1} "{2}"'.format(self.save_str, ext[0], ext[1]))
         if self._nograins == False or self._grains != []:
