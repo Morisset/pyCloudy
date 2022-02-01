@@ -2043,6 +2043,7 @@ class CloudyInput(object):
         self.init_all()
 
     def init_all(self):
+        self.emergent = False
         self.set_save_str()
         self.set_other()
         self.set_emis_tab()
@@ -2244,10 +2245,12 @@ class CloudyInput(object):
             else:
                 self._stop.append(stop_criter)
 
-    def read_emis_file(self, emis_file, N_char=14):
+    def read_emis_file(self, emis_file, N_char=14, emergent=False):
         """
         Define the name of the file containing the labels for the list of emissivities to output
             in the .emis file
+        If emergent keyword is set, "emergent" is added after "emissivity". 
+        Otherwise intinsic is used by default by Cloudy
         """
         self._emis_tab = []
         try:
@@ -2255,19 +2258,23 @@ class CloudyInput(object):
                 self._emis_tab = [row[0:N_char] for row in f]
         except:
             pc.log_.warn('File {0} for emis lines not accesible'.format(emis_file))
+        self.emergent = emergent
 
-    def set_emis_tab(self, emis_tab_str = None):
+    def set_emis_tab(self, emis_tab_str = None, emergent=False):
         """
         Accept a list of line labels that will be used as:
 
         save last lines emissivity ".emis"
             *** enumeration of the elements of the list ***
         end of lines
-
+        
+        If emergent keyword is set, "emergent" is added after "emissivity". 
+        Otherwise intinsic is used by default by Cloudy
         """
         if emis_tab_str is None:
             self._emis_tab = []
         self._emis_tab = emis_tab_str
+        self.emergent = emergent
 
     def import_file(self, file_ = None):
         """
@@ -2282,7 +2289,7 @@ class CloudyInput(object):
         except:
             pc.log_.warn('File {0} for not accesible'.format(file_))
 
-    def set_line_file(self, line_file = None, absolute=False):
+    def set_line_file(self, line_file = None, absolute=False, emergent=False):
         """
         Set a file name containing a list of lines.
         Is used in the input file as:
@@ -2295,6 +2302,7 @@ class CloudyInput(object):
             self._line_file = None
             return None
         self._line_file = line_file
+        self.emergent = emergent
 
     def set_theta_phi(self, theta = None, phi = None):
         """
@@ -2452,6 +2460,10 @@ class CloudyInput(object):
                     if eol: to_print += '\n'
                     f.write(to_print)
 
+        if self.emergent:
+            emergent_str = ' emergent '
+        else:
+            emergent_str = ''
         this_print('#####################################')
         this_print('title {0}'.format(self.model_name.split('/')[-1]))
         this_print('#####################################')
@@ -2509,7 +2521,7 @@ class CloudyInput(object):
                 absolute = 'absolute'
             else:
                 absolute = ''
-            this_print('{0} last linelist ".lin" "{1}" {2}'.format(self.save_str, self._line_file, absolute))
+            this_print('{0} last linelist {1} ".lin" "{2}" {23'.format(self.save_str, emergent_str, self._line_file, absolute))
         for ext in self.save_list:
             this_print('{0} last {1} "{2}"'.format(self.save_str, ext[0], ext[1]))
         if self._nograins == False or self._grains != []:
@@ -2518,7 +2530,7 @@ class CloudyInput(object):
         for ext in self._save_list_elems:
             this_print('{0} last element {1} "{2}"'.format(self.save_str, ext[0], ext[1]))
         if self._emis_tab is not None:
-            this_print('{0} last lines emissivity ".emis"'.format(self.save_str))
+            this_print('{0} last lines emissivity {1} ".emis"'.format(self.save_str, emergent_str))
             for emis in self._emis_tab:
                 this_print(emis)
             this_print('end of lines')
