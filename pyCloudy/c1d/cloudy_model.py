@@ -568,8 +568,12 @@ class CloudyModel(object):
             elif 'iterate' in line:
                 self.out['iterate'] = line
             elif 'Hi-Con' in line:
-                for i in range(7):
-                    self.out['SED' + str(i + 1)] = next(file_)
+                i = 1
+                while i < 8:
+                    line = next(file_)
+                    if line != '\n' and "WARN" not in line:
+                        self.out['SED' + str(i)] = line
+                        i += 1
             elif 'table star' in line:
                 self.out['table star'] = line
             elif 'Blackbody' in line:
