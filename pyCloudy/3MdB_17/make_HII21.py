@@ -15,7 +15,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 #%%
 
-OVN_dic = {'host' : 'taranis',#  'nefeles',
+OVN_dic = {'host' : 'svarog',#  'nefeles',
            'user_name' : 'OVN_admin',
            'user_passwd' : 'getenv',
            'base_name' : '3MdB_17',
@@ -46,6 +46,7 @@ def deplete(ab_dic, depl_dic=None, log_depl = 0.0, ksi_d=None):
     
     if ksi_d is not None:
         Z, Z_dep, ksi_d_ori = get_metallicity(ab_dic, depl_dic, log_depl, ksi_d=None)
+        #print(ksi_d_ori)
     new_dic = {}
     for elem in ab_dic:
         new_dic[elem] = ab_dic[elem]
@@ -136,7 +137,7 @@ def get_params(N):
 
 
 #%% define main function        
-def make_inputs(N, insert=False, abund_type='Nicholls', verbose=False, 
+def make_inputs(N, insert=False, abund_type='Nicholls', verbose=False, atm_type='BPASS_B',
                 abund_width=abund_width, use_ksi_d=True):
     
     if insert:
@@ -171,6 +172,7 @@ def make_inputs(N, insert=False, abund_type='Nicholls', verbose=False,
     Q0 = 4. * np.pi * c**3 * params['U']**3 / (3. * params['NH'] * ff**2 * alpha_B**2 * w**3)
     R_str = (3. * Q0 / (4 * np.pi * params['NH']**2 * alpha_B * ff))**(1./3)
     params['R_in'] = params['fr'] * R_str
+    params['Q0'] = Q0
     
     ab_dic_list = {}
     
@@ -190,14 +192,15 @@ def make_inputs(N, insert=False, abund_type='Nicholls', verbose=False,
             ksi_d = p['ksi_d']
         else:
             ksi_d = None #p['ksi_d']
-        Z, Z_dep, ksi_d = get_metallicity(abund, depletion, log_dep, ksi_d=ksi_d)
+        Z, Z_dep, ksi_d2 = get_metallicity(abund, depletion, log_dep, ksi_d=ksi_d)
         abund = deplete(abund, depletion, log_dep, ksi_d=ksi_d)
         CH_dep = abund['C']
         
         for elem in abund:
-            if elem != 'H':
+            if elem not in ('H', 'He'):
                 abund[elem] += np.random.normal(0, abund_width)
         
+        """
         ###Remy-Ruyer et al 2014, broken power-law XCO,z case (as recommended by them)
         xt = 8.10
         x = 12 + abund['O']
@@ -212,30 +215,39 @@ def make_inputs(N, insert=False, abund_type='Nicholls', verbose=False,
         this_relative_GoD =  this_GoD / solar_GoD#  we want the correction to apply to solar Dust abundance
         this_relative_DoG = 1.0 / this_relative_GoD
         dtg = Draine_fact * this_relative_DoG
-        
-        dtg = ksi_d / 0.4
+        """
+        dtg = ksi_d2 / 0.4
 
-        metallicity = min(max(-1.87 + (np.log10(Z)), -3.99), -1.31)
-        
+        if atm_type == 'BPASS_B':
+            metallicity = min(max(np.log10(Z), -4.99), -1.41)
+            atm_file = 'BPASS_2.2.1_chab100_burst_binary.mod'
+        elif atm_type == 'BPASS_S':
+            metallicity = min(max(np.log10(Z), -4.99), -1.41)
+            atm_file = 'BPASS_2.2.1_chab100_burst_single.mod'
+           
+        elif atm_type == 'Popstar':
+            metallicity = min(max(np.log10(Z), -2.39), -1.31)
+            atm_file = 'spneb_cha_0.15_100_HR.mod'
+        if verbose:
+            print('metallicity: ', metallicity)
         if insert:
             wP.set_priority(5)
             wP.set_radius(r_in = np.log10(p['R_in']))
-            wP.set_cste_density(dens = p['log_NH'])
+            wP.set_cste_density(dens = p['log_nH'])
             wP.set_abund(ab_dict = abund)
-            wP.set_dust('ism {0}'.format(ksi_d/0.4)) 
+            wP.set_dust('ism linear {0}'.format(dtg)) 
                     
-            wP.set_comments(('lU_mean = {}'.format(p['logU']),
+            wP.set_comments(('logU = {}'.format(p['logU']),
                             'fr = {}'.format(p['fr']),
                             'age = {}'.format(p['age']),
                             'Z = {}'.format(Z),
-                            'NO = {}'.format(p['log_NO']),
-                            'CO = {}'.format(p['log_CO']),
+                            'logOH = {}'.format(p['log_OH']),
                             'abund_width = {}'.format(abund_width),
                             'abund_type = {}'.format(abund_type),
                             'ksi_d = {}'.format(p['ksi_d'])))
             
-            wP.set_star('table stars', atm_file='sp_cha.mod', atm1=p['age'], atm2=metallicity, 
-                            lumi_unit= 'q(H)', lumi_value = np.log10(Q0))
+            wP.set_star('table stars', atm_file=atm_file, atm1=p['age']*1e6, atm2=metallicity, 
+                            lumi_unit= 'q(H)', lumi_value = np.log10(p['Q0']))
             wP.insert_model()
         if verbose:
             print('logU {:5.2f}, O/H {:5.2f} Z {:5.2f} age {:5.2f} fr {:5.2f} dtg {:5.2f}'.format(p['logU'], abund['O'], 
@@ -256,7 +268,104 @@ def make_inputs(N, insert=False, abund_type='Nicholls', verbose=False,
         params[elem] = ab_dic_list[elem]
     return params
 
-#%%
+#%% test and plot abund
+
+def test_abunds(N, abund_type = 'Gutkin', abund_width=0, use_ksi_d=True):
+    
+    if abund_type == 'Nicholls':
+        depletion = depletion_dopita_2013
+    elif abund_type == 'Gutkin':
+        depletion = depletion_cloudy_17
+    else:
+        raise 
+    
+    params = get_params(N)
+    log_dep = 0.#p['log_dep']
+    ab_dic_list = {}
+    
+    for i in range(N):
+        p = params.iloc[i]
+        log_OH = p['log_OH']
+        if abund_type == 'Nicholls':
+            abund = get_abund_nicholls(log_OH)
+        elif abund_type == 'Gutkin':
+            abund = get_Gutkin(log_OH)
+    
+        abund['N'] = p['log_NO'] + log_OH
+        abund['C'] = p['log_CO'] + log_OH
+        CH_tot = abund['C']
+        if use_ksi_d:
+            ksi_d = p['ksi_d']
+        else:
+            ksi_d = None #p['ksi_d']
+        #Z, Z_dep, ksi_d2 = get_metallicity(abund, depletion, log_dep, ksi_d=ksi_d)
+        abund2 = deplete(abund, depletion, log_dep, ksi_d=ksi_d)
+        CH_dep = abund2['C']
+        
+        for elem in abund2:
+            if elem not in ('H', 'He'):
+                abund2[elem] += np.random.normal(0, abund_width)
+        if i == 0:
+            ab_dic_list['depC'] = [CH_dep - CH_tot]
+            ab_dic_list['I'] = [i]
+            for elem in abund2:
+                ab_dic_list[elem] = [abund2[elem]]
+        else:
+            ab_dic_list['depC'].append(CH_dep - CH_tot)
+            ab_dic_list['I'].append(i)
+            for elem in abund2:
+                ab_dic_list[elem].append(abund2[elem])
+    for elem in ab_dic_list:
+        params[elem] = ab_dic_list[elem]
+    return params
+
+def plot_abunds(p,alpha=0.1):
+    
+    f, axes = plt.subplots(3, 3, figsize=(15,15))
+    
+    ax = axes[0,0]
+    ax.scatter(p['O'], p['C'] - p['O'], alpha=alpha, c=p['ksi_d'])
+    ax.set_xlabel('log O/H')
+    ax.set_ylabel('log C/O')
+    
+    ax = axes[0,1]
+    ax.scatter(p['O'], p['N'] - p['O'], alpha=alpha, c=p['ksi_d'])
+    ax.set_xlabel('log O/H')
+    ax.set_ylabel('log N/O')
+    
+    ax = axes[0,2]
+    ax.scatter(p['O'], p['Ne'] - p['O'], alpha=alpha, c=p['ksi_d'])
+    ax.set_xlabel('log O/H')
+    ax.set_ylabel('log Ne/O')
+    
+    ax = axes[1,0]
+    ax.scatter(p['O'], p['S'] - p['O'], alpha=alpha, c=p['ksi_d'])
+    ax.set_xlabel('log O/H')
+    ax.set_ylabel('log S/O')
+
+    ax = axes[1,1]
+    ax.scatter(p['O'], p['Fe'] - p['O'], alpha=alpha, c=p['ksi_d'])
+    ax.set_xlabel('log O/H')
+    ax.set_ylabel('log Fe/O')
+
+    ax = axes[2,0]
+    ax.scatter(p['depC'], p['Ne'] - p['O'], alpha=alpha, c=p['O'])
+    ax.set_ylabel('log Ne/O')
+    ax.set_xlabel('depC')
+
+    ax = axes[2,1]
+    ax.scatter(p['depC'], p['Fe'] - p['O'], alpha=alpha, c=p['O'])
+    ax.set_ylabel('log Fe/O')
+    ax.set_xlabel('depC')
+
+    ax = axes[2,2]
+    ax.scatter(p['depC'], p['ksi_d'], alpha=alpha, c=p['log_OH'])
+    ax.set_ylabel('ksi_d')
+    ax.set_xlabel('depC')
+
+    f.tight_layout()
+    
+#%% plot_params
 
 def plot_params(p, bins=100):
     
@@ -316,18 +425,19 @@ def plot_params(p, bins=100):
     
 
     f.tight_layout()
+    
 #%% run the make_inputs and get params
 
 #paramsN = make_inputs(N=10000, abund_type='Nicholls', use_ksi_d=False)
 #paramsG = make_inputs(N=10000, abund_type='Gutkin', use_ksi_d=False)
 #paramsNk = make_inputs(N=10000, abund_type='Nicholls')
-paramsGk = make_inputs(N=10000, abund_type='Gutkin')
+#paramsGk = make_inputs(N=10, abund_type='Gutkin', abund_width=0.00004)
 
 #%% plot params
 #plot_params(paramsN)
 #plot_params(paramsG)
 #plot_params(paramsNk)
-plot_params(paramsGk)
+#plot_params(paramsGk)
 
 Version = 1
 
