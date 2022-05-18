@@ -131,7 +131,7 @@ class writePending(object):
             at2 = None if atm2 is None else atm2[0]
             at3 = None if atm3 is None else atm3[0]
             self.set_star(self, SED_shape = SED_shape[0], lumi_unit=lumi_unit[0], 
-                          atm_file=fil1, atm1=at1, atm2=at2, atm3=at3,
+                          atm_file=fil, atm1=at1, atm2=at2, atm3=at3,
                           lumi_value=lumi_value[0], i_star = 0)
             
             fil = None if atm_file is None else atm_file[1]
@@ -139,7 +139,7 @@ class writePending(object):
             at2 = None if atm2 is None else atm2[1]
             at3 = None if atm3 is None else atm3[1]
             self.set_star(self, SED_shape = SED_shape[1], lumi_unit=lumi_unit[1], 
-                          atm_file=fil1, atm1=at1, atm2=at2, atm3=at3,
+                          atm_file=fil, atm1=at1, atm2=at2, atm3=at3,
                           lumi_value=lumi_value[1], i_star = 1)
         else:
             if i_star == 0:
