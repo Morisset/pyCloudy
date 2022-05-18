@@ -164,7 +164,7 @@ def QH_is_valid(T, L):
     """
     T_arr = np.asarray(T)
     log_Hb = get_log_Hb(T,L)
-    mask = log_Hb < (33.58 -1 )
+    mask = log_Hb < (33.58 - 1 )
 
     valid = np.ones_like(T_arr, dtype=bool)
     valid[mask] = False
@@ -258,13 +258,13 @@ def make_inputs_MdB(SED = 'BB', dens_law = 'C', dust=False, insert=False):
 #%%
 def make_grids():
 
-    make_inputs_MdB(SED = 'BB', dens_law = 'C', dust=False, insert=False)
+    make_inputs_MdB(SED = 'BB', dens_law = 'C', dust=False, insert=True)
 
 def post_processing(OVN_dic=OVN_dic):
     
     MdB = pc.MdB(OVN_dic)
     
-    ref = 'PNe_2020'
+    ref = 'PNe_2021'
     MdB.exec_dB("update tab_17 set com6 = '' where ref like '{0}' ".format(ref))
     MdB.exec_dB("update tab_17 set com3 = 'R' where  ref like '{0}' and MassFrac >= 0.95".format(ref))
     MdB.exec_dB("update tab_17 set com3 = 'M80' where  ref like '{0}' and MassFrac < 0.95 and MassFrac >= 0.7".format(ref))
