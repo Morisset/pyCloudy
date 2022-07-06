@@ -20,7 +20,8 @@ class _Config(object):
                             '13.03': '/usr/local/Cloudy/c13.03/source/cloudy.exe',
                             '17.00': '/usr/local/Cloudy/c17.00/source/cloudy.exe',
                             '17.01': '/usr/local/Cloudy/c17.01/source/cloudy.exe',
-                            '17.02': '/usr/local/Cloudy/c17.02/source/cloudy.exe'}
+                            '17.02': '/usr/local/Cloudy/c17.02/source/cloudy.exe',
+                            '17.03': '/usr/local/Cloudy/c17.03/source/cloudy.exe'}
             
         self.INSTALLED ={}
         try:
