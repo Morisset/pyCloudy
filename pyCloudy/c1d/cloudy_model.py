@@ -94,7 +94,7 @@ class CloudyModel(object):
     def __init__(self, model_name, verbose=None,
                  read_all_ext = True, read_rad=True, read_phy=True, read_emis = True, read_grains = False,
                  read_cont = True, read_heatcool = False, read_lin = False, read_opd = False,
-                 read_pressure=False, read_abunds = False,
+                 read_pressure=False, read_abunds = False, read_ovr=False,
                  list_elem = LIST_ELEM, distance = None, line_is_log = False,
                  emis_is_log = True,
                  ionic_str_key = 'ele_'):
@@ -149,6 +149,8 @@ class CloudyModel(object):
                 self._init_pressure()
             if read_abunds:
                 self._init_abunds()
+            if read_ovr:
+                self._init_ovr()
     ##
     # @var distance
     # distance to the object (kpc)
@@ -283,6 +285,14 @@ class CloudyModel(object):
     # @var ff_full
     # array of filling factor, r_range unused [float]
 
+    def _init_ovr(self):
+        key = 'ovr'
+        self._res[key] = self.read_outputs(key)
+        if self._res[key] is not None:
+            self.AV_point_full = self._res[key]['AVpoint']
+            self.AV_extend_full = self._res[key]['AVextend']
+            self.Tau912_full = self._res[key]['Tau912']
+
     def _init_lin(self):
         key = 'lin'
         self._res[key] = self.read_outputs(key, case_sensitive='upper')
@@ -361,6 +371,8 @@ class CloudyModel(object):
                 self.Hbeta_label = 'H__1__4861A'
             elif 'H__1_486133A' in self.emis_labels:
                 self.Hbeta_label = 'H__1_486133A'
+            elif 'H__1_486132A' in self.emis_labels:
+                self.Hbeta_label = 'H__1_486132A'
             elif 'H__1_486136A' in self.emis_labels:
                 self.Hbeta_label = 'H__1_486136A'
             else:
@@ -1869,6 +1881,7 @@ class CloudyModel(object):
 
         self.emis_full = new_emis_full
         self.emis_labels = np.append(self.emis_labels, new_label)
+        self.n_emis += 1
 
         if self.cloudy_version_major > 16:
             self.emis_labels_17 = self.emis_labels
