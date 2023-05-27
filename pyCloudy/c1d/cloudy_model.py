@@ -226,11 +226,17 @@ class CloudyModel(object):
             if self.n_zones_full > 1:
                 self.r_in = self.radius_full[0] - self.dr_full[0]/2
                 self.r_out = self.radius_full[-1] + self.dr_full[0]/2
+                self.depth_in = 0.0
+                self.depth_out = self.depth_full[-1] + self.dr_full[0]/2
             else:
                 self.r_in = self.radius_full - self.dr_full/2
                 self.r_out = self.radius_full + self.dr_full/2
+                self.depth_in = 0.0
+                self.detph_out = self.radius_full + self.dr_full/2
             self.r_in_cut = self.r_in
             self.r_out_cut = self.r_out
+            self.depth_in_cut = self.depth_in
+            self.depth_out_cut = self.depth_out
             if self.Phi0 == 0.:
                 self.Phi = self.Q / (4 * np.pi * self.r_in**2)
                 self.Phi0 = self.Phi.sum()
@@ -1588,6 +1594,29 @@ class CloudyModel(object):
     # It is used to define r_range and thus all the radial properties of the nebula
     r_out_cut = property(_get_r_out_cut, _set_r_out_cut, None, _r_out_cut_doc)
 
+    def _get_depth_out_cut(self):
+        return self.__depth_out_cut
+
+    def _set_depth_out_cut(self, value):
+        if self.n_zones_full > 1:
+            if value >= self.depth_in:
+                self.__depth_out_cut = value
+            else:
+                self.log_.warn('depth_out_cut ({:e}) cannot be < {:e})'.format(value, self.depth_in), calling = self.calling)
+                self.__depth_out_cut = self.depth_full[1]
+        else:
+            if value != self.depth_out:
+                self.__depth_out_cut = self.depth_out
+                self.log_.warn('depth_out_cut ({0:e}) cannot be != than depth_out ({1:e})'.format(value, self.depth_out), calling = self.calling)
+            else:
+                self.__depth_out_cut = value
+
+    _depth_out_cut_doc = 'User defined outer radius of the nebula. For example: depth_out_cut = m.depth[m.zones[m.ionic["H"][1] < 0.2][0]]'
+    ## User defined outer depth of the nebula [float] (cm).
+    # For example: depth_out_cut = m.depth[m.zones[m.ionic['H'][1] < 0.2][0]].
+    # It is used to define r_range and thus all the radial properties of the nebula
+    depth_out_cut = property(_get_depth_out_cut, _set_depth_out_cut, None, _depth_out_cut_doc)
+
     def _get_r_in_cut(self):
         return self.__r_in_cut
 
@@ -1607,14 +1636,34 @@ class CloudyModel(object):
     ## User defined inner radius of the nebula [float] (cm)
     r_in_cut = property(_get_r_in_cut, _set_r_in_cut, None, 'User defined inner radius of the nebula.')
 
+    def _get_depth_in_cut(self):
+        return self.__depth_in_cut
+
+    def _set_depth_in_cut(self, value):
+        if self.n_zones_full > 1:
+            if value >= self.depth_in:
+                self.__depth_in_cut = value
+            else:
+                self.log_.warn('depth_in_cut ({0:e}) cannot be lower than depth_min ({1:e})'.format(value, self.depth_in), calling = self.calling)
+                self.__depth_in_cut = self.depth_in[0]
+        else:
+            if value != self.depth_in:
+                self.log_.warn('depth_in_cut ({0:e}) cannot be != than depth_min ({1:e})'.format(value, self.depth_in), calling = self.calling)
+                self.__depth_in_cut = self.depth_in
+            else:
+                self.__depth_in_cut = value
+    ## User defined inner depth of the nebula [float] (cm)
+    depth_in_cut = property(_get_depth_in_cut, _set_depth_in_cut, None, 'User defined inner depth of the nebula.')
+
     ## Boolean array defining the range used for the radial parameters (such as ne, ionic, integrals, etc)
-    # Defined by r_in_cut and r_out_cut
+    # Defined by r_in_cut and r_out_cut or depth_in and depth_out
     @property
     def r_range(self):
         """ boolean array. True for r_in_cut < radius < r_out_cut, False elsewhere.
         Used in most of the parameter calls such as te, get_emis, get_ionic, etc"""
         if self.n_zones_full > 1:
-            self.__r_range = (self.radius_full <= self.r_out_cut) & (self.radius_full >= self.r_in_cut)
+#           self.__r_range = (self.radius_full <= self.r_out_cut) & (self.radius_full >= self.r_in_cut)
+            self.__r_range = (self.depth_full <= self.depth_out_cut) & (self.depth_full >= self.depth_in_cut)
             return self.__r_range
         elif self.n_zones_full == 1:
             return 0
@@ -1624,7 +1673,8 @@ class CloudyModel(object):
 
     def _set_H_mass_cut(self, value):
         if value > self.H_mass_full[1]:
-            self.r_out_cut = self.radius_full[self.H_mass_full <= value][-1]
+#            self.r_out_cut = self.radius_full[self.H_mass_full <= value][-1]
+            self.depth_out_cut = self.depth_full[self.H_mass_full <= value][-1]
             self.__H_mass_cut = self.H_mass
         else:
             self.log_.warn('H_mass_cut must be greater than minimal value', calling = self.calling)
@@ -1636,7 +1686,8 @@ class CloudyModel(object):
 
     def _set_Hbeta_cut(self, value):
         if value > self.Hbeta_full[1]:
-            self.r_out_cut = self.radius_full[self.Hbeta_full <= value][-1]
+#            self.r_out_cut = self.radius_full[self.Hbeta_full <= value][-1]
+            self.depth_out_cut = self.depth_full[self.Hbeta_full <= value][-1]
             self.__Hbeta_cut = self.Hbeta
         else:
             self.log_.warn('Hbeta_cut must be greater than minimal value', calling = self.calling)
@@ -1663,7 +1714,7 @@ class CloudyModel(object):
             self.log_.warn('H0 mass_tot not available', calling = self.calling)
             return None
 
-    ## H0_mass = \f$ \int m_H.n_H.ff.dV\f$ [solar mass]
+    ## H_mass = \f$ \int m_H.n_H.ff.dV\f$ [solar mass]
     @property
     def H_mass(self):
         """Return the H mass of the nebula in solar mass"""
