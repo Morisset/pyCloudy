@@ -2083,13 +2083,16 @@ def load_models(model_name = None, mod_list = None, n_sample = None, verbose = F
             model_name = outfile
         try:
             cm = CloudyModel(model_name, **kwargs)
+            if cm.aborted:
+                if verbose:
+                    print('{0} model aborted'.format(outfile[0:-4]))
+            else:
+                m.append(cm)
+                if verbose:
+                    print('{0} model read'.format(outfile[0:-4]))
         except:
             if verbose:
                 print('{0} model NOT read'.format(outfile[0:-4]))
-        if not cm.aborted:
-            m.append(cm)
-        if verbose:
-            print('{0} model read'.format(outfile[0:-4]))
     pc.log_.message('{0} models read'.format(np.size(mod_list)), calling = 'load_models')
     return m
 
