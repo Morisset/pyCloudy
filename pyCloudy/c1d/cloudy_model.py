@@ -597,10 +597,10 @@ class CloudyModel(object):
             elif 'Blackbody' in line:
                 self.out['Blackbody'] = line
                 try:
-                    self.Teff = np.float(pc.sextract(self.out['Blackbody'], 'Blackbody ', '*'))
+                    self.Teff = np.float64(pc.sextract(self.out['Blackbody'], 'Blackbody ', '*'))
                 except:
                     try:
-                        self.Teff = np.float(pc.sextract(self.out['Blackbody'], 'Blackbody ', '\n'))
+                        self.Teff = np.float64(pc.sextract(self.out['Blackbody'], 'Blackbody ', '\n'))
                     except:
                         self.Teff = None
             elif 'hden' in line:
@@ -628,15 +628,15 @@ class CloudyModel(object):
                 else:
                     correc = lambda x: 10.**x
                 if dist_str != '':
-                    self.distance = correc(np.float(dist_str))
+                    self.distance = correc(np.float64(dist_str))
                     dist_set = True
                 dist_str = sextract(line, '=', 'parsecs')
                 if dist_str != '':
-                    self.distance = correc(np.float(dist_str)) / 1e3
+                    self.distance = correc(np.float64(dist_str)) / 1e3
                     dist_set = True
                 dist_str = sextract(line, '=', 'cm')
                 if dist_str != '':
-                    self.distance = correc(np.float(dist_str)) / pc.CST.KPC
+                    self.distance = correc(np.float64(dist_str)) / pc.CST.KPC
                     dist_set = True
                 if not dist_set:
                     self.log_.warn('Unable to determine distance', calling = self.calling)
