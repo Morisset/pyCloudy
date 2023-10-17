@@ -5,6 +5,7 @@ import os
 import subprocess
 import random
 import time
+import re
 from ..utils.init import LIST_ELEM, LIST_ALL_ELEM, SYM2ELEM
 from ..utils.misc import sextract, cloudy2pyneb, convert_c13_c17, convert_c17_c13, mytrapz
 from ..utils.physics import ATOMIC_MASS
@@ -553,7 +554,7 @@ class CloudyModel(object):
             if 'Cloudy' in line and 'testing' not in line and 'Please' not in line and self.cloudy_version == '':
                 self.cloudy_version = line.strip()
                 version_match_obj = re.match("Cloudy \(?c?(\d\d)\.\d\d\)?", self.cloudy_version, flags=0)
-				self.cloudy_version_major = version_match_obj.group(1)
+                self.cloudy_version_major = version_match_obj.group(1)
                 try:
                     self.cloudy_version_major = int(self.cloudy_version_major)
                 except:
