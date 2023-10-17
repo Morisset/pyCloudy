@@ -1493,7 +1493,7 @@ def print_efficiency(MdB= None, OVN_dic=None, ref_=None):
                               from_=OVN_dic['master_table'], where_=where_, limit_=None)
     MRT = res[0]['MRT']
     
-    print(('Mean efficiency = {}'.format(np.float(N_run)*MRT/ET)))
+    print(('Mean efficiency = {}'.format(np.float64(N_run)*MRT/ET)))
     
 def print_infos(MdB= None, OVN_dic=None, ref_=None, where_=None, Nprocs=32):
     if MdB is None:
@@ -1550,7 +1550,7 @@ def print_infos(MdB= None, OVN_dic=None, ref_=None, where_=None, Nprocs=32):
     MRT = float(res[0]['MRT'])
     MN = float(res[0]['MN'])
     MX = float(res[0]['MX'])
-    Mean_eff = np.float(N_run)*MRT/ET
+    Mean_eff = np.float64(N_run)*MRT/ET
     eta2 = datetime.datetime.today() + datetime.timedelta(seconds=MRT*N_pending/float(Nprocs))
     print(('{} pending, {} run'.format(N_pending, N_run)))
     print(('Mean running time = {0:.0f}s, min = {1:.0f}s, max = {2:.0f}s'.format(MRT, MN, MX)))

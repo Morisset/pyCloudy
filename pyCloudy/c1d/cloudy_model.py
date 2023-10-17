@@ -5,6 +5,7 @@ import os
 import subprocess
 import random
 import time
+import re
 from ..utils.init import LIST_ELEM, LIST_ALL_ELEM, SYM2ELEM
 from ..utils.misc import sextract, cloudy2pyneb, convert_c13_c17, convert_c17_c13, mytrapz
 from ..utils.physics import ATOMIC_MASS
@@ -552,7 +553,8 @@ class CloudyModel(object):
         for line in file_:
             if 'Cloudy' in line and 'testing' not in line and 'Please' not in line and self.cloudy_version == '':
                 self.cloudy_version = line.strip()
-                self.cloudy_version_major = pc.sextract(self.cloudy_version,'Cloudy ','.')
+                version_match_obj = re.match("Cloudy \(?c?(\d\d)\.\d\d\)?", self.cloudy_version, flags=0)
+                self.cloudy_version_major = version_match_obj.group(1)
                 try:
                     self.cloudy_version_major = int(self.cloudy_version_major)
                 except:
@@ -597,10 +599,10 @@ class CloudyModel(object):
             elif 'Blackbody' in line:
                 self.out['Blackbody'] = line
                 try:
-                    self.Teff = np.float(pc.sextract(self.out['Blackbody'], 'Blackbody ', '*'))
+                    self.Teff = np.float64(pc.sextract(self.out['Blackbody'], 'Blackbody ', '*'))
                 except:
                     try:
-                        self.Teff = np.float(pc.sextract(self.out['Blackbody'], 'Blackbody ', '\n'))
+                        self.Teff = np.float64(pc.sextract(self.out['Blackbody'], 'Blackbody ', '\n'))
                     except:
                         self.Teff = None
             elif 'hden' in line:
@@ -628,15 +630,15 @@ class CloudyModel(object):
                 else:
                     correc = lambda x: 10.**x
                 if dist_str != '':
-                    self.distance = correc(np.float(dist_str))
+                    self.distance = correc(np.float64(dist_str))
                     dist_set = True
                 dist_str = sextract(line, '=', 'parsecs')
                 if dist_str != '':
-                    self.distance = correc(np.float(dist_str)) / 1e3
+                    self.distance = correc(np.float64(dist_str)) / 1e3
                     dist_set = True
                 dist_str = sextract(line, '=', 'cm')
                 if dist_str != '':
-                    self.distance = correc(np.float(dist_str)) / pc.CST.KPC
+                    self.distance = correc(np.float64(dist_str)) / pc.CST.KPC
                     dist_set = True
                 if not dist_set:
                     self.log_.warn('Unable to determine distance', calling = self.calling)
