@@ -552,7 +552,8 @@ class CloudyModel(object):
         for line in file_:
             if 'Cloudy' in line and 'testing' not in line and 'Please' not in line and self.cloudy_version == '':
                 self.cloudy_version = line.strip()
-                self.cloudy_version_major = pc.sextract(self.cloudy_version,'Cloudy ','.')
+                version_match_obj = re.match("Cloudy \(?c?(\d\d)\.\d\d\)?", self.cloudy_version, flags=0)
+				self.cloudy_version_major = version_match_obj.group(1)
                 try:
                     self.cloudy_version_major = int(self.cloudy_version_major)
                 except:
