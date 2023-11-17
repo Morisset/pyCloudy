@@ -233,7 +233,7 @@ class CloudyModel(object):
                 self.r_in = self.radius_full - self.dr_full/2
                 self.r_out = self.radius_full + self.dr_full/2
                 self.depth_in = 0.0
-                self.detph_out = self.radius_full + self.dr_full/2
+                self.depth_out = self.radius_full + self.dr_full/2
             self.r_in_cut = self.r_in
             self.r_out_cut = self.r_out
             self.depth_in_cut = self.depth_in
