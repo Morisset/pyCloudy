@@ -1031,7 +1031,7 @@ def print_input(N, MdB= None, OVN_dic=None, dir='./', parameters=None, read_tab=
 class runCloudyByThread(threading.Thread):
 
     def __init__(self, OVN_dic, models_dir, norun=False, noinput=False, clean=True, OK_with_wrong=False,
-                 check_priority=True):
+                 check_priority=True, sleep_time=10.):
         
         self.log_ = pc.log_
         threading.Thread.__init__(self)
@@ -1040,7 +1040,7 @@ class runCloudyByThread(threading.Thread):
         self.norun = norun
         self.noinput = noinput
         self.MdB = None
-        self.sleep_time = 10.
+        self.sleep_time = sleep_time
         self.setDaemon(True)
         self.OVN_dic = OVN_dic
         self.calling = 'runCloudyByThread'
@@ -1328,13 +1328,14 @@ class ObsfromMdB(object):
 class manage3MdB(object):
     
     def __init__(self, OVN_dic, models_dir='/DATA/MdB', Nprocs=pn.config.Nprocs,
-                 clean=True, OK_with_wrong=False, check_priority=True):
+                 clean=True, OK_with_wrong=False, check_priority=True, sleep_time=10.):
         self.OVN_dic = OVN_dic
         self.models_dir = models_dir
         self.Nprocs = Nprocs
         self.clean = clean
         self.OK_with_wrong = OK_with_wrong
         self.check_priority = check_priority
+        self.sleep_time = sleep_time
                 
     def start(self, norun=False, noinput=False, clean=True):
         self.all_threads = []
@@ -1343,7 +1344,8 @@ class manage3MdB(object):
                                                       norun=norun, noinput=noinput,
                                                       clean=self.clean,
                                                       OK_with_wrong=self.OK_with_wrong, 
-                                                      check_priority=self.check_priority))
+                                                      check_priority=self.check_priority,
+                                                      sleep_time=self.sleep_time))
         for t in self.all_threads:
             t.start()
             
