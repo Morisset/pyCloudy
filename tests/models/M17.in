@@ -1,0 +1,50 @@
+#####################################
+title M17
+#####################################
+set punch prefix "M17"
+Blackbody 40000.000000
+q(H) = 47.000
+radius = 17.300
+hden = 2.000
+filling factor = 1.0
+abundances ism no grains
+distance = 1000.0 parsecs linear
+no molecules
+no level2 lines
+no fine opacities
+atom h-like levels small
+atom he-like levels small
+COSMIC RAY BACKGROUND
+element limit off -8
+iterate
+sphere
+save last radius ".rad"
+save last continuum ".cont"
+save last physical conditions ".phy"
+save last overview ".ovr"
+save last heating ".heat"
+save last cooling ".cool"
+save last optical depth ".opd"
+save last element hydrogen ".ele_H"
+save last element helium ".ele_He"
+save last element carbon ".ele_C"
+save last element nitrogen ".ele_N"
+save last element oxygen ".ele_O"
+save last element argon ".ele_Ar"
+save last element neon ".ele_Ne"
+save last element sulphur ".ele_S"
+save last element chlorin ".ele_Cl"
+save last element iron ".ele_Fe"
+save last element silicon ".ele_Si"
+save last lines emissivity  ".emis"
+H  1  4861.33A
+H  1  6562.81A
+N  2  6583.45A
+O  2  3726.03A
+O  2  3728.81A
+O  3  5006.84A
+S  2  6716.44A
+S  2  6730.82A
+Cl 3  5517.71A
+Cl 3  5537.87A
+end of lines
