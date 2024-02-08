@@ -1683,6 +1683,19 @@ class CloudyModel(object):
 
     Hbeta_cut = property(_get_Hbeta_cut, _set_Hbeta_cut, None, None)
 
+    def _get_ColDens_cut(self):
+        return self.__ColDens_cut
+
+    def _set_ColDens_cut(self, value):
+        colDens_full = np.cumsum(self.dr_full * self.nH_full * self.ff_full)
+        if value > colDens_full[1]:
+            self.depth_out_cut = self.depth_full[colDens_full <= value][-1]
+            self.__ColDens_cut = self.ColDens
+        else:
+            self.log_.warn('ColDens_cut must be greater than minimal value', calling = self.calling)
+
+    ColDens_cut = property(_get_ColDens_cut, _set_ColDens_cut, None, None)
+
     ## Hp_mass = \f$ \int m_H.n_{H^+}.ff.dV\f$ [solar mass]
     @property
     def Hp_mass(self):
@@ -1723,6 +1736,16 @@ class CloudyModel(object):
             self.log_.warn('H beta not available', calling = self.calling)
             return None
 
+    ## ColDens = \f$ \int n_H.ff.dr\f$
+    @property
+    def ColDens(self):
+        """Return the H column density"""
+        try:
+            return self.rad_integ(self.nH)
+        except:
+            self.log_.warn('nH column density not available', calling = self.calling)
+            return None
+        
 
     ## Mean Temperature \f$T0=\frac{\int T_e.n_e.n_H.ff.dV}{\int n_e.n_H.ff.dV}\f$
     @property
