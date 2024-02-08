@@ -1987,13 +1987,13 @@ class CloudyModel(object):
     def print_stats(self):
         print(' Name of the model: {0}'.format(self.model_name))
         try:
-            print((' R_in (cut) = {0.r_in:.3e} ({0.r_in_cut:.3e}), R_out (cut) = {0.r_out:.3e} ({0.r_out_cut:.3e})'.
-                  format(self)))
+            print(' R_in (cut) = {0.r_in:.3e} ({1:.3e}), R_out (cut) = {0.r_out:.3e} ({2:.3e})'.
+                  format(self, np.min(self.radius), np.max(self.radius)))
         except:
             pass
         try:
-            print((' Depth_in (cut) = {0.depth_in:.3e} ({0.depth_in_cut:.3e}), depth_out (cut) = {0.depth_out:.3e} ({0.depth_out_cut:.3e})'.
-                  format(self)))
+            print(' Depth_in (cut) = {0.depth_in:.3e} ({1:.3e}), depth_out (cut) = {0.depth_out:.3e} ({2:.3e})'.
+                  format(self, np.min(self.depth), np.max(self.depth)))
         except:
             pass
         try:
