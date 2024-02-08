@@ -226,23 +226,21 @@ class CloudyModel(object):
             self.dv_full = 4. * np.pi * self.radius_full ** 2 * self.dr_full
             if self.n_zones_full > 1:
                 self.r_in = self.radius_full[0] - self.dr_full[0]/2
-                self.r_out = self.radius_full[-1] + self.dr_full[0]/2
-                self.depth_in = 0.0
-                self.depth_out = self.depth_full[-1] + self.dr_full[0]/2
+                self.r_out = self.radius_full[-1] + self.dr_full[-1]/2
+                self.depth_in = 0.0 
+                self.depth_out = self.depth_full[-1] + self.dr_full[-1]/2
             else:
                 self.r_in = self.radius_full - self.dr_full/2
                 self.r_out = self.radius_full + self.dr_full/2
                 self.depth_in = 0.0
                 self.depth_out = self.radius_full + self.dr_full/2
-            self.r_in_cut = self.r_in
-            self.r_out_cut = self.r_out
             self.depth_in_cut = self.depth_in
             self.depth_out_cut = self.depth_out
+            self.r_in_cut = self.r_in
+            self.r_out_cut = self.r_out
             if self.Phi0 == 0.:
                 self.Phi = self.Q / (4 * np.pi * self.r_in**2)
                 self.Phi0 = self.Phi.sum()
-
-
 
     ##
     # @var r_in
@@ -1576,19 +1574,13 @@ class CloudyModel(object):
     def _get_r_out_cut(self):
         return self.__r_out_cut
 
+
     def _set_r_out_cut(self, value):
-        if self.n_zones_full > 1:
-            if value >= self.r_in:
-                self.__r_out_cut = value
-            else:
-                self.log_.warn('r_out_cut ({0:e}) cannot be lower than r_min ({1:e})'.format(value, self.r_in), calling = self.calling)
-                self.__r_out_cut = self.radius_full[1]
+        if value > self.radius_full[1]:
+            self.depth_out_cut = self.depth_full[self.radius_full <= value][-1]
+            self.__r_out_cut = self.radius[-1]
         else:
-            if value != self.r_out:
-                self.__r_out_cut = self.r_out
-                self.log_.warn('r_out_cut ({0:e}) cannot be != than r_out ({1:e})'.format(value, self.r_in), calling = self.calling)
-            else:
-                self.__r_out_cut = value
+            self.log_.warn('r_out_cut must be greater than minimal value', calling = self.calling)
 
     _r_out_cut_doc = 'User defined outer radius of the nebula. For example: r_out_cut = m.radius[m.zones[m.ionic["H"][1] < 0.2][0]]'
     ## User defined outer radius of the nebula [float] (cm).
@@ -1613,7 +1605,7 @@ class CloudyModel(object):
             else:
                 self.__depth_out_cut = value
 
-    _depth_out_cut_doc = 'User defined outer radius of the nebula. For example: depth_out_cut = m.depth[m.zones[m.ionic["H"][1] < 0.2][0]]'
+    _depth_out_cut_doc = 'User defined outer depth of the nebula. For example: depth_out_cut = m.depth[m.zones[m.ionic["H"][1] < 0.2][0]]'
     ## User defined outer depth of the nebula [float] (cm).
     # For example: depth_out_cut = m.depth[m.zones[m.ionic['H'][1] < 0.2][0]].
     # It is used to define r_range and thus all the radial properties of the nebula
@@ -1622,19 +1614,14 @@ class CloudyModel(object):
     def _get_r_in_cut(self):
         return self.__r_in_cut
 
+
     def _set_r_in_cut(self, value):
-        if self.n_zones_full > 1:
-            if value >= self.r_in:
-                self.__r_in_cut = value
-            else:
-                self.log_.warn('r_in_cut ({0:e}) cannot be lower than r_min ({1:e})'.format(value, self.r_in), calling = self.calling)
-                self.__r_in_cut = self.r_in[0]
+        if value < self.radius_full[-1]:
+            self.depth_in_cut = self.depth_full[self.radius_full >= value][0]
+            self.__r_in_cut = self.radius[0]
         else:
-            if value != self.r_in:
-                self.log_.warn('r_in_cut ({0:e}) cannot be != than r_min ({1:e})'.format(value, self.r_in), calling = self.calling)
-                self.__r_in_cut = self.r_in
-            else:
-                self.__r_in_cut = value
+            self.log_.warn('r_out_cut must be greater than minimal value', calling = self.calling)
+
     ## User defined inner radius of the nebula [float] (cm)
     r_in_cut = property(_get_r_in_cut, _set_r_in_cut, None, 'User defined inner radius of the nebula.')
 
@@ -2001,6 +1988,11 @@ class CloudyModel(object):
         print(' Name of the model: {0}'.format(self.model_name))
         try:
             print((' R_in (cut) = {0.r_in:.3e} ({0.r_in_cut:.3e}), R_out (cut) = {0.r_out:.3e} ({0.r_out_cut:.3e})'.
+                  format(self)))
+        except:
+            pass
+        try:
+            print((' Depth_in (cut) = {0.depth_in:.3e} ({0.depth_in_cut:.3e}), depth_out (cut) = {0.depth_out:.3e} ({0.depth_out_cut:.3e})'.
                   format(self)))
         except:
             pass
