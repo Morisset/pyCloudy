@@ -14,19 +14,19 @@ from io import StringIO
 def _sql2numpy(sqltype):
     if sqltype == 'float':
         return 'f4'
-    if sqltype == 'double' or sqltype == 'real':
+    if sqltype in ['double', 'real']:
         return 'f8'
-    if sqltype[0:7] == 'tinyint':
+    if sqltype[:7] == 'tinyint':
         return 'i1'
-    if sqltype[0:5] == 'short' or sqltype[0:4] == 'int2':
+    if sqltype[:5] == 'short' or sqltype[:4] == 'int2':
         return 'i2'
-    if sqltype[0:4] == 'int(' or sqltype[0:4] == 'int4':
+    if sqltype[:4] == 'int(' or sqltype[:4] == 'int4':
         return 'i4'
-    if sqltype[0:4] == 'int8' or sqltype[0:6] == 'bigint' or sqltype[0:4] == 'long':
+    if sqltype[:4] == 'int8' or sqltype[:6] == 'bigint' or sqltype[:4] == 'long':
         return 'i8'
-    if sqltype[0:7] == 'varchar':
+    if sqltype[:7] == 'varchar':
         return 'S{0}'.format(sqltype.split('(')[1].split(')')[0])
-    if sqltype[0:8] == 'datetime':
+    if sqltype[:8] == 'datetime':
         return 'S20'
     return 'S50'
 
@@ -91,7 +91,7 @@ class MdB(object):
         self.user_name = user_name
         if user_passwd == 'getenv':
             self.user_passwd = os.getenv('{0}_pass'.format(user_name))
-        elif user_passwd is 'getit':
+        elif user_passwd == 'getit':
             self.user_passwd = getpass()
         else:
             self.user_passwd = user_passwd
@@ -180,7 +180,7 @@ class MdB(object):
                 return res, len(res)
             else:
                 pc.log_.error('pandas is not available, use another format', calling=self.calling)
-        if format_[0:4] == 'dict' or format_ == 'rec':
+        if format_[:4] == 'dict' or format_ == 'rec':
             cursor = self._cursor
         else:
             cursor = self._cursor_tuple
@@ -216,7 +216,7 @@ class MdB(object):
         """
         if from_ is None:
             from_ = self.table
-        if (type(select_) == type(())) or (type(select_) == type([])):
+        if isinstance(select_, (tuple, list)):
             this_select = ''
             for w in select_:
                 this_select += w + ', '
@@ -224,7 +224,7 @@ class MdB(object):
         else:
             this_select = select_
 
-        if (type(where_) == type(())) or (type(where_) == type([])):
+        if isinstance(where_, (tuple, list)):
             this_where = ''
             for w in where_:
                 this_where += w + ' and '
@@ -232,7 +232,7 @@ class MdB(object):
         else:
             this_where = where_
 
-        if (type(from_) == type(())) or (type(from_) == type([])):
+        if isinstance(from_, (tuple, list)):
             this_from = ''
             for w in from_:
                 this_from += w + ', '
@@ -287,12 +287,11 @@ class MdB(object):
             res, N = self.exec_dB('SHOW COLUMNS FROM {0}'.format(from_))
             fields = [res[i]['Field'] for i in range(len(res))]
             fields.sort()
-            return fields
         else:
             fields = []
             for this_from in froms:
                 fields.extend(self.get_fields(from_ = this_from))
-            return fields
+        return fields
     
     def get_cols(self, select_ = '*', from_ = None):
         if from_ is None:
@@ -309,12 +308,11 @@ class MdB(object):
                     req += ' FIELD = "{0}" OR'.format(field.strip())
                 req = req[:-3]
                 res, N = self.exec_dB(req)
-            return res
         else:
             res = []
             for this_from in froms:
                 res += self.get_cols(select_ = select_, from_ = this_from)
-            return res
+        return res
             
     def get_dtype(self, select_ = '*', from_ = None):
         if from_ is None:
@@ -384,7 +382,7 @@ class MdB_subproc(object):
         self.user_name = user_name
         if user_passwd == 'getenv':
             self.user_passwd = os.getenv('{0}_pass'.format(user_name))
-        elif user_passwd is 'getit':
+        elif user_passwd == 'getit':
             self.user_passwd = getpass()
         else:
             self.user_passwd = user_passwd

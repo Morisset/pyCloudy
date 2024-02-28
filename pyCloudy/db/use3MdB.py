@@ -125,7 +125,7 @@ class writePending(object):
     def set_star(self, SED_shape=None, atm1=None, atm2=None, atm3=None,
                  lumi_unit=None, lumi_value=None, i_star = 0, atm_file=None):
             
-        if type(SED_shape) == type(()) or type(SED_shape) == type([]):
+        if isinstance(SED_shape, (list, tuple)):
             fil = None if atm_file is None else atm_file[0]
             at1 = None if atm1 is None else atm1[0]
             at2 = None if atm2 is None else atm2[0]
@@ -172,7 +172,7 @@ class writePending(object):
         if i_param < 0 or i_param > 8:
             self.log_.error('i_param must be between 0 and 8', calling=self.calling)
             return
-        if type(dlaw_params) == type(()) or type(dlaw_params)==type([]):
+        if isinstance(dlaw_params, (tuple, list)):
             for i_param, param in enumerate(dlaw_params):
                 self.set_dlaw(param, i_param)
         else:
@@ -213,7 +213,7 @@ class writePending(object):
         if i_dust > 2:
             self.log_.error('i_dust must be <= 2', calling=self.calling)
             return
-        if type(dust_type) == type(()) or type(dust_type)==type([]):
+        if isinstance(dust_type, (tuple, list)):
             if dust_value is None:
                 self.log_.error('If dust_type is a list, dust_value must be a list', calling=self.calling)
                 return
@@ -234,7 +234,7 @@ class writePending(object):
         if i_stop > 5:
             self.log_.error('i_stop must be <= 5', calling=self.calling)
             return
-        if type(stopping_crit) == type(()) or type(stopping_crit)==type([]):
+        if isinstance(stopping_crit, (tuple, list)):
             for i_stop, crit in enumerate(stopping_crit):
                 self.set_stop(crit, i_stop)
         else:
@@ -269,7 +269,7 @@ class writePending(object):
         if (i_other < 0) or (i_other > 8):
             self.log_.error('cloudy other parameter indice must be between 0 and 8', calling=self.calling)
             return
-        if type(others) == type(()) or type(others)==type([]):
+        if isinstance(others, (list, tuple)):
             for i_other, other in enumerate(others):
                 self.set_cloudy_others(other, i_other)
         else:
@@ -289,7 +289,7 @@ class writePending(object):
         if (i_com < 0) or (i_com > 8):
             self.log_.error('comments indice must be between 0 and 8', calling=self.calling)
             return
-        if type(comments) == type(()) or type(comments)==type([]):
+        if isinstance(comments, (list, tuple)):
             for i_com, comment in enumerate(comments):
                 self.set_comments(comment, i_com)
         else:
@@ -316,7 +316,7 @@ class writePending(object):
             if self._dic[key] is not None:
                 if key in self.fields:
                     fields_str += '`{0}`, '.format(key)
-                    if type(self._dic[key]) == type(''):
+                    if isinstance(self._dic[key], str):
                         values_str += "'{0}', ".format(self._dic[key])
                     else:
                         values_str += "{0}, ".format(self._dic[key])
@@ -466,7 +466,7 @@ class writeTab(object):
         self.insert_in_dic('N_pending', self.pending['N'])
         
         for field in self.pending_fields:
-            if field in self.fields and field[0:4] != 'date' and field != 'N':
+            if field in self.fields and field[:4] != 'date' and field != 'N':
                 self.insert_in_dic(field, self.pending[field])
         
     def model2dic(self):
@@ -618,7 +618,7 @@ class writeTab(object):
             if self._dic[key] is not None:
                 if key in self.fields:
                     fields_str += '`{0}`, '.format(key)
-                    if type(self._dic[key]) == type(''):
+                    if isinstance(self._dic[key], str):
                         values_str += "'{0}', ".format(self._dic[key])
                     else:
                         values_str += "{0}, ".format(self._dic[key])
@@ -743,7 +743,6 @@ class runCloudy(object):
     def get_emis_table(self):
         emis_tab = []
         for line in self.lines:
-            ide = line['id']
             label = line['label']
             if label[-2:] != 'PN':
                 lambda_ = line['lambda']
@@ -758,6 +757,7 @@ class runCloudy(object):
                 unit = line['label'][-1]
                 if unit == 'C':
                     unit = 'M'
+                ide = line['id']
                 emis_tab.append('{0} {1}{2}'.format(ide, lambda_str, unit))
         return emis_tab
     
@@ -863,19 +863,16 @@ class runCloudy(object):
             self.log_.error('Not connected to the database')
             self.pending = None
             return None
-        
+
         if N_pending is None:
             N_pending = self.selectedN
         else:
             self.selectedN = N_pending
         res, Nres = self.MdB.select_dB(select_='*', from_=self.pending_table, 
                                        where_='N = {0}'.format(N_pending), commit=True)
-        
+
         self.update_status('Read_pending')
-        if Nres == 0:
-            self.pending = None
-        else:
-            self.pending = res[0]
+        self.pending = None if Nres == 0 else res[0]
     
     def read_tab(self, N=None):
 
@@ -883,18 +880,15 @@ class runCloudy(object):
             self.log_.error('Not connected to the database')
             self.tab_dic = None
             return None
-        
+
         if N is None:
             N = self.selectedN
         else:
             self.selectedN = N
         res, Nres = self.MdB.select_dB(select_='*', from_=self.table, 
                                        where_='N = {0}'.format(N), commit=True)
-        
-        if Nres == 0:
-            self.tab_dic = None
-        else:
-            self.tab_dic = res[0]
+
+        self.tab_dic = None if Nres == 0 else res[0]
     
     def fill_CloudyInput(self, N_pending=None, noinput=False, dir=None, parameters=None, read_tab=False):
         """
@@ -921,7 +915,7 @@ class runCloudy(object):
             pc.log_.error('No model corresponds to {}'.format(N_pending), calling='fill_CloudyInput')
         if dir is not None:
             P['dir'] = dir
-        if type(parameters) is dict:
+        if isinstance(parameters, dict):
             for k in parameters:
                 P[k] = parameters[k]
         if P is not None:
@@ -971,7 +965,7 @@ class runCloudy(object):
                 
                 self.CloudyInput.set_star(SED = SED, SED_params = SED_params, 
                                           lumi_unit = P['lumi_unit'], lumi_value = P['lumi'])
-                if P['atm_cmd2'] is not '':
+                if P['atm_cmd2'] != '':
                     SED_params = None
                     SED = '{0} "{1}"'.format(P['atm_cmd2'],P['atm_file2'])
                     if P['atm12'] is not None:
@@ -1187,7 +1181,7 @@ class Genetic(object):
         if np.isinf(sigma) or np.isnan(sigma):
             sigma = 0.
         self.randomcoeff = np.random.standard_normal()
-        if type(key) is str:
+        if isinstance(key, str):
             key = (key,)
         for k in key:
             if k in self.wP._dic:
@@ -1254,8 +1248,8 @@ class Genetic(object):
         v2 = '{}'.format(M2[self.var_chroms_list[i_change]])
         if len(v1) == len(v2):
             j_change = randint(0,len(v1)-1)
-            v1_n = v2[0:j_change]
-            v2_n = v1[0:j_change]
+            v1_n = v2[:j_change]
+            v2_n = v1[:j_change]
             try:
                 C1[i_change] = eval(v1_n)
                 C2[i_change] = eval(v2_n)
