@@ -552,6 +552,7 @@ class CloudyModel(object):
             if 'Cloudy' in line and 'testing' not in line and 'Please' not in line and self.cloudy_version == '':
                 self.cloudy_version = line.strip()
                 version_match_obj = re.match("Cloudy \(?c?(\d\d)\.\d\d\)?", self.cloudy_version, flags=0)
+                # Newer Cloudy versions don't store the version numbers in the first line.
                 if version_match_obj is None:
                     self.cloudy_version_major = '23'
                 else:
