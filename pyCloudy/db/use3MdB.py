@@ -594,6 +594,19 @@ class writeTab(object):
             for clabel in self.CloudyModel.emis_labels:
                 self.insert_in_dic(clabel, self.CloudyModel.get_emis_vol(clabel))
                 self.insert_in_dic(clabel+'_rad', self.CloudyModel.get_emis_rad(clabel))
+            # DO NOT FORGET TO RUN remove_lines(OVN_dic, ('BLND_436300A', 'BLND_575500A'))
+            self.insert_in_dic('BLND_436300A' ,(self.CloudyModel.get_emis_vol('O__3_436321A') + 
+                                                self.CloudyModel.get_emis_vol('O_3C_436300A') +
+                                                self.CloudyModel.get_emis_vol('O_3R_436300A')))
+            self.insert_in_dic('BLND_436300A_rad' ,(self.CloudyModel.get_emis_rad('O__3_436321A') + 
+                                                    self.CloudyModel.get_emis_rad('O_3C_436300A') +
+                                                    self.CloudyModel.get_emis_rad('O_3R_436300A')))
+            self.insert_in_dic('BLND_575500A' ,(self.CloudyModel.get_emis_vol('N__2_575459A') + 
+                                                self.CloudyModel.get_emis_vol('N_2R_575500A') +
+                                                self.CloudyModel.get_emis_vol('N_2T_575500A')))
+            self.insert_in_dic('BLND_575500A_rad' ,(self.CloudyModel.get_emis_rad('N__2_575459A') + 
+                                                    self.CloudyModel.get_emis_rad('N_2R_575500A') +
+                                                    self.CloudyModel.get_emis_rad('N_2T_575500A')))
 
     def insert_model(self, add2dic=None):
         if not self.MdB.connected:
