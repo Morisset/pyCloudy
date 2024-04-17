@@ -754,10 +754,11 @@ class runCloudy(object):
         self.init_CloudyInput()
     
     def get_emis_table(self):
+        excluded = ("BLND_575500A", "BLND_436300A")
         emis_tab = []
         for line in self.lines:
             label = line['label']
-            if label[-2:] != 'PN':
+            if label[-2:] != 'PN' and label not in excluded:
                 lambda_ = line['lambda']
                 if lambda_ > 1000:
                     lambda_str = '{0:5.2f}'.format(lambda_)
