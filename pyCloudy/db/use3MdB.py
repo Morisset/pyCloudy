@@ -582,9 +582,10 @@ class writeTab(object):
         
         if self.CloudyModel.n_zones > 1:
             # Adding some recombination lines from PyNeb
-            self.lines, N_lines = self.MdB.select_dB(select_='id, lambda, label, name, used', from_=self.OVN_dic['lines_table'], 
+            self.lines, N_lines = self.MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
                                                      limit_=None, format_='numpy', 
-                                                     dtype_=[('id', 'U20'), ('lambda', '<f8'), ('label', 'U15'), ('name', 'U40')])
+                                                     dtype_=[('id', 'U20'), ('lambda', '<f8'), 
+                                                             ('label', 'U15'), ('name', 'U40')])
             for line in self.lines:
                 label = line['label']
                 if label[-2:] == 'PN' and label not in self.CloudyModel.emis_labels:
@@ -755,7 +756,9 @@ class runCloudy(object):
         self.check_priority=check_priority
         self.lines, N_lines = MdB.select_dB(select_='id, lambda, label, name, used', from_=self.OVN_dic['lines_table'], 
                                             limit_=None, format_='numpy', 
-                                            dtype_=[('id', 'U20'), ('lambda', '<f8'), ('label', 'U15'), ('name', 'U40')])
+                                            dtype_=[('id', 'U20'), ('lambda', '<f8'), 
+                                                    ('label', 'U15'), ('name', 'U40'),
+                                                    ('used', 'i1')])
        
         if register:
             self.get_ID()
