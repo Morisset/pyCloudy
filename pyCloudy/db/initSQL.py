@@ -1243,13 +1243,13 @@ def init_all(delete_before=False):
     init_temis(delete_before=delete_before)
     #init_SEDs(delete_before=delete_before)
     init_procIDs(delete_before=delete_before)
-    remove_lines(line_labels=('N_2R_566663A_PN', 'N_2R_567602A_PN', 'N_2R_567956A_PN', 'N_2R_568621A_PN', 
+    remove_lines(OVN_dic=OVN_dic, line_labels=('N_2R_566663A_PN', 'N_2R_567602A_PN', 'N_2R_567956A_PN', 'N_2R_568621A_PN', 
                               'N_2R_571077A_PN', 'N_2R_500515A_PN', 'N_2R_500114A_PN', 'N_2R_500148A_PN'))
-    remove_lines(line_labels=('O_2R_463886A_PN', 'O_2R_464181A_PN', 'O_2R_464913A_PN', 'O_2R_465084A_PN', 
+    remove_lines(OVN_dic=OVN_dic, line_labels=('O_2R_463886A_PN', 'O_2R_464181A_PN', 'O_2R_464913A_PN', 'O_2R_465084A_PN', 
                               'O_2R_466163A_PN', 'O_2R_467373A_PN', 'O_2R_467623A_PN', 'O_2R_469635A_PN', 
                               'O_2R_406988A_PN', 'O_2R_407215A_PN', 'O_2R_407586A_PN', 'O_2R_407884A_PN', 
                               'O_2R_408511A_PN', 'O_2R_409293A_PN'))
-    remove_lines(line_labels=('BLND_436300A', 'BLND_575500A'))
+    remove_lines(OVN_dic=OVN_dic, line_labels=('BLND_436300A', 'BLND_575500A'))
         
 def emis_tab2line_list(emis_tab_file):
                       
