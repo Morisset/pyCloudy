@@ -582,15 +582,16 @@ class writeTab(object):
         
         if self.CloudyModel.n_zones > 1:
             # Adding some recombination lines from PyNeb
-            self.lines, N_lines = self.MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
-                                                where_='used = 1', limit_=None, format_='numpy', 
-                                                dtype_=[('id', 'U20'), ('lambda', '<f8'), ('label', 'U15'), ('name', 'U40')])
+            self.lines, N_lines = self.MdB.select_dB(select_='id, lambda, label, name, used', from_=self.OVN_dic['lines_table'], 
+                                                     limit_=None, format_='numpy', 
+                                                     dtype_=[('id', 'U20'), ('lambda', '<f8'), ('label', 'U15'), ('name', 'U40')])
             for line in self.lines:
                 label = line['label']
                 if label[-2:] == 'PN' and label not in self.CloudyModel.emis_labels:
                     atom = self.RecDic[label[0:4]]
                     self.CloudyModel.add_emis_from_pyneb(label, atom, line['name'].split()[2][:-1])
 
+            # Adding auroral blends a la c17
             if 'BLND_575500A' not in self.CloudyModel.emis_labels:
                 new_emis_full = np.zeros((len(self.CloudyModel.emis_labels)+2, self.CloudyModel.n_zones_full))
                 new_emis_full[:-2, :] = self.CloudyModel.emis_full
@@ -608,7 +609,8 @@ class writeTab(object):
                 self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLND_436300A')
                 self.CloudyModel.n_emis += 2
                 self.CloudyModel.emis_labels_17 = self.CloudyModel.emis_labels
-
+            
+            # Add all the lines from the CloudyModel to the table
             for clabel in self.CloudyModel.emis_labels:
                 self.insert_in_dic(clabel, self.CloudyModel.get_emis_vol(clabel))
                 self.insert_in_dic(clabel+'_rad', self.CloudyModel.get_emis_rad(clabel))
@@ -751,21 +753,18 @@ class runCloudy(object):
         self.models_dir = models_dir
         self.do_update_status = do_update_status        
         self.check_priority=check_priority
-        self.lines, N_lines = MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
-                                           where_='used = 1', limit_=None, format_='numpy', 
-                                           dtype_=[('id', 'U20'), ('lambda', '<f8'), ('label', 'U15'), ('name', 'U40')])
+        self.lines, N_lines = MdB.select_dB(select_='id, lambda, label, name, used', from_=self.OVN_dic['lines_table'], 
+                                            limit_=None, format_='numpy', 
+                                            dtype_=[('id', 'U20'), ('lambda', '<f8'), ('label', 'U15'), ('name', 'U40')])
        
         if register:
             self.get_ID()
         self.init_CloudyInput()
     
     def get_emis_table(self):
-        # list of lines NOT included in Cloudy but for which we will obtain intensities by another way
-        excluded = ("BLND_575500A", "BLND_436300A")
         emis_tab = []
         for line in self.lines:
-            label = line['label']
-            if label[-2:] != 'PN' and label not in excluded:
+            if line['used'] == 1:
                 lambda_ = line['lambda']
                 if lambda_ > 1000:
                     lambda_str = '{0:5.2f}'.format(lambda_)
