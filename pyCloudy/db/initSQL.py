@@ -1,5 +1,5 @@
 import pyCloudy as pc
-from use3MdB import remove_lines
+from ./use3MdB import remove_lines
 import numpy as np
 
 OVN_dic_old = {'host' : 'localhost',

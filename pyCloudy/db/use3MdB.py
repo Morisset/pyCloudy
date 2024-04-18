@@ -701,7 +701,7 @@ class writeTab(object):
             command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.OVN_dic['teion_table'], t_fields_str, values_te_str)
             self.MdB.exec_dB(command)
             self.update_status('Teion inserted') #16
-         
+          
          
         if self.CloudyModel.n_zones > 1:
             fields_str = '`N`, `ref`,'
