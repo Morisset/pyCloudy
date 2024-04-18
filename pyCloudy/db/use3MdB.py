@@ -591,22 +591,23 @@ class writeTab(object):
                     atom = self.RecDic[label[0:4]]
                     self.CloudyModel.add_emis_from_pyneb(label, atom, line['name'].split()[2][:-1])
 
-            new_emis_full = np.zeros((len(self.CloudyModel.emis_labels)+2, self.CloudyModel.n_zones_full))
-            new_emis_full[:-2, :] = self.CloudyModel.emis_full
+            if 'BLND_575500A' not in self.CloudyModel.emis_labels:
+                new_emis_full = np.zeros((len(self.CloudyModel.emis_labels)+2, self.CloudyModel.n_zones_full))
+                new_emis_full[:-2, :] = self.CloudyModel.emis_full
 
-            new_emis_full[-2, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('N__2_575459A')] + 
-                                    self.CloudyModel.emis_full[self.CloudyModel._i_emis('N_2R_575500A')] + 
-                                    self.CloudyModel.emis_full[self.CloudyModel._i_emis('N_2T_575500A')])
-            
-            new_emis_full[-1, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('O__3_436321A')] + 
-                                    self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_3C_436300A')] + 
-                                    self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_3R_436300A')])
+                new_emis_full[-2, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('N__2_575459A')] + 
+                                        self.CloudyModel.emis_full[self.CloudyModel._i_emis('N_2R_575500A')] + 
+                                        self.CloudyModel.emis_full[self.CloudyModel._i_emis('N_2T_575500A')])
+                
+                new_emis_full[-1, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('O__3_436321A')] + 
+                                        self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_3C_436300A')] + 
+                                        self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_3R_436300A')])
 
-            self.CloudyModel.emis_full = new_emis_full
-            self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLND_575500A')
-            self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLND_436300A')
-            self.CloudyModel.n_emis += 2
-            self.CloudyModel.emis_labels_17 = self.CloudyModel.emis_labels
+                self.CloudyModel.emis_full = new_emis_full
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLND_575500A')
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLND_436300A')
+                self.CloudyModel.n_emis += 2
+                self.CloudyModel.emis_labels_17 = self.CloudyModel.emis_labels
 
             for clabel in self.CloudyModel.emis_labels:
                 self.insert_in_dic(clabel, self.CloudyModel.get_emis_vol(clabel))
