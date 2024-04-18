@@ -603,8 +603,8 @@ class writeTab(object):
                                     self.CloudyModel.get_emis('O_3R_436300A'))
 
             self.CloudyModel.emis_full = new_emis_full
-            self.CloudyModel.emis_labels = np.append(self.emis_labels, 'BLND_575500A')
-            self.CloudyModel.emis_labels = np.append(self.emis_labels, 'BLND_436300A')
+            self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLND_575500A')
+            self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLND_436300A')
             self.CloudyModel.n_emis += 2
 
             for clabel in self.CloudyModel.emis_labels:
