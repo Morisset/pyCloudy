@@ -618,16 +618,16 @@ lines_list = [
 ('O__2_372881A', 'O  2', 3728.81, 'O  2 3728.81A'),
 ('BLND_732300A', 'Blnd', 7323.00, 'Blnd 7323.00A'),
 ('BLND_733200A', 'Blnd', 7332.00, 'Blnd 7332.00A'),
-('BLNDR_732300A', 'Blnd', 7323.00, 'Blnd 7323.00A'), # NOT IN CLOUDY
-('BLNDR_733200A', 'Blnd', 7332.00, 'Blnd 7332.00A'), # NOT IN CLOUDY
+('BLDR_732300A', 'Blnd', 7323.00, 'Blnd 7323.00A'), # NOT IN CLOUDY
+('BLDR_733200A', 'Blnd', 7332.00, 'Blnd 7332.00A'), # NOT IN CLOUDY
 ('O_2R_372600A', 'O 2R', 3726.00, 'O 2R 3726.00A'),
 ('O_2R_372900A', 'O 2R', 3729.00, 'O 2R 3729.00A'),
 ('O_2R_732300A', 'O 2R', 7323.00, 'O 2R 7323.00A'),
 ('O_2R_733200A', 'O 2R', 7332.00, 'O 2R 7332.00A'),
 ('BLND_372700A', 'BLND', 3727.00, 'BLND 3727.00A'),
-('BLNDR_372700A', 'BLND', 3727.00, 'BLND 3727.00A'), # NOT IN CLOUDY
+('BLDR_372700A', 'BLND', 3727.00, 'BLND 3727.00A'), # NOT IN CLOUDY
 ('BLND_732500A', 'BLND', 7325.00, 'BLND 7325.00A'),
-('BLNDR_732500A', 'BLND', 7325.00, 'BLND 7325.00A'), # NOT IN CLOUDY
+('BLDR_732500A', 'BLND', 7325.00, 'BLND 7325.00A'), # NOT IN CLOUDY
 ('BLND_247100A', 'BLND', 2471.00, 'BLND 2471.00A'),
 ('O__2_415200A', 'O  2', 4152.00, 'O  2 4152.00A'),
 ('O_2R_434100A', 'O 2R', 4341.00, 'O 2R 4341.00A'),
@@ -1255,8 +1255,8 @@ def init_all(delete_before=False):
                               'O_2R_406988A_PN', 'O_2R_407215A_PN', 'O_2R_407586A_PN', 'O_2R_407884A_PN', 
                               'O_2R_408511A_PN', 'O_2R_409293A_PN'))
     remove_lines(OVN_dic=OVN_dic, line_labels=('BLND_436300A', 'BLND_575500A',
-                                               'BLNDR_732300A', 'BLNDR_733200A', 'BLNDR_732500A',
-                                               'BLNDR_372700A'))
+                                               'BLDR_732300A', 'BLDR_733200A', 'BLDR_732500A',
+                                               'BLDR_372700A'))
         
 def emis_tab2line_list(emis_tab_file):
                       

@@ -613,24 +613,24 @@ class writeTab(object):
                 i_new_lines -= 1
                 new_emis_full[-i_new_lines, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('BLND_732300A')] + 
                                                   self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_732300A')])          
-                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLNDR_732300A')
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLDR_732300A')
 
                 i_new_lines -= 1
                 new_emis_full[-i_new_lines, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('BLND_733200A')] + 
                                                   self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_733200A')])          
-                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLNDR_733200A')
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLDR_733200A')
 
                 i_new_lines -= 1
                 new_emis_full[-i_new_lines, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('BLND_732500A')] + 
                                                   self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_733200A')] +
                                                   self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_732300A')])          
-                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLNDR_732500A')
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLDR_732500A')
 
                 i_new_lines -= 1
                 new_emis_full[-i_new_lines, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('BLND_372700A')] + 
                                                   self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_372600A')] +
                                                   self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_372900A')])          
-                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLNDR_372700A')
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLDR_372700A')
 
                 self.CloudyModel.emis_full = new_emis_full
                 self.CloudyModel.n_emis += N_new_lines
@@ -1073,7 +1073,7 @@ def print_input(N, MdB= None, OVN_dic=None, dir='./', parameters=None, read_tab=
 class runCloudyByThread(threading.Thread):
 
     def __init__(self, OVN_dic, models_dir, norun=False, noinput=False, clean=True, OK_with_wrong=False,
-                 check_priority=True, sleep_time=10.):
+                 check_priority=True, sleep_time=10., verbose=False):
         
         self.log_ = pc.log_
         threading.Thread.__init__(self)
