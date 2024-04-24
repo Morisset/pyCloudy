@@ -640,7 +640,7 @@ class writeTab(object):
             for clabel in self.CloudyModel.emis_labels:
                 self.insert_in_dic(clabel, self.CloudyModel.get_emis_vol(clabel))
                 self.insert_in_dic(clabel+'_rad', self.CloudyModel.get_emis_rad(clabel))
-            # DO NOT FORGET TO RUN remove_lines(OVN_dic, ('BLND_436300A', 'BLND_575500A'))
+            # DO NOT FORGET TO RUN remove_lines(OVN_dic, ('BLND_436300A', 'BLND_575500A')) and the BLDR ones
 
     def insert_model(self, add2dic=None):
         if not self.MdB.connected:
