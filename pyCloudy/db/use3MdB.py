@@ -583,17 +583,64 @@ class writeTab(object):
         if self.CloudyModel.n_zones > 1:
             # Adding some recombination lines from PyNeb
             self.lines, N_lines = self.MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
-                                                where_='used = 1', limit_=None, format_='numpy', 
-                                                dtype_=[('id', 'U20'), ('lambda', '<f8'), ('label', 'U15'), ('name', 'U40')])
+                                                     limit_=None, format_='numpy', 
+                                                     dtype_=[('id', 'U20'), ('lambda', '<f8'), 
+                                                             ('label', 'U15'), ('name', 'U40')])
             for line in self.lines:
                 label = line['label']
                 if label[-2:] == 'PN' and label not in self.CloudyModel.emis_labels:
                     atom = self.RecDic[label[0:4]]
                     self.CloudyModel.add_emis_from_pyneb(label, atom, line['name'].split()[2][:-1])
-                    
+
+            # Adding auroral blends a la c17
+            if 'BLND_575500A' not in self.CloudyModel.emis_labels:
+                N_new_lines = 6
+                new_emis_full = np.zeros((len(self.CloudyModel.emis_labels)+N_new_lines, self.CloudyModel.n_zones_full))
+                new_emis_full[:-N_new_lines, :] = self.CloudyModel.emis_full
+
+                i_new_lines = N_new_lines
+                new_emis_full[-i_new_lines, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('N__2_575459A')] + 
+                                                  self.CloudyModel.emis_full[self.CloudyModel._i_emis('N_2R_575500A')] + 
+                                                  self.CloudyModel.emis_full[self.CloudyModel._i_emis('N_2T_575500A')])
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLND_575500A')
+
+                i_new_lines -= 1
+                new_emis_full[-i_new_lines, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('O__3_436321A')] + 
+                                                  self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_3C_436300A')] + 
+                                                  self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_3R_436300A')])
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLND_436300A')
+
+                i_new_lines -= 1
+                new_emis_full[-i_new_lines, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('BLND_732300A')] + 
+                                                  self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_732300A')])          
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLDR_732300A')
+
+                i_new_lines -= 1
+                new_emis_full[-i_new_lines, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('BLND_733200A')] + 
+                                                  self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_733200A')])          
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLDR_733200A')
+
+                i_new_lines -= 1
+                new_emis_full[-i_new_lines, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('BLND_732500A')] + 
+                                                  self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_733200A')] +
+                                                  self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_732300A')])          
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLDR_732500A')
+
+                i_new_lines -= 1
+                new_emis_full[-i_new_lines, :] = (self.CloudyModel.emis_full[self.CloudyModel._i_emis('BLND_372700A')] + 
+                                                  self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_372600A')] +
+                                                  self.CloudyModel.emis_full[self.CloudyModel._i_emis('O_2R_372900A')])          
+                self.CloudyModel.emis_labels = np.append(self.CloudyModel.emis_labels, 'BLDR_372700A')
+
+                self.CloudyModel.emis_full = new_emis_full
+                self.CloudyModel.n_emis += N_new_lines
+                self.CloudyModel.emis_labels_17 = self.CloudyModel.emis_labels
+            
+            # Add all the lines from the CloudyModel to the table
             for clabel in self.CloudyModel.emis_labels:
                 self.insert_in_dic(clabel, self.CloudyModel.get_emis_vol(clabel))
                 self.insert_in_dic(clabel+'_rad', self.CloudyModel.get_emis_rad(clabel))
+            # DO NOT FORGET TO RUN remove_lines(OVN_dic, ('BLND_436300A', 'BLND_575500A')) and the BLDR ones
 
     def insert_model(self, add2dic=None):
         if not self.MdB.connected:
@@ -680,7 +727,7 @@ class writeTab(object):
             command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.OVN_dic['teion_table'], t_fields_str, values_te_str)
             self.MdB.exec_dB(command)
             self.update_status('Teion inserted') #16
-         
+          
          
         if self.CloudyModel.n_zones > 1:
             fields_str = '`N`, `ref`,'
@@ -732,9 +779,11 @@ class runCloudy(object):
         self.models_dir = models_dir
         self.do_update_status = do_update_status        
         self.check_priority=check_priority
-        self.lines, N_lines = MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
-                                           where_='used = 1', limit_=None, format_='numpy', 
-                                           dtype_=[('id', 'U20'), ('lambda', '<f8'), ('label', 'U15'), ('name', 'U40')])
+        self.lines, N_lines = MdB.select_dB(select_='id, lambda, label, name, used', from_=self.OVN_dic['lines_table'], 
+                                            limit_=None, format_='numpy', 
+                                            dtype_=[('id', 'U20'), ('lambda', '<f8'), 
+                                                    ('label', 'U15'), ('name', 'U40'),
+                                                    ('used', 'i1')])
        
         if register:
             self.get_ID()
@@ -743,8 +792,7 @@ class runCloudy(object):
     def get_emis_table(self):
         emis_tab = []
         for line in self.lines:
-            label = line['label']
-            if label[-2:] != 'PN':
+            if line['used'] == 1:
                 lambda_ = line['lambda']
                 if lambda_ > 1000:
                     lambda_str = '{0:5.2f}'.format(lambda_)
@@ -1025,7 +1073,7 @@ def print_input(N, MdB= None, OVN_dic=None, dir='./', parameters=None, read_tab=
 class runCloudyByThread(threading.Thread):
 
     def __init__(self, OVN_dic, models_dir, norun=False, noinput=False, clean=True, OK_with_wrong=False,
-                 check_priority=True, sleep_time=10.):
+                 check_priority=True, sleep_time=10., verbose=False):
         
         self.log_ = pc.log_
         threading.Thread.__init__(self)
