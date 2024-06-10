@@ -552,13 +552,17 @@ class CloudyModel(object):
             if 'Cloudy' in line and 'testing' not in line and 'Please' not in line and self.cloudy_version == '':
                 self.cloudy_version = line.strip()
                 version_match_obj = re.match("Cloudy \(?c?(\d\d)\.\d\d\)?", self.cloudy_version, flags=0)
-                self.cloudy_version_major = version_match_obj.group(1)
+                # Newer Cloudy versions don't store the version numbers in the first line.
+                if version_match_obj is None:
+                    self.cloudy_version_major = '23'
+                else:
+                    self.cloudy_version_major = version_match_obj.group(1)
                 try:
                     self.cloudy_version_major = int(self.cloudy_version_major)
                 except:
                     pass
                 try:
-                    if int(self.cloudy_version_major) >= 17:
+                    if int(self.cloudy_version_major) >= 17:                        
                         self.emis_is_log = False
                     else:
                         self.emis_is_log = emis_is_log
