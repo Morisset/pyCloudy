@@ -12,7 +12,10 @@ from ..utils.physics import ATOMIC_MASS
 if pc.config.INSTALLED['PyNeb']:
     import pyneb
 if pc.config.INSTALLED['scipy']:
-    from scipy.integrate import cumtrapz
+    try:
+        from scipy.integrate import cumtrapz
+    except:
+        from scipy.integrate import cumulative_trapezoid as cumtrapz
     from scipy.interpolate import interp1d
 if pc.config.INSTALLED['plt']:
     import matplotlib.pyplot as plt

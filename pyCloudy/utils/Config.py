@@ -41,7 +41,10 @@ class _Config(object):
             self.INSTALLED['PyNeb'] = False
             _Config.log_.warn('pyCloudy works better with PyNeb', calling = 'pyCloudy config')
         try:
-            from scipy.integrate import cumtrapz
+            try:
+                from scipy.integrate import cumtrapz
+            except:
+                from scipy.integrate import cumulative_trapezoid as cumtrapz
             from scipy.interpolate import interp1d
             self.INSTALLED['scipy'] = True
         except:

@@ -8,8 +8,11 @@ if pc.config.INSTALLED['Image']:
     from PIL import Image
 if pc.config.INSTALLED['scipy']:
     from scipy import signal
-from scipy.integrate import trapz
-
+try:
+    from scipy.integrate import trapz
+except:
+    from scipy.integrate import trapezoid as trapz
+    
 def execution_path(filename):
     return os.path.join(os.path.dirname(sys._getframe(1).f_code.co_filename), filename)
 
