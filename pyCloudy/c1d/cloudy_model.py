@@ -98,7 +98,8 @@ class CloudyModel(object):
                  read_pressure=False, read_abunds = False, read_ovr=False,
                  list_elem = LIST_ELEM, distance = None, line_is_log = False,
                  emis_is_log = True,
-                 ionic_str_key = 'ele_'):
+                 ionic_str_key = 'ele_',
+                 cloudy_version_major=None):
         """
         param:
             - model_name [str] The name of the model to be read.
@@ -111,12 +112,14 @@ class CloudyModel(object):
             - distance [float] distance to the nebula in kpc
             - line_is_log [boolean] if True, intensities in .lin file_ are in log, if False are in linear
             - emis_is_log [boolean] if True, intensities in .emis file_ are in log, if False are in linear
+            - cloudy_version_major [int]: needed if the Cloudy version is not given in the first lines of the output
         """
 
         self.log_ = pc.log_
         if verbose is not None:
             self.log_.level = verbose
         self.model_name = model_name
+        self.cloudy_version_major = cloudy_version_major
         self.info = '<Cloudy model from {0}>'.format(self.model_name)
         self.calling = 'CloudyModel {0.model_name}'.format(self)
         self.log_.message('Creating CloudyModel for {0.model_name}'.format(self), calling = self.calling)
@@ -551,19 +554,13 @@ class CloudyModel(object):
         for line in file_:
             if 'Cloudy' in line and 'testing' not in line and 'Please' not in line and self.cloudy_version == '':
                 self.cloudy_version = line.strip()
-                version_match_obj = re.match("Cloudy \(?c?(\d\d)\.\d\d\)?", self.cloudy_version, flags=0)
-                self.cloudy_version_major = version_match_obj.group(1)
-                try:
-                    self.cloudy_version_major = int(self.cloudy_version_major)
-                except:
-                    pass
-                try:
-                    if int(self.cloudy_version_major) >= 17:
-                        self.emis_is_log = False
-                    else:
-                        self.emis_is_log = emis_is_log
-                except:
-                    self.emis_is_log = emis_is_log
+                if self.cloudy_version_major is None:
+                    version_match_obj = re.match("Cloudy \(?c?(\d\d)\.\d\d\)?", self.cloudy_version, flags=0)
+                    try:
+                        self.cloudy_version_major = version_match_obj.group(1)
+                        self.cloudy_version_major = int(self.cloudy_version_major)
+                    except:
+                        self.log_.error(f'pyCloudy unable to determine version from "{self.cloudy_version}". Try to set it by hand using cloudy_version_major keyword', calling = self.calling)
             elif line[0:8] == ' ####  1':
                 self.out['###First'] = line
             elif line[0:4] == ' ###':
@@ -649,6 +646,13 @@ class CloudyModel(object):
             elif line[0:3] == '  !' or line[0:3] == ' W-':
                 self.warnings.append(line)
         file_.close()
+        try:
+            if int(self.cloudy_version_major) >= 17:
+                self.emis_is_log = False
+            else:
+                self.emis_is_log = emis_is_log
+        except:
+            self.emis_is_log = emis_is_log
         try:
             self.theta = float(pc.sextract(self.C3D_comments, 'theta = ', ' ')[0])
         except:
@@ -1576,12 +1580,14 @@ class CloudyModel(object):
 
 
     def _set_r_out_cut(self, value):
-        if value > self.radius_full[1]:
-            self.depth_out_cut = self.depth_full[self.radius_full <= value][-1]
-            self.__r_out_cut = self.radius[-1]
+        if self.n_zones_full > 1:
+            if value > self.radius_full[1]:
+                self.depth_out_cut = self.depth_full[self.radius_full <= value][-1]
+                self.__r_out_cut = self.radius[-1]
+            else:
+                self.log_.warn('r_out_cut must be greater than minimal value', calling = self.calling)
         else:
-            self.log_.warn('r_out_cut must be greater than minimal value', calling = self.calling)
-
+            self.__r_out_cut = self.radius
     _r_out_cut_doc = 'User defined outer radius of the nebula. For example: r_out_cut = m.radius[m.zones[m.ionic["H"][1] < 0.2][0]]'
     ## User defined outer radius of the nebula [float] (cm).
     # For example: r_out_cut = m.radius[m.zones[m.ionic['H'][1] < 0.2][0]].
@@ -1616,12 +1622,14 @@ class CloudyModel(object):
 
 
     def _set_r_in_cut(self, value):
-        if value < self.radius_full[-1]:
-            self.depth_in_cut = self.depth_full[self.radius_full >= value][0]
-            self.__r_in_cut = self.radius[0]
+        if self.n_zones_full > 1:
+            if value < self.radius_full[-1]:
+                self.depth_in_cut = self.depth_full[self.radius_full >= value][0]
+                self.__r_in_cut = self.radius[0]
+            else:
+                self.log_.warn('r_out_cut must be greater than minimal value', calling = self.calling)
         else:
-            self.log_.warn('r_out_cut must be greater than minimal value', calling = self.calling)
-
+           self.__r_in_cut = self.r_in
     ## User defined inner radius of the nebula [float] (cm)
     r_in_cut = property(_get_r_in_cut, _set_r_in_cut, None, 'User defined inner radius of the nebula.')
 
@@ -1661,12 +1669,15 @@ class CloudyModel(object):
         return self.__H_mass_cut
 
     def _set_H_mass_cut(self, value):
-        if value > self.H_mass_full[1]:
-#            self.r_out_cut = self.radius_full[self.H_mass_full <= value][-1]
-            self.depth_out_cut = self.depth_full[self.H_mass_full <= value][-1]
-            self.__H_mass_cut = self.H_mass
+        if self.n_zones_full > 1:
+            if value > self.H_mass_full[1]:
+    #            self.r_out_cut = self.radius_full[self.H_mass_full <= value][-1]
+                self.depth_out_cut = self.depth_full[self.H_mass_full <= value][-1]
+                self.__H_mass_cut = self.H_mass
+            else:
+                self.log_.warn('H_mass_cut must be greater than minimal value', calling = self.calling)
         else:
-            self.log_.warn('H_mass_cut must be greater than minimal value', calling = self.calling)
+            self.__H_mass_cut = self.H_mass_full
 
     H_mass_cut = property(_get_H_mass_cut, _set_H_mass_cut, None, None)
 
@@ -1674,13 +1685,16 @@ class CloudyModel(object):
         return self.__Hbeta_cut
 
     def _set_Hbeta_cut(self, value):
-        if value > self.Hbeta_full[1]:
-#            self.r_out_cut = self.radius_full[self.Hbeta_full <= value][-1]
-            self.depth_out_cut = self.depth_full[self.Hbeta_full <= value][-1]
-            self.__Hbeta_cut = self.Hbeta
+        if self.n_zones_full > 1:
+            if value > self.Hbeta_full[1]:
+    #            self.r_out_cut = self.radius_full[self.Hbeta_full <= value][-1]
+                self.depth_out_cut = self.depth_full[self.Hbeta_full <= value][-1]
+                self.__Hbeta_cut = self.Hbeta
+            else:
+                self.log_.warn('Hbeta_cut must be greater than minimal value', calling = self.calling)
         else:
-            self.log_.warn('Hbeta_cut must be greater than minimal value', calling = self.calling)
-
+            self.__Hbeta_cut = self.Hbeta_full
+            
     Hbeta_cut = property(_get_Hbeta_cut, _set_Hbeta_cut, None, None)
 
     def _get_ColDens_cut(self):
