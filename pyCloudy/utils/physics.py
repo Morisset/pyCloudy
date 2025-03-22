@@ -149,6 +149,12 @@ def atomic_mass(elem):
     else:
         return None
 
+def get_metallicity(abund_dic):
+    Z = 0.
+    for elem in abund_dic:
+        Z += 10**abund_dic[elem] * ATOMIC_MASS[elem]
+    return Z
+
 abund_C17_default = {'H': 0.0,
                     'He': -1.0,
                     'Li': -8.769,
