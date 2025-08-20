@@ -594,6 +594,8 @@ class CloudyModel(object):
                         i += 1
             elif 'table star' in line:
                 self.out['table star'] = line
+            elif 'table SED' in line:
+                self.out['table SED'] = line
             elif 'Blackbody' in line:
                 self.out['Blackbody'] = line
                 try:
