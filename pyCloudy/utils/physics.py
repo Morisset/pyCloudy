@@ -446,6 +446,66 @@ abund_Nicholls_GC_2017_2500 = get_abund_nicholls(-2.8421)
 abund_Nicholls_GC_2017_3000 = get_abund_nicholls(-2.7629)
 abund_Nicholls_GC_2017_3500 = get_abund_nicholls(-2.6959)
 
+def get_abunds_Ni17_G24(lOH=-3.24, lNO=None, lCO=None, Fstar=0.5, delta_NO=0.0, delta_CO=0.0):
+    """
+    Return abundance dictionnary using Nicholls+17 prescription and Gunasekera+24 depletion
+    Inputs: lOH [-3.24]: log10(O/H)
+            lNO [None]: log10(N/O)
+            lCO [None]: log10(C/O)
+            delta_CO [0], delta_NO [0]: shift in C/O and N/O.
+            Fstar [0.5]: F* from Jenkins09, described in Gunasekera+24
+    Outputs: (ab_dic, ab_depl_dic, ldust), 
+            ab_dic: dictionnary of abundances in log10,
+            ab_dic_depl: dictionnary of abundances in log10, depleted,
+            ldust: log10(sum of depleted elements)
+                ldust needs to be compared to the sum of elements in dust in the model.
+                From the composition of ism dust grains C, O, Mg, Si, Fe in graphite_ism_10.opc and silicate_ism_10.opc 
+                -3.2941 = np.log10(10**-3.5553 + 10**-3.8821 + 10**-4.4841 + 10**-4.4841 + 10**-4.4841) from cloudy output
+                        = np.log10(2.784e-4 + 1.312e-4 + 3 * 3.28e-5) from opc files
+    Usage:  ab_dic, ab_dic_dep, dust_sum = get_abunds_Ni17_G24(lOH, lNO, lCO, Fstar)
+            M.set_abund(ab_dict=ab_dic, nograins=True, metalsdeplete=f'Jenkins2009 Fstar={Fstar}')
+            M.set_grains(f'ism {(dust_sum + 3.2941)} log')
+    """
+    #ISM_Jenkins09_Gunasekera21.dpl from Cloudy 25.00 /data/abundances
+    depl_G21 = {"Li" : (-1.136, -0.246, 0.0), 
+                "B" : (-0.849, 0.698, 0.0),
+                "C" : (-0.101, -0.193, 0.803),
+                "N" : (0.0, -0.109, 0.55),
+                "O" : (-0.225, -0.145, 0.598),
+                "Na" : (2.071, -3.059, 0.0),
+                "Mg" : (-0.997, -0.8, 0.531),
+                "Al" : (-3.33, 0.179, 0.0),
+                "Si" : (-1.136, -0.57, 0.305),
+                "P" : (-0.945, -0.166, 0.488),
+                "S" : (-0.879, -0.091, 0.29),
+                "Cl" : (-1.242, -0.314, 0.609),
+                "Ar" : (-0.516, -0.133, 0.0),
+                "K" : (-0.133, -0.859, 0.0),
+                "Ca" : (-1.822, -1.768, 0.0),
+                "Ti" : (-2.048, -1.957, 0.43),
+                "Cr" : (-1.447, -1.508, 0.47),
+                "Mn" : (-0.857, -1.354, 0.52),
+                "Fe" : (-1.285, -1.513, 0.437),
+                "Ni" : (-1.49, -1.829, 0.599),
+                "Cu" : (-0.71, -1.102, 0.711),
+                "Zn" : (-0.61, -0.279, 0.555)}
+    abunds = get_abund_nicholls(lOH)
+    if lCO is not None:
+        abunds['C'] = lCO + lOH
+    if lNO is not None:
+        abunds['N'] = lNO + lOH
+    abunds['C'] += delta_CO
+    abunds['N'] += delta_NO
+    abunds_depl = {}
+    sum_depl = 0
+    for elem in abunds:
+        if elem in depl_G21.keys():
+            ldepl = min(depl_G21[elem][1] + depl_G21[elem][0] * (Fstar - depl_G21[elem][2]), 0)
+            abunds_depl[elem] = abunds[elem] + ldepl
+            sum_depl += 10**(abunds[elem]) - 10**(abunds_depl[elem])
+        else:
+            abunds_depl[elem] = abunds[elem] 
+    return abunds, abunds_depl, np.log10(sum_depl) 
 
 depletion_cloudy_13 = {}
 depletion_cloudy_13['He']= 1.00 #noble gas

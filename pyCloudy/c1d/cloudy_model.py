@@ -1970,6 +1970,23 @@ class CloudyModel(object):
         else:
             self.emis_labels_13 = self.emis_labels
 
+    def copy_line(self, new_label, old_label):
+
+        if old_label not in self.emis_labels:
+            self.log_.error(f'Can not find {old_label} in label list', calling="copy_line")
+        new_emis_full = np.zeros((len(self.emis_labels)+1, self.n_zones_full))
+        new_emis_full[:-1, :] = self.emis_full
+        new_emis_full[-1, :] = self.emis_full[self._i_emis(old_label)]
+
+        self.emis_full = new_emis_full
+        self.emis_labels = np.append(self.emis_labels, new_label)
+        self.n_emis += 1
+
+        if self.cloudy_version_major > 16:
+            self.emis_labels_17 = self.emis_labels
+        else:
+            self.emis_labels_13 = self.emis_labels
+
     def plot_spectrum(self, xunit='eV', cont='ntrans', yunit='es', ax=None,
                       xlog=True, ylog=True, **kargv):
         """
@@ -2445,6 +2462,7 @@ class CloudyInput(object):
             self._nograins = True
             self._metals = None
             self._metalsgrains = None
+            self._metalsdeplete = None
             return None
 
         if ab_dict is not None:
@@ -2598,6 +2616,8 @@ class CloudyInput(object):
             this_print('metals {0}'.format(self._metals))
         if self._metalsgrains is not None:
             this_print('metals grains {0}'.format(self._metalsgrains))
+        if self._metalsdeplete is not None:
+            this_print('metals deplete {0}'.format(self._metalsdeplete))
         if self._distance is not None:
             this_print(self._distance)
         if self._fudge is not None:

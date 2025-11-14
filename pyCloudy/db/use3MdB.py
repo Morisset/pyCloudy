@@ -181,7 +181,7 @@ class writePending(object):
 
 
     def set_abund(self, predef = None, elem = None, value = None, nograins = True, 
-                  ab_dict = None):
+                  ab_dict = None, metalsdeplete=None):
         """
         Define the elemental abundance(s)
         
