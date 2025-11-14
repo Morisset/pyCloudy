@@ -16,7 +16,7 @@ class _Config(object):
         else:
             self.cloudy_exe = 'cloudy.exe'
         self.cloudy_dict = {V: f'/usr/local/Cloudy/c{V}/source/cloudy.exe' for V in 
-                            ('13.03', '17.00', '17.01', '17.02', '17.03', '23.01')}
+                            ('13.03', '17.00', '17.01', '17.02', '17.03', '23.01', '25.00')}
         self.cloudy_dict['10.00'] = '/usr/local/Cloudy/c10.00/cloudy.exe'
         self.INSTALLED ={}
         try:
