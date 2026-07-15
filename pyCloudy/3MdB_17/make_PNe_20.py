@@ -112,7 +112,9 @@ def make_inputs_MdB(SED = 'BB', dens_law = 'C', dust=True, ab_O = -2.76):
     
     MdB = pc.MdB(OVN_dic)
     pc.log_.level = 3
-    wP = use3MdB.writePending(MdB, OVN_dic)
+    # buffer_size > 1: the models are sent to the database by bulk of 500,
+    # do not forget the wP.flush() after the loop.
+    wP = use3MdB.writePending(MdB, OVN_dic, buffer_size=500)
     wP.set_ref("PNe_2020_2")
     wP.set_user('Gloria')
     wP.set_C_version('17.02')
@@ -178,6 +180,7 @@ def make_inputs_MdB(SED = 'BB', dens_law = 'C', dust=True, ab_O = -2.76):
 
         wP.set_stop(('eden {0}'.format(dens - 3), 'temperature off', 'pfrac 0.02'))
         wP.insert_model()
+    wP.flush()
 
 def make_grids():
 

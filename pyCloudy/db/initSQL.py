@@ -1497,9 +1497,13 @@ def init_pending(OVN_dic=OVN_dic, MdB=None,delete_before=False):
   `lock` int(11) DEFAULT 0,
   PRIMARY KEY (`N`),
   KEY `status` (`status`),
-  KEY `priority` (`priority`)
+  KEY `priority` (`priority`),
+  KEY `status_priority` (`status`, `priority`)
   ) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 """
+    # For pending tables created with a previous version, the composite index that
+    # speeds up the workers claiming models can be added with:
+    # ALTER TABLE <pending_table> ADD KEY `status_priority` (`status`, `priority`);
 
     MdB.exec_dB(command)
     MdB.close_dB()

@@ -41,26 +41,76 @@ def select_from_priorities(Ps):
         Proba = np.cumsum(4**(Pmax-Ps))
         rand = np.random.ranf() * Proba[-1]
         return np.where(rand < Proba)[0][0]
-        
+
+def _native(value):
+    """
+    Convert numpy scalars to native Python types, so that they can be sent
+    as bound parameters to the database driver.
+    """
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+def requeue_stale(MdB=None, OVN_dic=None, older_than_hours=48, statuses=(1,)):
+    """
+    Put back to status=0 the pending models that have been claimed (status in statuses)
+    but whose date_running is older than older_than_hours.
+
+    Use this to recover models stuck after a worker crashed or was killed.
+    TAKE CARE: only run it when you are sure that no living worker still holds
+    such a model; choose older_than_hours much larger than the longest Cloudy run.
+
+    Returns the number of requeued models.
+    """
+    if MdB is None:
+        MdB = pc.MdB(OVN_dic=OVN_dic)
+        close_after = True
+    else:
+        OVN_dic = MdB.OVN_dic
+        close_after = False
+    status_list = ', '.join(str(int(s)) for s in statuses)
+    command = ('UPDATE {0} SET `status` = 0, `procID` = -1 '
+               'WHERE `status` IN ({1}) AND `date_running` < now() - INTERVAL {2:d} HOUR').format(
+                   OVN_dic['pending_table'], status_list, int(older_than_hours))
+    res, N = MdB.exec_dB(command, commit=True)
+    pc.log_.message('{0} models requeued'.format(N), calling='requeue_stale')
+    if close_after:
+        MdB.close_dB()
+    return N
+
 class writePending(object):
-    
-    def __init__(self, MdB=None, OVN_dic = None):
-        
+
+    def __init__(self, MdB=None, OVN_dic = None, buffer_size=1):
+        """
+        Object to insert models into the pending table.
+
+        keyword:
+            - buffer_size (default 1): number of models buffered before they are
+                actually sent to the database in a single bulk INSERT. With the
+                default value each call to insert_model behaves as before (one
+                model inserted and committed per call, self.last_N updated).
+                With buffer_size > 1, call flush() after the last insert_model
+                to send the remaining buffered models; self.last_N is only
+                valid after flush().
+        """
         self.log_ = pc.log_
         if MdB is None:
             MdB = pc.MdB(OVN_dic = OVN_dic)
         else:
             OVN_dic = MdB.OVN_dic
-            
+
         if not isinstance(MdB, pc.MdB):
             self.log_.error('The second argument must be a MdB object')
-            
+
         self.MdB = MdB
         self.OVN_dic = OVN_dic
         self.table = OVN_dic['pending_table']
         if self.MdB.connected:
-            self.fields = self.MdB.get_fields(from_ = self.table)            
+            self.fields = self.MdB.get_fields(from_ = self.table)
         self._dic = {}
+        self.buffer_size = buffer_size
+        self._buffer = []
+        self.last_N = None
         self.set_status(0)
         self.calling = 'writePending'
     
@@ -303,71 +353,106 @@ class writePending(object):
             self.log_.error('Unknown Cloudy version {}'.format(version))
 
     def insert_model(self, verbose_only=False, status=None):
-        
+
         if not self.MdB.connected:
             self.log_.error('Not connected to the database')
             return None
-        
+
         if status is not None:
             self.set_status(status)
-        fields_str = '`date_submitted`, '
-        values_str = 'now(), '
+        row = {}
         for key in self._dic:
             if self._dic[key] is not None:
                 if key in self.fields:
-                    fields_str += '`{0}`, '.format(key)
-                    if isinstance(self._dic[key], str):
-                        values_str += "'{0}', ".format(self._dic[key])
-                    else:
-                        values_str += "{0}, ".format(self._dic[key])
+                    row[key] = _native(self._dic[key])
                 else:
                     self.log_.warn('Unknown field {0} in table {1}'.format(key, self.table))
-        fields_str = fields_str[:-2]
-        values_str = values_str[:-2]
-        command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.table, fields_str, values_str)
+        row['date_submitted'] = datetime.datetime.now()
         if verbose_only:
-            print(command)
+            print('INSERT INTO {0} ({1}) VALUES ({2});'.format(self.table,
+                                                               ', '.join('`{0}`'.format(k) for k in row),
+                                                               ', '.join(repr(v) for v in row.values())))
+            return
+        if self._buffer and set(row) != set(self._buffer[0]):
+            # bulk inserts need a uniform set of columns
+            self.flush()
+        self._buffer.append(row)
+        if len(self._buffer) >= self.buffer_size:
+            self.flush()
+
+    def flush(self):
+        """
+        Send the buffered models to the pending table in a single bulk INSERT,
+        followed by a single UPDATE appending _N to the FILE names, and one commit.
+        Sets self.last_N to the N of the last inserted model.
+        """
+        if not self._buffer:
+            return
+        if not self.MdB.connected:
+            self.log_.error('Not connected to the database')
+            return None
+        rows, self._buffer = self._buffer, []
+        table = self.MdB.get_table(self.table)
+        if len(rows) == 1:
+            self.MdB.exec_dB(table.insert().values(**rows[0]))
         else:
-            self.MdB.exec_dB(command, commit=True)
-            res, N = self.MdB.select_dB(select_='last_insert_id()', from_=self.table, format_ = 'dict2', commit=True)
-            self.last_N = res['last_insert_id()'][0]
-            command = 'UPDATE {0} SET FILE="{1}_{2}" WHERE N={2};'.format(self.table, self._dic['file'], 
-                                                                          self.last_N)
-            self.MdB.exec_dB(command, commit=True)
-            self.log_.message('Model sent to {0} with N={1}'.format(self.table, self.last_N),
-                              calling=self.calling)
-        
+            self.MdB.exec_dB(table.insert(), params=rows)
+        first_N = self.MdB.last_rowid
+        if not first_N:
+            # bulk inserts do not always report lastrowid; ask the server.
+            # MySQL/MariaDB return the FIRST id of a multi-row INSERT, SQLite the last one.
+            if self.MdB._engine.dialect.name == 'sqlite':
+                res, N = self.MdB.exec_dB('SELECT last_insert_rowid()', format_='tuple')
+                first_N = res[0][0] - len(rows) + 1
+            else:
+                res, N = self.MdB.exec_dB('SELECT LAST_INSERT_ID()', format_='tuple')
+                first_N = res[0][0]
+        self.last_N = first_N + len(rows) - 1
+        # Server-side rename FILE -> FILE_N. Selecting on the base file name (instead of
+        # a range of N) stays correct even if concurrent inserts interleave the ids.
+        basenames = sorted({row['file'] for row in rows if 'file' in row})
+        for basename in basenames:
+            command = 'UPDATE {0} SET FILE = CONCAT(FILE, "_", N) WHERE N >= {1} AND FILE = :basename'.format(
+                self.table, first_N)
+            self.MdB.exec_dB(command, params={'basename': basename})
+        self.MdB.commit_dB()
+        self.log_.message('{0} model(s) sent to {1}, up to N={2}'.format(len(rows), self.table, self.last_N),
+                          calling=self.calling)
+
 def clean_SED(MdB, seds_table, ref, obj_name):
     command = 'DELETE FROM {} WHERE ref = "{}" AND sed_name LIKE "{}_%"'.format(seds_table, ref, obj_name)
     MdB.exec_dB(command)
     
-def insert_SED(MdB, seds_table, ref, sed_name, atm_cmd, atm_file, atm1=None, atm2=None, atm3=None, 
+def insert_SED(MdB, seds_table, ref, sed_name, atm_cmd, atm_file, atm1=None, atm2=None, atm3=None,
                    lumi_unit='', lumi_value=None):
-    
-    fields_str = 'ref, sed_name, atm_cmd, atm_file, '
-    values_str = "'{}', '{}', '{}', '{}', ".format(ref, sed_name, atm_cmd, atm_file)
+
+    row = {'ref': ref, 'sed_name': sed_name, 'atm_cmd': atm_cmd, 'atm_file': atm_file}
     if atm1 is not None:
-        fields_str += 'atm1, '
-        values_str += '{}, '.format(atm1)
+        row['atm1'] = _native(atm1)
     if atm2 is not None:
-        fields_str += 'atm2, '
-        values_str += '{}, '.format(atm2)
+        row['atm2'] = _native(atm2)
     if atm3 is not None:
-        fields_str += 'atm3, '
-        values_str += '{}, '.format(atm3)
-    fields_str += 'lumi_unit, lumi'
-    values_str += "'{}', {}".format(lumi_unit, lumi_value)
-    command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(seds_table, fields_str, values_str)
-    MdB.exec_dB(command)
+        row['atm3'] = _native(atm3)
+    row['lumi_unit'] = lumi_unit
+    row['lumi'] = _native(lumi_value)
+    table = MdB.get_table(seds_table)
+    MdB.exec_dB(table.insert().values(**row), commit=True)
         
         
 class writeTab(object):
-    
-    def __init__(self, MdB=None, OVN_dic=None, models_dir = './', do_update_status=True, 
-                 OK_with_wrong=False):
+
+    def __init__(self, MdB=None, OVN_dic=None, models_dir = './', do_update_status=True,
+                 OK_with_wrong=False, status_mode='all'):
         """
-        This object is in charge of filling the tab database table with the 
+        This object is in charge of filling the tab database table with the
         results of the model.
+        The same writeTab object can be reused for several models
+        (read_pending / read_model / insert_model in a loop).
+
+        keyword:
+            - status_mode ('all' by default): if set to 'batched', the intermediate
+                status updates of insert_model are not individually committed;
+                everything is committed with the final 'Master table updated' status.
         """
         self.log_ = pc.log_
         if MdB is None:
@@ -375,7 +460,7 @@ class writeTab(object):
         else:
             OVN_dic = MdB.OVN_dic
         if not isinstance(MdB, pc.MdB):
-            self.log_.error('The first argument must be a MdB object')    
+            self.log_.error('The first argument must be a MdB object')
         self.MdB = MdB
         if not self.MdB.connected:
             self.MdB.connect_dB()
@@ -389,6 +474,7 @@ class writeTab(object):
         self._dic = {}
         self.selectedN = None
         self.do_update_status = do_update_status
+        self.status_mode = status_mode
         self.RecDic = {'O_2R': pn.RecAtom('O', 2),
                        'N_2R': pn.RecAtom('N', 2)}
         self.host = os.getenv('HOST')
@@ -397,6 +483,38 @@ class writeTab(object):
         if self.host is None:
             self.host = 'localhost'
         self.OK_with_wrong = OK_with_wrong
+        self.lines = None
+        self._init_static_dB_info()
+
+    def _init_static_dB_info(self):
+        """
+        Fetch once the information that does not change from one model to the next:
+        the lines table and the parsed column lists of the abion/teion/temis tables.
+        """
+        if not self.MdB.connected:
+            return
+        self.lines, N_lines = self.MdB.select_dB(select_='id, lambda, label, name',
+                                                 from_=self.lines_table,
+                                                 limit_=None, format_='numpy',
+                                                 dtype_=[('id', 'U20'), ('lambda', '<f8'),
+                                                         ('label', 'U15'), ('name', 'U40')])
+        # (field, elem, ion, integ) for every ionic column of the abion table
+        self.abion_cols = []
+        if 'abion_table' in self.OVN_dic:
+            for abion_field in self.MdB.get_fields(from_ = self.OVN_dic['abion_table']):
+                if (abion_field != 'N') and (abion_field != 'ref'):
+                    ab, elem_long, integ, ion = abion_field.split('_')
+                    ion = int(ion)
+                    elem = None
+                    for sym, elem_long_dic in SYM2ELEM.items():
+                        if elem_long_dic.upper() == elem_long:
+                            elem = sym
+                    if elem is not None:
+                        self.abion_cols.append((abion_field, elem, ion, integ))
+        if 'temis_table' in self.OVN_dic:
+            self.temis_fields = set(self.MdB.get_fields(from_ = self.OVN_dic['temis_table']))
+        else:
+            self.temis_fields = set()
         
     def insert_in_dic(self, key, value):
         
@@ -414,25 +532,31 @@ class writeTab(object):
                 self.log_.warn('Not a valid field {0}'.format(key), calling='insert_in_dic')
     
     def update_status(self, status):
-        
+
         if not self.do_update_status:
             return
         if status in status_dic and self.selectedN is not None:
-            command = 'UPDATE {0} SET `status`={1} WHERE N = {2}'.format(self.pending_table, 
-                                                                         status_dic[status], self.selectedN)   
-            self.MdB.exec_dB(command, commit=True)
+            command = 'UPDATE {0} SET `status`={1} WHERE N = {2}'.format(self.pending_table,
+                                                                         status_dic[status], self.selectedN)
+            if self.status_mode == 'batched':
+                commit = (status_dic[status] == status_dic['Master table updated'])
+            else:
+                commit = True
+            self.MdB.exec_dB(command, commit=commit)
         else:
             self.log_.error('Unknown status "{0}"'.format(status))
 
     def read_pending(self, N_pending):
-        
+
         #N_pending = int(pc.sextract(self.CloudyModel.comments,'M3db pending number','*')[0])
         self.selectedN = N_pending
+        # reset values accumulated for the previous model, the same writeTab is reused
+        self._dic = {}
         if not self.MdB.connected:
             self.log_.error('Not connected')
             return None
-        
-        res, Nres = self.MdB.select_dB(select_='*', from_=self.pending_table, 
+
+        res, Nres = self.MdB.select_dB(select_='*', from_=self.pending_table,
                                        where_='N = {0}'.format(N_pending), commit=True)
         self.update_status('Read_pending2')
         self.pending = res[0]
@@ -442,8 +566,11 @@ class writeTab(object):
             name = self.pending['file']
         self.update_status('Read model')
         try:
-            self.CloudyModel = pc.CloudyModel('{0}/{1}/{2}'.format(self.models_dir, self.pending['dir'], name), 
-                                              read_cont=True, list_elem = LIST_ALL_ELEM)
+            # OVN_dic['list_elem'] may restrict the elements read from the .ele_X files
+            # (default: all of them, as needed by the standard abion/teion tables)
+            self.CloudyModel = pc.CloudyModel('{0}/{1}/{2}'.format(self.models_dir, self.pending['dir'], name),
+                                              read_cont=True,
+                                              list_elem = self.OVN_dic.get('list_elem', LIST_ALL_ELEM))
             if not self.CloudyModel.aborted:
                 self.update_status('Model read') #13
                 self.log_.debug('Model read', calling='read_model')
@@ -583,10 +710,7 @@ class writeTab(object):
         
         if self.CloudyModel.n_zones > 1:
             # Adding some recombination lines from PyNeb
-            self.lines, N_lines = self.MdB.select_dB(select_='id, lambda, label, name', from_=self.OVN_dic['lines_table'], 
-                                                     limit_=None, format_='numpy', 
-                                                     dtype_=[('id', 'U20'), ('lambda', '<f8'), 
-                                                             ('label', 'U15'), ('name', 'U40')])
+            # (self.lines is read once from the lines table in _init_static_dB_info)
             for line in self.lines:
                 label = line['label']
                 if label[-2:] == 'PN' and label not in self.CloudyModel.emis_labels:
@@ -658,97 +782,54 @@ class writeTab(object):
         if add2dic is not None:
             for key in add2dic:
                 self.insert_in_dic(key, add2dic[key])
-        
-        fields_str = '`datetime`, `host`, '
-        values_str = "now(), '{}', ".format(self.host)
-        
+
+        row = {'datetime': datetime.datetime.now(), 'host': self.host}
         for key in self._dic:
             if self._dic[key] is not None:
                 if key in self.fields:
-                    fields_str += '`{0}`, '.format(key)
-                    if isinstance(self._dic[key], str):
-                        values_str += "'{0}', ".format(self._dic[key])
-                    else:
-                        values_str += "{0}, ".format(self._dic[key])
+                    row[key] = _native(self._dic[key])
                 else:
                     self.log_.warn('Unknown field {0} in table {1}'.format(key, self.table))
-        self.log_.debug('values str OK', calling='insert_model')
-        fields_str = fields_str[:-2]
-        values_str = values_str[:-2]
-        self.log_.debug('definning comand', calling='insert_model')
-        command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.table, fields_str, values_str)
-        self.log_.debug('Command defined: {}'.format(command), calling='insert_model')
-        self.MdB.exec_dB(command)
+        self.log_.debug('row OK', calling='insert_model')
+        self.MdB.exec_dB(self.MdB.get_table(self.table).insert().values(**row))
         self.log_.debug('exec_dB OK', calling='insert_model')
-        res, N = self.MdB.select_dB(select_='last_insert_id()', from_=self.table)
-        self.log_.debug('last inserted OK', calling='insert_model')
-        self.last_N = res[0]['last_insert_id()']
+        self.last_N = self.MdB.last_rowid
         self.log_.message('Model sent to {0} with N={1}'.format(self.table, self.last_N))
         self.update_status('Model inserted') #14
-        # ToDo : Loosing a lot of time in the following, check why
         if self.CloudyModel.n_zones > 1:
-            ab_fields_str = '`N`, `ref`, '
-            t_fields_str = '`N`, `ref`, '
-            values_ab_str = "{0}, '{1}', ".format(self.last_N, self._dic['ref'])
-            values_te_str = "{0}, '{1}', ".format(self.last_N, self._dic['ref'])        
-            abion_fields = self.MdB.get_fields(from_ = self.OVN_dic['abion_table'])
-            for abion_field in abion_fields:
-                if (abion_field != 'N') and (abion_field != 'ref'):
-                    ab,elem_long, integ, ion = abion_field.split('_')
-                    ion = int(ion)
-                    elem = None
-                    for sym, elem_long_dic in SYM2ELEM.items():
-                        if elem_long_dic.upper() == elem_long:
-                            elem = sym
-                    if elem is not None:
-                        if self.CloudyModel.is_valid_ion(elem, ion):
-                            ab_fields_str += '`{0}`, '.format(abion_field)
-                            t_fields_str += '`T_{0}`, '.format(abion_field[2::])
-                            if integ == 'vol':
-                                values_ab_str += '{0}, '.format(self.CloudyModel.get_ab_ion_vol_ne(elem, ion))
-                                t_ion = self.CloudyModel.get_T0_ion_vol_ne(elem, ion)
-                                if np.isfinite(t_ion):
-                                    values_te_str += '{0}, '.format(t_ion)
-                                else:
-                                    values_te_str += '-40, '
-                            elif integ == 'rad':
-                                values_ab_str += '{0}, '.format(self.CloudyModel.get_ab_ion_rad_ne(elem, ion))
-                                t_ion = self.CloudyModel.get_T0_ion_rad_ne(elem, ion)
-                                if np.isfinite(t_ion):
-                                    values_te_str += '{0}, '.format(t_ion)     
-                                else:
-                                    values_te_str += '-40, '
-            ab_fields_str = ab_fields_str[:-2]
-            t_fields_str = t_fields_str[:-2]
-            values_ab_str = values_ab_str[:-2]
-            command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.OVN_dic['abion_table'], ab_fields_str, values_ab_str)
-            self.MdB.exec_dB(command)
-            self.update_status('Abion inserted') #15
-            values_te_str = values_te_str[:-2]
-            command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.OVN_dic['teion_table'], t_fields_str, values_te_str)
-            self.MdB.exec_dB(command)
-            self.update_status('Teion inserted') #16
-          
-         
-        if self.CloudyModel.n_zones > 1:
-            fields_str = '`N`, `ref`,'
-            values_tem_str = "{0}, '{1}',".format(self.last_N,  self._dic['ref'])
-            for clabel in self.CloudyModel.emis_labels:
-                try:
-                    fields_str += '`T_{0}`, '.format(clabel)
-                    t_emis = self.CloudyModel.get_T0_emis(clabel)
-                    if np.isfinite(t_emis):
-                        values_tem_str += '{0}, '.format(t_emis)
+            ab_row = {'N': self.last_N, 'ref': self._dic['ref']}
+            te_row = {'N': self.last_N, 'ref': self._dic['ref']}
+            for abion_field, elem, ion, integ in self.abion_cols:
+                if self.CloudyModel.is_valid_ion(elem, ion):
+                    if integ == 'vol':
+                        ab_ion = self.CloudyModel.get_ab_ion_vol_ne(elem, ion)
+                        t_ion = self.CloudyModel.get_T0_ion_vol_ne(elem, ion)
+                    elif integ == 'rad':
+                        ab_ion = self.CloudyModel.get_ab_ion_rad_ne(elem, ion)
+                        t_ion = self.CloudyModel.get_T0_ion_rad_ne(elem, ion)
                     else:
-                        values_tem_str += '0.0,'
+                        continue
+                    ab_row[abion_field] = _native(ab_ion)
+                    te_row['T_{0}'.format(abion_field[2::])] = _native(t_ion) if np.isfinite(t_ion) else -40
+            self.MdB.exec_dB(self.MdB.get_table(self.OVN_dic['abion_table']).insert().values(**ab_row))
+            self.update_status('Abion inserted') #15
+            self.MdB.exec_dB(self.MdB.get_table(self.OVN_dic['teion_table']).insert().values(**te_row))
+            self.update_status('Teion inserted') #16
+
+        if self.CloudyModel.n_zones > 1:
+            tem_row = {'N': self.last_N, 'ref': self._dic['ref']}
+            for clabel in self.CloudyModel.emis_labels:
+                key = 'T_{0}'.format(clabel)
+                if key not in self.temis_fields:
+                    continue
+                try:
+                    t_emis = self.CloudyModel.get_T0_emis(clabel)
+                    tem_row[key] = _native(t_emis) if np.isfinite(t_emis) else 0.0
                 except:
                     pass
-            fields_str = fields_str[:-2]
-            values_tem_str = values_tem_str[:-2]
-            command = 'INSERT INTO {0} ({1}) VALUES ({2});'.format(self.OVN_dic['temis_table'], fields_str, values_tem_str)
-            self.MdB.exec_dB(command)
+            self.MdB.exec_dB(self.MdB.get_table(self.OVN_dic['temis_table']).insert().values(**tem_row))
         self.update_status('Temis inserted') #17
-                        
+
         self.update_status('Master table updated')
             
     def clean_files(self):
@@ -832,68 +913,59 @@ class runCloudy(object):
         user = os.getenv('USER')
         print(table, self.proc_name, user, host)
         command = 'INSERT INTO {0} (`proc_name`, `datetime`, `user`, `host`) VALUES ("{1:s}", now(), "{2:s}", "{3:s}");'.format(table, self.proc_name, user, host)
-        self.MdB.exec_dB(command)
-        res, N = self.MdB.select_dB(select_='last_insert_id()', from_=table)
-        self.procID = res[0]['last_insert_id()']
+        self.MdB.exec_dB(command, commit=True)
+        self.procID = self.MdB.last_rowid
         
     def select_pending(self):
-
+        """
+        Atomically claim one pending model (status 0 -> 1) and store its N in
+        self.selectedN (None if the queue is empty).
+        The claim is a single UPDATE ... ORDER BY N LIMIT 1 statement, so several
+        workers on several machines can never claim the same model.
+        """
         if not self.MdB.connected:
             self.log_.error('Not connected')
             self.selectedN = None
             return
-        
+
         if self.procID is None:
             self.log_.error('Not connected')
-        
+
+        priority_where = ''
         if self.check_priority:
             try:
-                res, N = self.MdB.select_dB(select_ = 'distinct(priority)', from_ = self.pending_table, 
-                                           where_ = 'status = 0', limit_=None, commit=True)
+                res, N = self.MdB.select_dB(select_ = 'priority, count(*) as Nrows', from_ = self.pending_table,
+                                            where_ = 'status = 0', group_ = 'priority', limit_=None,
+                                            format_='tuple', commit=True)
             except:
-                self.log_.error('Error looking for status=0 models in {0} - 1'.format(self.pending_table), 
+                self.log_.error('Error looking for status=0 models in {0} - 1'.format(self.pending_table),
                               calling='runCloudy.select_pending')
                 self.selectedN = None
                 return
-        else:
-            N = 1
-        if N == 1:
-            try:
-                res, N = self.MdB.select_dB(select_ = 'N', from_ = self.pending_table, 
-                                       where_ = 'status = 0', 
-                                       limit_=1, commit=True)
-                self.selectedN = res[0]['N']
-            except:
-                self.log_.warn('Error looking for status=0 models in {0} - 2'.format(self.pending_table), 
-                              calling='runCloudy.select_pending')
-                self.selectedN = None
-                return
-        else:
-            try:
-                res, N = self.MdB.select_dB(select_ = 'N, priority', from_ = self.pending_table, 
-                                           where_ = 'status = 0', limit_=None, format_='numpy', commit=True)
-            except:
-                self.log_.error('Error looking for status=0 models in {0} - 3'.format(self.pending_table), 
-                              calling='runCloudy.select_pending')
-                self.selectedN = None
-                return
-            if N == 0:
-                self.selectedN = None
-                return
-            else:
-                self.selectedN = res['N'][select_from_priorities(res['priority'])]
-        
-        command = 'UPDATE {0} SET `procID`={1}, `status`=1,`date_running`=now() WHERE N = {2} AND status=0'.format(self.pending_table, 
-                                                                             self.procID, self.selectedN)   
-        self.MdB.exec_dB(command, commit=True)
+            if N > 1:
+                # reproduce the row-level weighting of the previous implementation:
+                # each pending row weights 4**(Pmax - priority)
+                priorities = np.repeat([r[0] for r in res], [r[1] for r in res])
+                priority = priorities[select_from_priorities(priorities)]
+                priority_where = ' AND priority = {0}'.format(priority)
 
-        currentID, N = self.MdB.select_dB(select_='procID', from_=self.pending_table, 
-                                          where_='N = {0}'.format(self.selectedN), 
-                                          format_='numpy')
-        if currentID['procID'][0] != self.procID:
-            self.log_.warn('currentID != self.procID : {0} != {1}'.format(currentID['procID'][0], self.procID))
+        claim_command = ('UPDATE {0} SET N = LAST_INSERT_ID(N), `procID`={1}, `status`=1, '
+                         '`date_running`=now() WHERE status = 0{2} ORDER BY N LIMIT 1')
+        res, N = self.MdB.exec_dB(claim_command.format(self.pending_table, self.procID, priority_where),
+                                  commit=True)
+        if N == 0 and priority_where != '':
+            # the chosen priority was drained in the meantime, take any model
+            res, N = self.MdB.exec_dB(claim_command.format(self.pending_table, self.procID, ''),
+                                      commit=True)
+        if N == 0:
             self.selectedN = None
-        
+            return
+        selectedN = self.MdB.last_rowid
+        if not selectedN:
+            res, NN = self.MdB.exec_dB('SELECT LAST_INSERT_ID()', format_='tuple')
+            selectedN = res[0][0]
+        self.selectedN = selectedN
+
     def update_status(self, status):
         
         command = 'UPDATE {0} SET `status`={1} WHERE N = {2}'.format(self.pending_table, 
@@ -1074,8 +1146,8 @@ def print_input(N, MdB= None, OVN_dic=None, dir='./', parameters=None, read_tab=
 class runCloudyByThread(threading.Thread):
 
     def __init__(self, OVN_dic, models_dir, norun=False, noinput=False, clean=True, OK_with_wrong=False,
-                 check_priority=True, sleep_time=10., verbose=False):
-        
+                 check_priority=True, sleep_time=10., max_sleep_time=None, status_mode='all', verbose=False):
+
         self.log_ = pc.log_
         threading.Thread.__init__(self)
         self._stop = threading.Event()
@@ -1084,25 +1156,33 @@ class runCloudyByThread(threading.Thread):
         self.noinput = noinput
         self.MdB = None
         self.sleep_time = sleep_time
+        self.max_sleep_time = max_sleep_time
+        self.status_mode = status_mode
         self.setDaemon(True)
         self.OVN_dic = OVN_dic
         self.calling = 'runCloudyByThread'
         self.clean = clean
         self.OK_with_wrong = OK_with_wrong
         self.check_priority = check_priority
-    
+
     def run(self):
-        
+
         self.MdB = pc.MdB(self.OVN_dic)
         tname = threading.currentThread().getName()
-        rC = runCloudy(self.MdB, OVN_dic = self.OVN_dic, models_dir = self.models_dir, proc_name=tname, 
+        rC = runCloudy(self.MdB, OVN_dic = self.OVN_dic, models_dir = self.models_dir, proc_name=tname,
                        check_priority=self.check_priority)
-        
+        # a single writeTab is reused for all the models of this thread, so that the
+        # database schema and the lines table are only read once.
+        wT = writeTab(self.MdB, OVN_dic = self.OVN_dic, models_dir = self.models_dir,
+                      OK_with_wrong=self.OK_with_wrong, status_mode=self.status_mode)
+        current_sleep = self.sleep_time
+
         while not self.stopped():
             rC.init_CloudyInput()
             rC.select_pending()
-            self.selectedN = rC.selectedN 
+            self.selectedN = rC.selectedN
             if self.selectedN is not None:
+                current_sleep = self.sleep_time
                 rC.update_status('Pending model selected')
                 rC.fill_CloudyInput(noinput = self.noinput)
                 rC.update_status('Cloudy start')
@@ -1116,8 +1196,6 @@ class runCloudyByThread(threading.Thread):
                     rC.update_status('Cloudy failed')
                     read_it = False
                 if read_it:
-                    wT = writeTab(self.MdB, OVN_dic = self.OVN_dic, models_dir = self.models_dir,
-                                  OK_with_wrong=self.OK_with_wrong)
                     wT.read_pending(self.selectedN)
                     insert_it = wT.read_model()
                 else:
@@ -1144,11 +1222,14 @@ class runCloudyByThread(threading.Thread):
                                 master_N.append(wT.last_N)
                     if self.clean:
                         wT.clean_files()
-                    self.log_.message('model {0} finished, inserted into {1}.'.format(self.selectedN, master_N), 
+                    self.log_.message('model {0} finished, inserted into {1}.'.format(self.selectedN, master_N),
                                  calling=self.calling)
             else:
-                time.sleep(self.sleep_time)
-            
+                time.sleep(current_sleep)
+                if self.max_sleep_time is not None:
+                    # exponential backoff while the pending queue is empty
+                    current_sleep = min(current_sleep * 2, self.max_sleep_time)
+
         self.MdB.close_dB()
 
     def stop(self):
@@ -1371,7 +1452,14 @@ class ObsfromMdB(object):
 class manage3MdB(object):
     
     def __init__(self, OVN_dic, models_dir='/DATA/MdB', Nprocs=pn.config.Nprocs,
-                 clean=True, OK_with_wrong=False, check_priority=True, sleep_time=10.):
+                 clean=True, OK_with_wrong=False, check_priority=True, sleep_time=10.,
+                 max_sleep_time=None, status_mode='all'):
+        """
+        keywords:
+            - max_sleep_time (None by default): if set, the sleep time between two polls
+                of an empty pending table doubles at each empty poll, up to this value.
+            - status_mode ('all' by default): see writeTab.
+        """
         self.OVN_dic = OVN_dic
         self.models_dir = models_dir
         self.Nprocs = Nprocs
@@ -1379,16 +1467,20 @@ class manage3MdB(object):
         self.OK_with_wrong = OK_with_wrong
         self.check_priority = check_priority
         self.sleep_time = sleep_time
-                
+        self.max_sleep_time = max_sleep_time
+        self.status_mode = status_mode
+
     def start(self, norun=False, noinput=False, clean=True):
         self.all_threads = []
         for i in range(self.Nprocs):
-            self.all_threads.append(runCloudyByThread(self.OVN_dic, self.models_dir, 
+            self.all_threads.append(runCloudyByThread(self.OVN_dic, self.models_dir,
                                                       norun=norun, noinput=noinput,
                                                       clean=self.clean,
-                                                      OK_with_wrong=self.OK_with_wrong, 
+                                                      OK_with_wrong=self.OK_with_wrong,
                                                       check_priority=self.check_priority,
-                                                      sleep_time=self.sleep_time))
+                                                      sleep_time=self.sleep_time,
+                                                      max_sleep_time=self.max_sleep_time,
+                                                      status_mode=self.status_mode))
         for t in self.all_threads:
             t.start()
             

@@ -721,9 +721,64 @@ class CloudyModel(object):
             self.aborted = False
         return True
 
+    def _read_outputs_pandas(self, file_, delimiter='\t', comments=';', names=True,
+                             usecols=None, case_sensitive=True, skip_header=0):
+        """
+        Fast reader for the tabulated Cloudy output files, equivalent to the
+        np.genfromtxt call of read_outputs but using pandas.read_csv (5-10x faster).
+        Returns None (or raises) when the file cannot be handled; the caller then
+        falls back to np.genfromtxt.
+        """
+        import pandas as pd
+        from numpy.lib import _iotools
+        comment = comments if (isinstance(comments, str) and len(comments) == 1) else None
+        if names is True:
+            df = pd.read_csv(file_, sep=delimiter, header=skip_header, usecols=usecols,
+                             comment=comment, engine='c', float_precision='round_trip')
+            raw_names = [str(name) for name in df.columns]
+            validator = _iotools.NameValidator(case_sensitive=case_sensitive)
+            col_names = validator(raw_names)
+        elif isinstance(names, str):
+            col_names = [name.strip() for name in names.split(',')]
+            df = pd.read_csv(file_, sep=delimiter, header=None, usecols=usecols,
+                             comment=comment, skiprows=skip_header, engine='c',
+                             float_precision='round_trip')
+            if len(df.columns) != len(col_names):
+                return None
+        else:
+            return None
+        if len(set(col_names)) != len(col_names):
+            return None
+        if len(df) == 0:
+            # empty file: reproduce the genfromtxt behavior (IndexError -> warn, None)
+            raise IndexError
+        data = df.to_numpy(dtype='f8')
+        res = np.empty(data.shape[0], dtype=[(name, 'f8') for name in col_names])
+        for i, name in enumerate(col_names):
+            res[name] = data[:, i]
+        if data.shape[0] == 1:
+            # genfromtxt returns a 0-d structured array for single-row files
+            res = res.reshape(())
+        return res
+
     def read_outputs(self, extension, delimiter='\t', comments=';', names=True, **kwargs):
         file_ = self.model_name + '.' + extension
         if os.path.exists(file_):
+            if pc.config.INSTALLED['pandas']:
+                try:
+                    res = self._read_outputs_pandas(file_, delimiter=delimiter, comments=comments,
+                                                    names=names, **kwargs)
+                    if res is not None:
+                        self.log_.message(file_ + ' read', calling=self.calling)
+                        return res
+                except IndexError:
+                    self.log_.warn(file_ + ' empty.', calling=self.calling)
+                    return None
+                except TypeError:
+                    # unsupported keyword for the fast reader: use genfromtxt
+                    pass
+                except Exception:
+                    pass
             try:
                 res = np.genfromtxt(file_, delimiter=delimiter, comments=comments, names=names, **kwargs) # some arguments can be sent here
                 self.log_.message(file_ + ' read', calling=self.calling)
@@ -1219,10 +1274,22 @@ class CloudyModel(object):
             the indice of the line in the emis liste
         """
         if type(ref) is str or type(ref) is np.str_:
-            if ref in self.emis_labels_13:
-                to_return = np.argwhere(self.emis_labels_13 == ref)[0][0]
-            elif ref in self.emis_labels_17:
-                to_return = np.argwhere(self.emis_labels_17 == ref)[0][0]
+            # label -> indice lookups use a dict, rebuilt whenever labels are added
+            # (e.g. blends appended to emis_labels after the model has been read)
+            cache = getattr(self, '_emis_index_cache', None)
+            if cache is None or cache[0] != len(self.emis_labels):
+                index = {}
+                # emis_labels_13 first: it has precedence, as in the original lookup
+                for i, label in enumerate(np.asarray(self.emis_labels_13)):
+                    if label != '' and label not in index:
+                        index[label] = i
+                for i, label in enumerate(np.asarray(self.emis_labels_17)):
+                    if label != '' and label not in index:
+                        index[label] = i
+                cache = (len(self.emis_labels), index)
+                self._emis_index_cache = cache
+            if ref in cache[1]:
+                to_return = cache[1][ref]
             else:
                 self.log_.warn(ref + ' is not a correct line reference - 1', calling = self.calling)
                 to_return = None

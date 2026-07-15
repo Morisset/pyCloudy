@@ -8,19 +8,23 @@ from pyCloudy.utils.init import LIST_ELEM
 from pyCloudy.utils.logging import my_logging
 if pc.config.INSTALLED['pandas']:
     import pandas as pd
-    import pandas.io.sql as psql
-from io import StringIO   
+if pc.config.INSTALLED['sqlalchemy']:
+    import sqlalchemy
+    from sqlalchemy import create_engine, text, inspect as sqla_inspect, MetaData, Table
+    from sqlalchemy.engine import URL
+from io import StringIO
 
 def _sql2numpy(sqltype):
+    sqltype = sqltype.lower()
     if sqltype == 'float':
         return 'f4'
-    if sqltype in ['double', 'real']:
+    if sqltype[:6] == 'double' or sqltype == 'real':
         return 'f8'
     if sqltype[:7] == 'tinyint':
         return 'i1'
-    if sqltype[:5] == 'short' or sqltype[:4] == 'int2':
+    if sqltype[:5] == 'short' or sqltype[:4] == 'int2' or sqltype[:8] == 'smallint':
         return 'i2'
-    if sqltype[:4] == 'int(' or sqltype[:4] == 'int4':
+    if sqltype[:4] == 'int(' or sqltype[:4] == 'int4' or sqltype[:7] == 'integer' or sqltype == 'int':
         return 'i4'
     if sqltype[:4] == 'int8' or sqltype[:6] == 'bigint' or sqltype[:4] == 'long':
         return 'i8'
@@ -31,34 +35,30 @@ def _sql2numpy(sqltype):
     return 'S50'
 
 class MdB(object):
-    
+
     MdBlog_ = my_logging()
-    
-    def __init__(self, OVN_dic = None, base_name = 'OVN',tmp_base_name = 'OVN_tmp', 
-                 user_name = 'OVN_user', user_passwd = 'getenv', 
+
+    def __init__(self, OVN_dic = None, base_name = 'OVN',tmp_base_name = 'OVN_tmp',
+                 user_name = 'OVN_user', user_passwd = 'getenv',
                  host = 'localhost', unix_socket = '/var/mysql/mysql.sock', port = 3306,
                  connect = True, master_table='tab'):
         """
-        This is the package to deal with MySQL OVN database. 
-        You must have MySQL or PyMySQL library installed. The latest is easier to get working, as it comes with its own
-        mysql client.
-         
-        Latter, we will also use the ODBC connector. Install the connector from MySQl: http://dev.mysql.com/downloads/connector/odbc/
-        and then use pyodbc with:
-        cnxn = pyodbc.connect('DRIVER={MySQL ODBC 5.2 Driver};SERVER=127.0.0.1;DATABASE=OVN;UID=OVN_user;PWD=oiii5007;SOCKET=/var/mysql/mysql.sock')
-        
+        This is the package to deal with the MySQL/MariaDB OVN database.
+        It is built on SQLAlchemy Core; the actual DBAPI driver is selected with
+        pc.config.db_connector ('PyMySQL' or 'MySQL' for mysqlclient).
         """
-
 
         self.log_ = self.__class__.MdBlog_
         self.calling = 'MdB'
-        if pc.config.db_connector =='MySQL' and pc.config.INSTALLED['MySQL']:
-            import MySQLdb as SQLdb
-        elif pc.config.db_connector =='PyMySQL' and pc.config.INSTALLED['PyMySQL']:
-            import pymysql as SQLdb
+        if not pc.config.INSTALLED['sqlalchemy']:
+            self.log_.error('SQLAlchemy is needed to connect to the database. Install it with e.g. "pip install sqlalchemy"',
+                            calling='MdB')
+        if pc.config.db_connector == 'MySQL' and pc.config.INSTALLED['MySQL']:
+            self.drivername = 'mysql+mysqldb'
+        elif pc.config.db_connector == 'PyMySQL' and pc.config.INSTALLED['PyMySQL']:
+            self.drivername = 'mysql+pymysql'
         else:
             self.log_.error('No SQL connector available', calling='MdB')
-        self.SQLdb = SQLdb
         if OVN_dic is not None:
             if 'base_name' in OVN_dic:
                 base_name = OVN_dic['base_name']
@@ -99,13 +99,17 @@ class MdB(object):
         self.host = host
         self.unix_socket = unix_socket
         self.table = master_table
-        self._dB = None
-        self._cursor = None
-        self._cursor_tuple = None
+        self._engine = None
+        self._conn = None
+        self._fields_cache = {}
+        self._cols_cache = {}
+        self._table_cache = {}
+        self._metadata = None
+        self.last_rowid = None
         self.connected = False
         if connect:
             self.connect_dB()
-            
+
     def __del__(self):
         if self.connected:
             self.close_dB()
@@ -114,60 +118,84 @@ class MdB(object):
         if self.connected:
             self.log_.warn('Already connected', calling = self.calling)
             return None
-        try:            
-            if self.unix_socket is None or sys.version_info[0] >= 3:
-                self._dB = self.SQLdb.connect(host = self.host, user = self.user_name, passwd = self.user_passwd, 
-                                        db = self.base_name, port = self.port)
-            else:
-                self._dB = self.SQLdb.connect(host = self.host, user = self.user_name, passwd = self.user_passwd, 
-                                        db = self.base_name, port = self.port, unix_socket = self.unix_socket)
+        try:
+            url = URL.create(drivername = self.drivername,
+                             username = self.user_name,
+                             password = self.user_passwd,
+                             host = self.host,
+                             port = self.port,
+                             database = self.base_name)
+            # pool_pre_ping revalidates connections so that long Cloudy runs do not
+            # die on "MySQL server has gone away"
+            self._engine = create_engine(url, pool_pre_ping=True, pool_recycle=3600)
+            self._conn = self._engine.connect()
+            self._metadata = MetaData()
             self.connected = True
             self.log_.message('Connected to {0}'.format(self.host), calling = self.calling)
-        except:
-            self.log_.warn('Connection to {0} failed'.format(self.host), calling = self.calling)
-        try:
-            self._cursor = self._dB.cursor(self.SQLdb.cursors.DictCursor)
-            self._cursor_tuple = self._dB.cursor(self.SQLdb.cursors.Cursor)
-        except:
-            self.log_.warn('Cursor to {0} failed'.format(self.host), calling = self.calling)
-            
+        except Exception as ex:
+            self.log_.warn('Connection to {0} failed with error <{1}>'.format(self.host, ex), calling = self.calling)
+
+    def use_engine(self, engine):
+        """
+        Connect this MdB through an already-built SQLAlchemy engine
+        (used for tests, e.g. with an in-memory SQLite engine).
+        """
+        self._engine = engine
+        self._conn = engine.connect()
+        self._metadata = MetaData()
+        self.connected = True
+
     def use_dB(self, base_name = None):
         if not self.connected:
-            pc.log_.error('Not connected to the serevr')
-            return None        
+            pc.log_.error('Not connected to the server')
+            return None
         if base_name is None:
-            self._dB.select_db(self.base_name)
-        else:
-            self._dB.select_db(base_name)
-            
+            base_name = self.base_name
+        self._conn.exec_driver_sql('USE {0}'.format(base_name))
+
     def use_dB_tmp(self, tmp_base_name = None):
         if not self.connected:
             pc.log_.error('Not connected to the server')
             return None
         if tmp_base_name is None:
-            self._dB.select_db(self.tmp_base_name)
-        else:
-            self._dB.select_db(tmp_base_name)
-        
+            tmp_base_name = self.tmp_base_name
+        self._conn.exec_driver_sql('USE {0}'.format(tmp_base_name))
+
     def show_tables(self):
         print(self.exec_dB('show tables'))
-        
+
     def share_dB_cursor(self, m):
-        self._dB = m._dB
-        self._cursor = m._cursor
-        self._cursor_tuple = m._cursor_tuple
+        self._engine = m._engine
+        self._conn = m._conn
+        self._metadata = m._metadata
 
     def close_dB(self):
         if self.connected:
-            self._cursor.close()
-            self._cursor_tuple.close()
-            self._dB.close()
+            try:
+                self._conn.close()
+                self._engine.dispose()
+            except Exception as ex:
+                self.log_.warn('Error while disconnecting: <{0}>'.format(ex), calling = self.calling)
             self.connected = False
             self.log_.message('Disconnected', calling = self.calling)
         else:
             self.log_.warn('Not connected', calling = self.calling)
 
-    def exec_dB(self, command, format_ = 'dict', return_descr=False, commit=False):
+    def exec_dB(self, command, format_ = 'dict', return_descr=False, commit=False, params=None):
+        """
+        Execute an SQL command and return (result, N).
+
+        Parameters:
+            - command: a raw SQL string (executed verbatim when params is None),
+                       a SQL string with named binds (:name) when params is given,
+                       or any SQLAlchemy executable object (e.g. Table.insert()).
+            - params: dict of bound parameters, or a list of dicts to trigger
+                      an executemany (bulk) execution.
+            - commit: if True, commit after the execution.
+
+        The auto-increment id generated by the last INSERT (when available) is
+        stored in self.last_rowid.
+        """
         if format_ not in ('dict', 'tuple', 'numpy', 'dict2', 'pandas', 'rec'):
             self.log_.error('format"{0}" not recognized'.format(format_), calling = self.calling)
         if not self.connected:
@@ -176,43 +204,89 @@ class MdB(object):
         self.log_.message('Command sent: {0}'.format(command), calling = self.calling)
         if format_ == 'pandas':
             if pc.config.INSTALLED['pandas']:
-                res = psql.frame_query(command, con=self._dB)
+                res = pd.read_sql(text(command) if isinstance(command, str) else command, con=self._conn)
                 return res, len(res)
             else:
                 pc.log_.error('pandas is not available, use another format', calling=self.calling)
-        if format_[:4] == 'dict' or format_ == 'rec':
-            cursor = self._cursor
-        else:
-            cursor = self._cursor_tuple
+        res = None
+        N = 0
         try:
-            N = cursor.execute(command)
-        except:
-            self.log_.error('Error on executing {0}'.format(command), calling = self.calling)
+            if not isinstance(command, str):
+                if params is None:
+                    result = self._conn.execute(command)
+                else:
+                    result = self._conn.execute(command, params)
+            elif params is None:
+                result = self._conn.exec_driver_sql(command)
+            else:
+                result = self._conn.execute(text(command), params)
+        except Exception as ex:
+            try:
+                self._conn.rollback()
+            except Exception:
+                pass
+            self.log_.error('Error <{1}> on executing {0}'.format(command, ex), calling = self.calling)
+            return res, N
+        try:
+            self.last_rowid = result.lastrowid
+        except Exception:
+            self.last_rowid = None
+        if result.returns_rows:
+            if format_[:4] == 'dict' or format_ == 'rec':
+                res = [dict(r) for r in result.mappings().all()]
+            else:
+                res = [tuple(r) for r in result.fetchall()]
+            N = len(res)
+        else:
+            res = ()
+            N = result.rowcount
         if commit:
             try:
-                self._dB.commit()
-            except:
-                self.log_.error('Error on commiting {0}'.format(command), calling = self.calling)
-        try:
-            res = cursor.fetchall()
-        except:
-            self.log_.error('Error on reading result of {0}'.format(command), calling = self.calling)
+                self._dB_commit()
+            except Exception as ex:
+                self.log_.error('Error <{1}> on commiting {0}'.format(command, ex), calling = self.calling)
         if format_ == 'rec':
             res = np.rec.fromrecords([list(e.values()) for e in res], names = list(res[0].keys()))
         if return_descr:
-            return res, N, cursor.description
+            return res, N, result.keys()
         else:
             return res, N
-            
-    def select_dB(self, select_ = '*', from_ = None, where_ = None, order_ = None, group_ = None, 
+
+    def _dB_commit(self):
+        self._conn.commit()
+
+    def commit_dB(self):
+        """
+        Commit the pending transaction on this connection.
+        """
+        if not self.connected:
+            self.log_.error('Not connected to a database', calling = self.calling)
+            return None
+        self._dB_commit()
+
+    def get_table(self, name, refresh=False):
+        """
+        Return the SQLAlchemy reflected Table object for the given table name.
+        Reflection is done once per MdB instance and cached; use refresh=True to re-reflect.
+        """
+        if not self.connected:
+            self.log_.error('Not connected to a database', calling = self.calling)
+            return None
+        name = name.strip()
+        if refresh or name not in self._table_cache:
+            self._table_cache[name] = Table(name, self._metadata, autoload_with=self._engine,
+                                            extend_existing=refresh)
+        return self._table_cache[name]
+
+    def select_dB(self, select_ = '*', from_ = None, where_ = None, order_ = None, group_ = None,
                   limit_ = 1, format_ = 'dict', dtype_ = None, commit=False):
         """
         Usage:
             dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', from_='tab',
-                        where_ = 'ref like "DIG12HR_"', 
-                        limit_ = 100000, 
+                        where_ = 'ref like "DIG12HR_"',
+                        limit_ = 100000,
                         format_='numpy')
-            loglog(dd['L_26']/dd['L_1'], dd['L_21']/dd['L_1'], 'r+')            
+            loglog(dd['L_26']/dd['L_1'], dd['L_21']/dd['L_1'], 'r+')
         """
         if from_ is None:
             from_ = self.table
@@ -239,7 +313,7 @@ class MdB(object):
             this_from = this_from[:-2]
         else:
             this_from = from_
-            
+
         req = 'SELECT {0} FROM {1} '.format(this_select, this_from)
         if where_ is not None:
             req += 'WHERE ({0}) '.format(this_where)
@@ -249,11 +323,11 @@ class MdB(object):
             req += 'ORDER BY {0} '.format(order_)
         if limit_ is not None:
             req += 'LIMIT {0:d}'.format(limit_)
-            
+
         if format_ == 'pandas':
             if not pc.config.INSTALLED['pandas']:
                 pc.log_.error('pandas not installed', calling='MdB.select_dB')
-            res = pd.read_sql(req, con=self._dB)
+            res = pd.read_sql(text(req), con=self._conn)
             N = len(res)
         else:
             res, N = self.exec_dB(req, format_ = format_, commit=commit)
@@ -261,64 +335,76 @@ class MdB(object):
             res = None
         elif format_ == 'numpy':
             if dtype_ is None:
-                dtype_ = self.get_dtype(select_ = select_, from_ = from_) 
+                dtype_ = self.get_dtype(select_ = select_, from_ = from_)
             res = np.fromiter(res, dtype_)
         elif format_ == 'dict2':
             res2 = {}
             for key in res[0]:
                 res2[key] = np.array([r[key] for r in res])
             res = res2
-        return res, N 
-    
+        return res, N
+
     def count_dB(self, from_ = None, where_ = None, commit=False):
         if from_ is None:
             from_ = self.table
         req = 'SELECT count(*) FROM {0}'.format(from_)
         if where_ is not None:
             req += ' WHERE ({0})'.format(where_)
-        res, N = self.exec_dB(req, commit=commit)
-        return res[0]['count(*)']
-    
-    def get_fields(self, from_ = None):
+        res, N = self.exec_dB(req, format_='tuple', commit=commit)
+        return res[0][0]
+
+    def get_fields(self, from_ = None, refresh=False):
+        """
+        Return the sorted list of column names of a table (or comma-separated tables).
+        The schema is only inspected once per MdB instance; use refresh=True to re-inspect.
+        """
         if from_ is None:
             from_ = self.table
         froms = from_.split(',')
         if len(froms) == 1:
-            res, N = self.exec_dB('SHOW COLUMNS FROM {0}'.format(from_))
-            fields = [res[i]['Field'] for i in range(len(res))]
-            fields.sort()
+            key = from_.strip()
+            if refresh or key not in self._fields_cache:
+                fields = [col['Field'] for col in self._get_all_cols(key, refresh=refresh)]
+                fields.sort()
+                self._fields_cache[key] = fields
+            return list(self._fields_cache[key])
         else:
             fields = []
             for this_from in froms:
-                fields.extend(self.get_fields(from_ = this_from))
+                fields.extend(self.get_fields(from_ = this_from, refresh=refresh))
         return fields
-    
+
+    def _get_all_cols(self, table, refresh=False):
+        table = table.strip()
+        if refresh or table not in self._cols_cache:
+            cols = sqla_inspect(self._engine).get_columns(table)
+            self._cols_cache[table] = [{'Field': col['name'], 'Type': str(col['type']).lower()}
+                                       for col in cols]
+        return self._cols_cache[table]
+
     def get_cols(self, select_ = '*', from_ = None):
         if from_ is None:
             from_ = self.table
         froms = from_.split(',')
-        
+
         if len(froms) == 1:
+            all_cols = self._get_all_cols(from_)
             if select_ == '*':
-                res, N = self.exec_dB('SHOW COLUMNS FROM {0}'.format(from_))
+                res = list(all_cols)
             else:
-                req = 'SHOW COLUMNS FROM {0} WHERE'.format(from_)
-                fields = select_.split(',')
-                for field in fields:
-                    req += ' FIELD = "{0}" OR'.format(field.strip())
-                req = req[:-3]
-                res, N = self.exec_dB(req)
+                fields = [field.strip() for field in select_.split(',')]
+                res = [col for col in all_cols if col['Field'] in fields]
         else:
             res = []
             for this_from in froms:
                 res += self.get_cols(select_ = select_, from_ = this_from)
         return res
-            
+
     def get_dtype(self, select_ = '*', from_ = None):
         if from_ is None:
             from_ = self.table
         dtype_list = []
-        if select_ == '*':        
+        if select_ == '*':
             cols = self.get_cols(select_ = select_, from_ = from_)
             for col in cols:
                 name = col['Field']
@@ -339,25 +425,25 @@ class MdB(object):
                 sqltype = col['Type']
                 ntype = _sql2numpy(sqltype)
                 if (name, ntype) not in dtype_list:
-                    dtype_list.append((name, ntype))        
+                    dtype_list.append((name, ntype))
         return np.dtype(dtype_list)
-            
+
     def __repr__(self):
         if self.connected:
             return "<MdB connected to {0.base_name}@{0.host}>".format(self)
         else:
             return "<MdB disconnected from {0.base_name}@{0.host}>".format(self)
-        
+
 class MdB_subproc(object):
     """
     Alternative way, when MySQLdb not available. Still in development.
     """
     MdBlog_ = my_logging()
-    def __init__(self, OVN_dic = None, base_name = 'OVN',tmp_base_name = 'OVN_tmp', 
-                 user_name = 'OVN_user', user_passwd = 'getenv', 
+    def __init__(self, OVN_dic = None, base_name = 'OVN',tmp_base_name = 'OVN_tmp',
+                 user_name = 'OVN_user', user_passwd = 'getenv',
                  host = 'localhost', unix_socket = '/var/mysql/mysql.sock', port = 3306,
                  connect = True, master_table=None):
-        
+
         self.log_ = self.__class__.MdBlog_
         self.calling = 'MdB'
         if OVN_dic is not None:
@@ -397,10 +483,10 @@ class MdB_subproc(object):
 
     def connect_dB(self):
         pass
-    
+
     def close_dB(self):
         pass
-    
+
     def exec_dB(self, command, outfile=None):
         if not self.connected:
             self.log_.error('Not connected to a database', calling = self.calling)
@@ -411,9 +497,9 @@ class MdB_subproc(object):
             stdout=subprocess.PIPE
         else:
             stdout=file(outfile, 'w')
-        proc = subprocess.Popen(["mysql", 
+        proc = subprocess.Popen(["mysql",
                                  "--host={0}".format(self.host),
-                                 "--user={0}".format(self.user_name), 
+                                 "--user={0}".format(self.user_name),
                                  "--password={0}".format(self.user_passwd),
                                  "--port={0}".format(self.port),
                                  "{0}".format(self.base_name)],
@@ -433,10 +519,10 @@ class MdB_subproc(object):
         """
         Usage:
             dd, n = mdb.select_dB(select_ = 'L_1, L_26, L_21', from_='tab,'
-                        where_ = 'ref like "DIG12HR_"', 
-                        limit_ = 100000, 
+                        where_ = 'ref like "DIG12HR_"',
+                        limit_ = 100000,
                         format_='numpy')
-            loglog(dd['L_26']/dd['L_1'], dd['L_21']/dd['L_1'], 'r+')            
+            loglog(dd['L_26']/dd['L_1'], dd['L_21']/dd['L_1'], 'r+')
         """
         if from_ is None:
             from_ = self.table
@@ -450,7 +536,7 @@ class MdB_subproc(object):
         if limit_ is not None:
             req += 'LIMIT {0:d}'.format(limit_)
         res_tmp, N = self.exec_dB(req, outfile=outfile)
-        
+
         if N == 0 or N is None:
             res = None
         else:
@@ -468,6 +554,6 @@ class MdB_subproc(object):
         """
         if outfile is not None:
             return res, N
-            
-            
-    
+
+
+

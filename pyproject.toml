@@ -32,9 +32,10 @@ plot = ["matplotlib"]
 fits = ["astropy"]
 images = ["Pillow"]
 pandas = ["pandas"]
-mysql = ["pymysql"]
+mysql = ["pymysql", "sqlalchemy>=2.0"]
+db = ["pymysql", "sqlalchemy>=2.0"]
 pyneb = ["pyneb"]
-full = ["matplotlib", "astropy", "Pillow", "pandas", "pymysql", "pyneb"]
+full = ["matplotlib", "astropy", "Pillow", "pandas", "pymysql", "sqlalchemy>=2.0", "pyneb"]
 
 [project.urls]
 Homepage = "https://sites.google.com/site/pycloudy/"

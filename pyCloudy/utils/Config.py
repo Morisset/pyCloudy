@@ -67,6 +67,11 @@ class _Config(object):
         except:
             self.INSTALLED['PyMySQL'] = False
         try:
+            import sqlalchemy
+            self.INSTALLED['sqlalchemy'] = True
+        except:
+            self.INSTALLED['sqlalchemy'] = False
+        try:
             import pandas
             self.INSTALLED['pandas'] = True
         except:
